@@ -1,0 +1,13 @@
+---
+- package: iperf version 3 network tester 
+  name: iperf
+  version: 3.3 
+  extension: tar.gz
+  description: Iperf3 version {{ version }}
+  root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"
+  build:
+    modules: 
+    target: 
+  install:
+    installextra: $(INSTALL) -m 644  README* LICENSE $(ROOT){{ root }}
+  
