@@ -1,0 +1,16 @@
+---
+- package: Nlopt - Non-linear optimization 
+  name: nlopt
+  version: 2.5.0
+  extension: tar.gz
+  description: Non-Linear optimization {{ version }}
+  root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"
+  build:
+    configure: cmake -DCMAKE_INSTALL_PREFIX={{ root }}
+    configure_args: . 
+    modules: 
+    target: 
+  install:
+     makeinstall: $(MAKE) DESTDIR=$(ROOT) install
+     installextra: $(INSTALL) -m 644  README* COPYING AUTHORS $(ROOT){{ root }}
+  requires: numpy 

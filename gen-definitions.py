@@ -127,13 +127,15 @@ print "DESCRIPTION \t = %s" % mk.rLookup("description")
 print "PKGROOT \t = %s" % mk.rLookup("root")
 
 # The following are optional and are put in try blocks
+stdconfigure = "+=" 
 try:
 	print "CONFIGURE \t = %s" % mk.rLookup("build.configure")
+	stdconfigure = "="
 except:
 	pass
 
 try:
-	print "CONFIGURE_ARGS \t += %s" % mk.rLookup("build.configure_args")
+	print "CONFIGURE_ARGS \t %s %s" % (stdconfigure, mk.rLookup("build.configure_args"))
 except:
 	pass
 try:
@@ -151,5 +153,9 @@ except:
 
 try:
 	print "INSTALLEXTRA\t = %s" % mk.rLookup("install.installextra")
+except:
+	pass
+try:
+	print "RPM.REQUIRES\t = %s" % mk.rLookup("requires")
 except:
 	pass

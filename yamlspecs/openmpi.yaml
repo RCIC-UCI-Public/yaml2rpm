@@ -4,7 +4,7 @@
   version: 2.1.1
   extension: tar.gz
   description: OpenMPI version {{ version }}
-  root: /{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}
+  root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"
   build:
     configure_args: --with-verbs --with-sge --with-slurm --enable-static 
     modules: opt-devel
