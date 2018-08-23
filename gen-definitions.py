@@ -37,31 +37,49 @@ class mkParser(object):
 			self.combo = self.defaults.copy()
 			self.combo.update(self.kvdict[0])
 
-	def lookup(self,e,ldict=None):
-		"""Looks up x.y.z references in multilevel dictionary"""
+	def lookup(self,e,ldict=None,stringify=True):
+		"""Looks up x.y.z references in multilevel dictionary
+		   stringify: True - return a string representation of contents
+                              False - return the contents (could be any python type)
+                   if the returned value is a list, this will flatten the list for
+                   simplicity """
+
 		if ldict is None:
 			ldict = self.combo
 		comps=e.split('.')
 		dkey = map(lambda x: "['%s']"%x, comps)
 		try:
-			rstr = str(eval("ldict%s"%"".join(dkey)))
+			val = eval("ldict%s"%"".join(dkey))
 		except:
-			rstr = str(ldict[e])
-		return rstr 
+			val = ldict[e]
+		#### print "BBBB", val
+		if type(val) is list: 
+			val = self.flatten(val)
+		if stringify:
+			return str(val)
+		else:
+			return val
 
-	def vLookup(self, v,vdict):
-		""" Takes a string of the form {{ ... }} and looks up the variable name """
-		return self.lookup(str(v).replace('{{','').replace('}}','').strip(),vdict)
+	def vLookup(self, v,vdict, stringify=True):
+		"""Takes a string of the form {{ ... }} and looks up the variable name """
+		return self.lookup(v.replace('{{','').replace('}}','').strip(),vdict,stringify)
 
 
-	def rLookup(self,e):
+	def rLookup(self,e,stringify=True):
 		"""resolve lookups"""
-		rhs = self.lookup(e)
-		resolved = self.replaceVars(rhs,self.varsdict)
+		rhs = self.lookup(e,self.combo,stringify)
+		if stringify:
+			resolved = self.replaceVars(rhs,self.varsdict)
+		else:
+			resolved = rhs
 		if resolved == "None":
 			return ''
 		return resolved
 		
+	def resolveStr(self,str):
+		""" Resolve a string with vars """
+		return self.replaceVars(str,self.varsdict)
+
 	def hasVars(self,s):
 		""" determine if a string has vars {{ }} """
 		return len(re.findall(self.varpat,str(s))) > 0
@@ -71,33 +89,63 @@ class mkParser(object):
 		return re.findall(self.varpat,str(s))
 
 	def extractVars(self,s):
-		""" return a list of "stripped" var names """
+		""" return a list of 'stripped' var names """
 		lvars = map(lambda x: x.replace('{{','').replace('}}','').strip(), 
 		re.findall(self.varpat,str(s)))
 		return lvars
 
-	def replaceVars(self, s, vdict):
-		""" replace the vars in string s with variables in a variables dict """
-		rval = str(s)
-		for var in self.varsInString(s):
-			rval = rval.replace(str(var),self.vLookup(var,vdict))
-		return rval 
+	def replaceVars(self, src, vdict):
+		""" replace the vars in src with variables in a variables dict  """
+		### print "XXXX", src, type(src)
+		work = src
+		if type(src) is not list:
+			work = [ str(src) ]
+		rwork=[]
+		for elem in work:
+			if type(elem) is type("string"):
+				newlist = []
+				for var in self.varsInString(elem):
+					expand = self.vLookup(var,vdict,stringify=False)
+					if type(expand) is type("string"):
+						elem = elem.replace(var,expand)
+					else:
+						# Variable expanded to another list, recurse
+						tmp = self.replaceVars(expand,vdict)
+						newlist.extend(tmp)
+				if len(newlist) == 0:
+					rwork.append(elem)
+				else:	
+					rwork.extend(newlist)
+			else:
+				tmp = self.replaceVars(elem,vdict)
+				rwork.append(tmp)
+		### print "ZZZZ", rwork
+		if len(rwork) == 1:
+			return rwork[0]
+		else:
+			return rwork
 
 	def setVar(self,vdict,v,value=''):
 		vdict[v] = value
 
 
 	def resolveVars(self):
-		# This loop finds all the vars that need to be replaced 
+		""" Resolve all variables in the combo dictionary. As variables are 
+                    are resolved, the object varsdict will hold the resolved versions """
+
+		# This loop finds all the vars that need to be replaced  in any definition
 		for key in self.combo.keys():
 			rhs = self.combo[key]
 			if self.hasVars(rhs):
 				for v in self.extractVars(rhs):
-					self.setVar(self.varsdict,v)
-		""" Do an initial pass of setting key-value pairs """
-		for v in self.varsdict.keys():
-			self.setVar(self.varsdict,v,self.lookup(v,self.combo))
+					self.setVar(self.varsdict,v,rhs)
 
+		# Do an initial pass of setting key-value pairs
+		# Do NOT Stringify at this point
+		for v in self.varsdict.keys():
+			self.setVar(self.varsdict,v,self.lookup(v,self.combo,False))
+
+		# print "QQQQ", "vardict", self.varsdict
 		while True:
 			changed = 0
 			for v in self.varsdict.keys():
@@ -108,6 +156,41 @@ class mkParser(object):
 			if changed == 0:
 				break
 
+
+	def flatten(self, mllist):
+		""" recursive method to flatten list of elements where each element
+			might itself be a list """
+		if type(mllist) is not list:
+			return None
+		sublists = filter(lambda x: type(x) is list, mllist)
+		literals = filter(lambda x: type(x) is not list, mllist)
+		if len(sublists) == 0:
+			return literals
+		else:
+			literals.extend(self.flatten([val for sub in sublists for val in sub]))
+			return literals
+
+class moduleGenerator(object):
+	def __init__(self,mkp):
+		""" mkp is an mkParser, already initialized """
+		self.mk = mkp
+		self.header = ""
+		self.description = ""
+		self.whatis = "module-whatis %s"
+		self.logger = "if { [ module-info mode load ] } {\n  %s\n}"
+		self.logger2 = 'if { [ module-info mode load ] } {\n  puts stderr "%s"\n}'
+
+ 	def prepend_path(self):
+		""" create the prepend-path elements """
+		rstr = ""
+		entries = self.mk.rLookup("module.prepend_path", stringify=False)
+		paths = [ self.mk.resolveStr(p) for p in entries ]
+		paths = self.mk.flatten(paths)
+		template = "prepend-path\t%s\t%s\n"
+		for path in paths:
+			pName,pPath = path.split(None,2)
+			rstr += template % ( self.mk.resolveStr(pName), self.mk.resolveStr(pPath))
+		return rstr
 
 
 yamlfile = sys.argv[1]
@@ -159,3 +242,6 @@ try:
 	print "RPM.REQUIRES\t = %s" % mk.rLookup("requires")
 except:
 	pass
+
+mg = moduleGenerator(mk)
+print "module prepend\n%s" %mg.prepend_path() 
