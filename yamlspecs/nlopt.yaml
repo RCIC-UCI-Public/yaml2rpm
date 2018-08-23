@@ -3,6 +3,7 @@
   name: nlopt
   version: 2.5.0
   extension: tar.gz
+  pkgname: "{{ name }}"
   description: Non-Linear optimization {{ version }}
   root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"
   build:
@@ -11,6 +12,11 @@
     modules: 
     target: 
   install:
-     makeinstall: $(MAKE) DESTDIR=$(ROOT) install
-     installextra: $(INSTALL) -m 644  README* COPYING AUTHORS $(ROOT){{ root }}
-  requires: numpy 
+    makeinstall: $(MAKE) DESTDIR=$(ROOT) install
+    installextra: $(INSTALL) -m 644  README* COPYING AUTHORS $(ROOT){{ root }}
+  requires: 
+    - numpy 
+  module:
+    prepend_path: 
+      - "{{ pkg_defaults.module.prepend_path }}"
+      - MYPATH elmo

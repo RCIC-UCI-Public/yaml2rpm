@@ -4,6 +4,8 @@
 import yaml
 import re
 import sys
+import datetime
+import socket 
 
 class mkParser(object):
 	def __init__(self):
@@ -174,11 +176,28 @@ class moduleGenerator(object):
 	def __init__(self,mkp):
 		""" mkp is an mkParser, already initialized """
 		self.mk = mkp
-		self.header = ""
-		self.description = ""
-		self.whatis = "module-whatis %s"
+		self.name = self.mk.rLookup("name")
+		self.version = self.mk.rLookup("version")
+		self.description = self.mk.rLookup("description") 
 		self.logger = "if { [ module-info mode load ] } {\n  %s\n}"
 		self.logger2 = 'if { [ module-info mode load ] } {\n  puts stderr "%s"\n}'
+
+	def gen_header(self):
+		profile = """#%%Module1.0#####################################################################
+## module.skeleton adapted from modulizer script originally written by Harry Mangalam (hjm)
+## Date: %s
+## Built on: %s
+""" 
+		rstr = profile % (str(datetime.date.today()),socket.getfqdn())	
+		return rstr
+	def gen_whatis(self):
+		desc = """set DESC \"                            %s/%s
+%s
+\"
+"""
+		rstr =  desc % (self.name, self.version, self.description)
+		rstr += 'module-whatis "\n$DESC\n"'
+		return rstr
 
  	def prepend_path(self):
 		""" create the prepend-path elements """
@@ -192,56 +211,89 @@ class moduleGenerator(object):
 			rstr += template % ( self.mk.resolveStr(pName), self.mk.resolveStr(pPath))
 		return rstr
 
+	def generate(self):
+		""" return a string that can written as  module file """
+		rstr = ""
+		rstr += self.gen_header()
+		rstr += self.gen_whatis()
+		rstr += "module prepend\n%s\n" % self.prepend_path() 
+		return rstr
 
+class makeIncludeGenerator(object):
+	""" Create output for Definitions.mk """
+	def __init__(self,mkp):
+		""" mkp is an mkParser, already initialized """
+		self.mk = mkp
+
+	def generate(self):
+		rstr = ""
+		# The following are required keys -- throw an error if they don't exist
+		rstr += "TARNAME\t = %s\n" % self.mk.rLookup("name")
+		rstr += "VERSION\t = %s\n" % str(self.mk.rLookup("version"))
+		try:
+			rstr += "NAME\t = %s\n" % self.mk.rLookup("pkgname")
+		except:
+			rstr += "NAME\t = $(TARNAME)_$(VERSION)\n"
+		rstr += "TARBALL-EXTENSION \t = %s\n" % self.mk.rLookup("extension")
+		rstr += "DESCRIPTION \t = %s\n" % self.mk.rLookup("description")
+		rstr += "PKGROOT \t = %s\n" % self.mk.rLookup("root")
+
+		# The following are optional and are put in try blocks
+		stdconfigure = "+=" 
+		try:
+			rstr +=  "CONFIGURE \t = %s\n" % self.mk.rLookup("build.configure")
+			stdconfigure = "="
+		except:
+			pass
+
+		try:
+			rstr += "CONFIGURE_ARGS \t %s %s\n" %  \
+				(stdconfigure, self.mk.rLookup("build.configure_args"))
+		except:
+			pass
+		try:
+			mods = self.mk.rLookup("build.modules", stringify=False)
+			if type(mods) is list:
+				jmods = ",".join(mods)
+				mods=jmods
+			if mods is None:
+				mods = ""
+			rstr += "MODULES \t = %s\n" % mods 
+		except:
+			pass
+		try:
+			rstr += "BUILDTARGET \t = %s\n" % self.mk.rLookup("build.target")
+		except:
+			pass
+		try:
+			rstr += "MAKEINSTALL \t = %s\n" % self.mk.rLookup("install.makeinstall")
+		except:
+			pass
+
+		try:
+			rstr += "INSTALLEXTRA\t = %s\n" % self.mk.rLookup("install.installextra")
+		except:
+			pass
+		try:
+			reqs =  self.mk.rLookup("requires",stringify=False)
+			print reqs,type(reqs)
+			if type(reqs) is list:
+				jreqs = ",".join(reqs)
+				reqs = jreqs
+			rstr += "RPM.REQUIRES\t = %s\n" % reqs
+		except:
+			pass
+		return rstr
 yamlfile = sys.argv[1]
-mk = mkParser()
-mk.readPkgYaml(yamlfile)
-mk.readDefaultsYaml("pkg-defaults.yaml")
-mk.resolveVars()
-keys = ("package","name","version","extension","description","root","build.configure","install.makeinstall","install.installextra") 
+mkP = mkParser()
+mkP.readPkgYaml(yamlfile)
+mkP.readDefaultsYaml("pkg-defaults.yaml")
+mkP.resolveVars()
 
+mg = moduleGenerator(mkP)
+mig = makeIncludeGenerator(mkP)
 
-# The following are required keys -- throw an error if they don't exist
-print "TARNAME\t = %s" % mk.rLookup("name")
-print "VERSION\t = %s" % str(mk.rLookup("version"))
-print "NAME\t = $(TARNAME)_$(VERSION)"
-print "TARBALL-EXTENSION \t = %s" % mk.rLookup("extension")
-print "DESCRIPTION \t = %s" % mk.rLookup("description")
-print "PKGROOT \t = %s" % mk.rLookup("root")
-
-# The following are optional and are put in try blocks
-stdconfigure = "+=" 
-try:
-	print "CONFIGURE \t = %s" % mk.rLookup("build.configure")
-	stdconfigure = "="
-except:
-	pass
-
-try:
-	print "CONFIGURE_ARGS \t %s %s" % (stdconfigure, mk.rLookup("build.configure_args"))
-except:
-	pass
-try:
-	print "MODULES \t = %s" % mk.rLookup("build.modules")
-except:
-	pass
-try:
-	print "BUILDTARGET \t = %s" % mk.rLookup("build.target")
-except:
-	pass
-try:
-	print "MAKEINSTALL \t = %s" % mk.rLookup("install.makeinstall")
-except:
-	pass
-
-try:
-	print "INSTALLEXTRA\t = %s" % mk.rLookup("install.installextra")
-except:
-	pass
-try:
-	print "RPM.REQUIRES\t = %s" % mk.rLookup("requires")
-except:
-	pass
-
-mg = moduleGenerator(mk)
-print "module prepend\n%s" %mg.prepend_path() 
+if len(sys.argv) == 3:
+	print mg.generate() 
+else:
+	print mig.generate()
