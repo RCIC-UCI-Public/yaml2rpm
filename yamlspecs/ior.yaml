@@ -1,0 +1,14 @@
+---
+- package: IOR bandwidth testing 
+  name: ior
+  version: 3.0.1
+  extension: tar.gz
+  description: IOR Version {{ version }}
+  root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"
+  build:
+    configure: ./bootstrap; ./configure 
+    modules:  rocks-openmpi
+    target: 
+  install:
+    installextra: $(INSTALL) -m 644  README* COPYRIGHT $(ROOT){{ root }}
+  

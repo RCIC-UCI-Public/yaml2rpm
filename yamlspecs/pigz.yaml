@@ -1,7 +1,7 @@
 ---
 - package: Parallel gzip 
   name: pigz
-  version: 2.4
+  version: "2.4"
   extension: tar.gz
   description: Pigz Parallel Gzip version {{ version }}
   root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"
