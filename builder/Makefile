@@ -29,6 +29,7 @@ build:
 		module purge; 					\
 		if [ "$(MODULES)" !=  "" ]; then module load $(MODULES); fi; 			\
 		cd $(SRC_DIR);					\
+		$(PATCH) $(PATCH_ARGS) < ../$(PATCH_FILE);  		\
 		$(CONFIGURE) $(CONFIGURE_ARGS);  		\
 		$(MAKE) $(BUILDTARGET) ;			\
 		module purge; 					\

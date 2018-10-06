@@ -1,6 +1,7 @@
 ---
 pkg_defaults:
   app_path: /data/apps
+  foundation: /opt/software
   module:
     prepend_path: 
       - PATH {{ root }}/bin

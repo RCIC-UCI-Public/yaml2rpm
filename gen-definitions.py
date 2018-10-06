@@ -265,6 +265,13 @@ class makeIncludeGenerator(object):
 			rstr += "BUILDTARGET \t = %s\n" % self.mk.rLookup("build.target")
 		except:
 			pass
+
+		try:
+			rstr += "PATCH_FILE \t = %s\n" % self.mk.rLookup("build.patchfile")
+			rstr += "PATCH \t = $(PATCH_CMD)\n" 
+		except:
+			rstr += "PATCH \t = $(PATCH_NONE)\n" 
+
 		try:
 			rstr += "MAKEINSTALL \t = %s\n" % self.mk.rLookup("install.makeinstall")
 		except:
@@ -276,13 +283,24 @@ class makeIncludeGenerator(object):
 			pass
 		try:
 			reqs =  self.mk.rLookup("requires",stringify=False)
-			print reqs,type(reqs)
+			### print reqs,type(reqs)
 			if type(reqs) is list:
 				jreqs = ",".join(reqs)
 				reqs = jreqs
 			rstr += "RPM.REQUIRES\t = %s\n" % reqs
 		except:
 			pass
+
+
+		try:
+			files =  self.mk.rLookup("files",stringify=False)
+			if type(files) is list:
+				allfiles = "\n".join(files)
+				files = allfiles 
+			rstr += "RPM.FILES\t = %s\n" % self.mk.resolveStr(files) 
+		except:
+			rstr += "RPM.FILES\t = $(PKGROOT)\n" % files 
+
 		return rstr
 yamlfile = sys.argv[1]
 mkP = mkParser()

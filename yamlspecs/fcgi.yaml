@@ -1,0 +1,16 @@
+---
+- package: fast CGI library support 
+  name: fcgi 
+  version: 2.4.0
+  extension: tar.gz
+  pkgname: "foundation-{{ name }}"
+  description: FastCGI libary support {{ version }}
+  root: "{{ pkg_defaults.foundation }}/{{ name }}"
+  build:
+    modules: 
+    target: 
+    patchfile: "{{ name }}-{{ version }}.patch"
+  install:
+    installextra: $(INSTALL) -m 644  README* LICENSE $(ROOT){{ root }}
+  files:
+    - "{{ root }}" 
