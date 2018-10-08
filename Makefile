@@ -13,5 +13,5 @@ cleansources:
 	- /bin/rm -rf sources
 
 veryclean: clean cleansources
-	
+	make -C yamlspecs veryclean	
 

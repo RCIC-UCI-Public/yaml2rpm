@@ -272,9 +272,9 @@ class makeIncludeGenerator(object):
 
 		try:
 			rstr += "PATCH_FILE \t = %s\n" % self.mk.rLookup("build.patchfile")
-			rstr += "PATCH \t = $(PATCH_CMD)\n" 
+			rstr += "PATCH_METHOD \t = $(PATCH_CMD)\n" 
 		except:
-			rstr += "PATCH \t = $(PATCH_NONE)\n" 
+			rstr += "PATCH_METHOD \t = $(PATCH_NONE)\n" 
 
 		try:
 			rstr += "MAKEINSTALL \t = %s\n" % self.mk.rLookup("install.makeinstall")
@@ -303,7 +303,7 @@ class makeIncludeGenerator(object):
 				files = allfiles 
 			rstr += "RPM.FILES\t = %s\n" % self.mk.resolveStr(files) 
 		except:
-			rstr += "RPM.FILES\t = $(PKGROOT)\n" % files 
+			rstr += "RPM.FILES\t = $(PKGROOT)\n" 
 
 		return rstr
 

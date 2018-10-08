@@ -1,6 +1,3 @@
-REDHAT.ROOT = $(CURDIR)/../../
-
-
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
 include Override.mk
@@ -29,7 +26,7 @@ build:
 		module purge; 					\
 		if [ "$(MODULES)" !=  "" ]; then module load $(MODULES); fi; 			\
 		cd $(SRC_DIR);					\
-		$(PATCH) $(PATCH_ARGS) < ../$(PATCH_FILE);  		\
+		$(PATCH_METHOD) $(PATCH_ARGS) < ../$(PATCH_FILE);  		\
 		$(CONFIGURE) $(CONFIGURE_ARGS);  		\
 		$(MAKE) $(BUILDTARGET) ;			\
 		module purge; 					\
