@@ -3,6 +3,7 @@
   name: fcgi 
   version: 2.4.0
   extension: tar.gz
+  vendor_source: https://fossies.org/linux/www/old/fcgi-2.4.0.tar.gz
   pkgname: "foundation-{{ name }}"
   description: FastCGI libary support {{ version }}
   root: "{{ pkg_defaults.foundation }}/{{ name }}"
