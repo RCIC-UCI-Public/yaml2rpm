@@ -6,6 +6,7 @@ import re
 import sys
 import datetime
 import socket 
+import getopt
 
 class mkParser(object):
 	def __init__(self):
@@ -196,13 +197,16 @@ class moduleGenerator(object):
 \"
 """
 		rstr =  desc % (self.name, self.version, self.description)
-		rstr += 'module-whatis "\n$DESC\n"'
+		rstr += 'module-whatis "\n$DESC\n"\n'
 		return rstr
 
  	def prepend_path(self):
 		""" create the prepend-path elements """
 		rstr = ""
-		entries = self.mk.rLookup("module.prepend_path", stringify=False)
+		try:
+			entries = self.mk.rLookup("module.prepend_path", stringify=False)
+		except:
+			return rstr
 		paths = [ self.mk.resolveStr(p) for p in entries ]
 		paths = self.mk.flatten(paths)
 		template = "prepend-path\t%s\t%s\n"
@@ -302,16 +306,53 @@ class makeIncludeGenerator(object):
 			rstr += "RPM.FILES\t = $(PKGROOT)\n" % files 
 
 		return rstr
-yamlfile = sys.argv[1]
-mkP = mkParser()
-mkP.readPkgYaml(yamlfile)
-mkP.readDefaultsYaml("pkg-defaults.yaml")
-mkP.resolveVars()
 
-mg = moduleGenerator(mkP)
-mig = makeIncludeGenerator(mkP)
 
-if len(sys.argv) == 3:
-	print mg.generate() 
-else:
-	print mig.generate()
+## *****************************
+## main routine
+## *****************************
+
+def usage():
+	print 'gen-defintions.py [-d <defaults file>] [-m] [-h] <pkg file>'
+	print '     -d <defaults file>  - YAML file for packaging defaults'
+	print '     -m                  - generate environment modules file'
+	print '     -h                  - print this help'
+	print '     <pkg file>  	- YAML file with packaging definitions'
+
+def main(argv):
+	doModule = False 
+	dflts_file = 'pkg-defaults.yaml'
+	try:
+		opts, args = getopt.getopt(argv,"d:hm",["defaults=","help","module"])
+	except getopt.GetoptError:
+		usage()
+		sys.exit(2)
+	for opt, arg in opts:
+		if opt in ("-h", "--help"):
+		 	usage()	
+			sys.exit()
+		elif opt in ("-d", "--defaults"):
+			dflts_file = arg
+		elif opt in ("-m", "--module"):
+		 	doModule = True	
+
+		
+
+##	Open files, parse, generate
+	yamlfile = sys.argv[-1]
+	mkP = mkParser()
+	mkP.readPkgYaml(yamlfile)
+	mkP.readDefaultsYaml(dflts_file)
+	mkP.resolveVars()
+
+	mg = moduleGenerator(mkP)
+	mig = makeIncludeGenerator(mkP)
+
+	if doModule: 
+		print mg.generate() 
+	else:
+		print mig.generate()
+
+if __name__ == "__main__":
+	main(sys.argv[1:])
+		

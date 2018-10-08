@@ -19,4 +19,3 @@
   module:
     prepend_path: 
       - "{{ pkg_defaults.module.prepend_path }}"
-      - MYPATH elmo
