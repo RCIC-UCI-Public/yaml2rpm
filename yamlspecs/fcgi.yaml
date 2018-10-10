@@ -8,6 +8,7 @@
   description: FastCGI libary support {{ version }}
   root: "{{ pkg_defaults.foundation }}/{{ name }}"
   build:
+    configure_args: --enable-static 
     modules: 
     target: 
     patchfile: "{{ name }}-{{ version }}.patch"

@@ -307,6 +307,44 @@ class makeIncludeGenerator(object):
 
 		return rstr
 
+class queryProcessor(object):
+	""" Query based on the yaml file """
+	def __init__(self,mkp):
+		""" mkp is an mkParser, already initialized """
+		self.mk = mkp
+
+	def processQuery(self,query,quiet=False):
+		rq = query.strip().lower()
+		if rq == "patch":
+			rq = "build.patchfile"
+		elif rq == "source":
+			rq = "vendor_source"
+
+		if rq == "tarball":
+			rstr = self.mk.rLookup("name")
+			rstr += "-%s" % str(self.mk.rLookup("version"))
+			rstr += ".%s" % self.mk.rLookup("extension")
+			print rstr
+			sys.exit(0)
+		if rq == "pkgname":
+			try:
+				rstr = self.mk.rLookup("pkgname")
+			except:
+				rstr = "%s_%s" % (self.mk.rLookup("name"), self.mk.rLookup("version")) 
+			print rstr
+			sys.exit(0)
+		try:
+			rval = self.mk.rLookup(rq)
+		except:
+			if not quiet:
+				print 'False'
+			sys.exit(-1)
+			
+		if not quiet:
+			if len(rval) > 0:
+				print rval
+			else:
+				print 'True'
 
 ## *****************************
 ## main routine
@@ -316,14 +354,18 @@ def usage():
 	print 'gen-defintions.py [-d <defaults file>] [-m] [-h] <pkg file>'
 	print '     -d <defaults file>  - YAML file for packaging defaults'
 	print '     -m                  - generate environment modules file'
+	print '	    -q <type>		- query [types: patch, module, source, pkgname, tarball]'
 	print '     -h                  - print this help'
 	print '     <pkg file>  	- YAML file with packaging definitions'
 
 def main(argv):
 	doModule = False 
+	doQuery = False 
+	queryType = ''
+	quiet = False
 	dflts_file = 'pkg-defaults.yaml'
 	try:
-		opts, args = getopt.getopt(argv,"d:hm",["defaults=","help","module"])
+		opts, args = getopt.getopt(argv,"d:hmq:Q",["defaults=","help","module","query=","quiet"])
 	except getopt.GetoptError:
 		usage()
 		sys.exit(2)
@@ -335,6 +377,11 @@ def main(argv):
 			dflts_file = arg
 		elif opt in ("-m", "--module"):
 		 	doModule = True	
+		elif opt in ("-q", "--query"):
+		 	doQuery = True	
+			queryType = arg
+		elif opt in ("-Q", "--quiet"):
+		 	quiet = True	
 
 		
 
@@ -347,9 +394,12 @@ def main(argv):
 
 	mg = moduleGenerator(mkP)
 	mig = makeIncludeGenerator(mkP)
+	qp = queryProcessor(mkP)
 
 	if doModule: 
 		print mg.generate() 
+	elif doQuery:
+		qp.processQuery(queryType,quiet)
 	else:
 		print mig.generate()
 

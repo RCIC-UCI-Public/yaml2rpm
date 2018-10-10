@@ -13,4 +13,4 @@
   install:
      makeinstall: $(INSTALL) -m 755 *{{ name }} $(ROOT)/{{ root }}
      installextra: $(INSTALL) -m 644  README $(ROOT){{ root }}
-  requires: zlib, pthread
+  requires: zlib

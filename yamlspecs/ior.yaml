@@ -12,4 +12,5 @@
     modules: mpi
   install:
     installextra: $(INSTALL) -m 644  README* COPYRIGHT $(ROOT){{ root }}
+  requires: openmpi
   
