@@ -1,3 +1,2 @@
 # Modules to build AND install locally. Order IS important
-fcgi
-pigz
+pycogent

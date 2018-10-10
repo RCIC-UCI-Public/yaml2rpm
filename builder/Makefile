@@ -2,6 +2,10 @@
 include Rules.mk
 include Override.mk
 
+ifndef  PKGMAKE
+PKGMAKE = $(MAKE) 
+endif
+
 ## These exist so that CUSTOM_* can be used in shell scripts without
 ## create syntax errors
 
@@ -10,6 +14,7 @@ CUSTOM_MAKEINSTALL =  echo
 else
 CUSTOM_MAKEINSTALL = $(MAKEINSTALL)
 endif 
+
 ifndef INSTALLEXTRA
 CUSTOM_INSTALLEXTRA =  echo
 else
@@ -28,7 +33,7 @@ build:
 		cd $(SRC_DIR);					\
 		$(PATCH_METHOD) $(PATCH_ARGS) < ../$(PATCH_FILE);  		\
 		$(CONFIGURE) $(CONFIGURE_ARGS);  		\
-		$(MAKE) $(BUILDTARGET) ;			\
+		$(PKGMAKE) $(BUILDTARGET) ;			\
 		module purge; 					\
 	)
 

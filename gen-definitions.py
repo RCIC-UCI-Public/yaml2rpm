@@ -271,6 +271,11 @@ class makeIncludeGenerator(object):
 			pass
 
 		try:
+			rstr += "PKGMAKE \t = %s\n" % self.mk.rLookup("build.pkgmake")
+		except:
+			pass
+
+		try:
 			rstr += "PATCH_FILE \t = %s\n" % self.mk.rLookup("build.patchfile")
 			rstr += "PATCH_METHOD \t = $(PATCH_CMD)\n" 
 		except:
@@ -299,7 +304,7 @@ class makeIncludeGenerator(object):
 		try:
 			files =  self.mk.rLookup("files",stringify=False)
 			if type(files) is list:
-				allfiles = "\n".join(files)
+				allfiles = " \\n\\\n".join(files)
 				files = allfiles 
 			rstr += "RPM.FILES\t = %s\n" % self.mk.resolveStr(files) 
 		except:

@@ -9,6 +9,7 @@ SOURCES = ../sources
 
 MODULES = $(shell  grep -v '\#' modules.build | sed 's/$$/.yaml/') 
 BOOTSTRAP_MODULES = $(shell  grep -v '\#' modules.bootstrap) 
+BOOTSTRAP_SYSTEM = $(shell  grep -v '\#' modules.system) 
 
 PKGS = $(MODULES:.yaml=.pkg)
 
@@ -27,6 +28,7 @@ default: $(PKGS)
 	touch $@
 
 bootstrap: 
+	yum -y install $(BOOTSTRAP_SYSTEM) 
 	( for mod in $(BOOTSTRAP_MODULES); do					\
 		make $$mod.pkg;							\
 		make -C $(LOCALREPODIR) createlocalrepo; 			\

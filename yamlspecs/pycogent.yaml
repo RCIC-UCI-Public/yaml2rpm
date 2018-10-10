@@ -1,0 +1,28 @@
+---
+- package: PyCogent software library for genomic biology 
+  name: pycogent 
+  version: "1.9"
+  extension: tar.gz
+  python: python
+  pkgname: "{{ name }}"
+  vendor_source: https://github.com/pycogent/pycogent/archive/1.9.tar.gz 
+  description: >
+    PyCogent version {{ version }}.
+    PyCogent is a software library for genomic biology. It is a fully integrated and thoroughly 
+    tested framework for: controlling third-party applications; devising workflows; querying databases; 
+    conducting novel probabilistic analyses of biological sequence evolution; and generating publication 
+    quality graphics. It is distinguished by many unique built-in capabilities 
+    (such as true codon alignment) and the frequent addition of entirely new methods for the analysis of 
+    genomic data.
+  root: "{{ pkg_defaults.python_pkgs }}/{{ name }}"
+  build:
+    configure: echo 
+    modules: 
+    pkgmake: "{{ python }}"
+    target: setup.py build
+  install:
+     makeinstall: "{{ python }} setup.py install  --root=$(ROOT)"
+  files:
+    - /usr/lib64/python2.7/site-packages/*
+  requires:
+    - numpy

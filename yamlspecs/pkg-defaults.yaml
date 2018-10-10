@@ -2,6 +2,8 @@
 pkg_defaults:
   app_path: /data/apps
   foundation: /opt/software
+  python_base: /usr/lib64/python2.7/ 
+  python_pkgs: "{{ pkg_defaults.python_base }}/site-packages"
   module:
     prepend_path: 
       - PATH {{ root }}/bin
