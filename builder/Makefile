@@ -48,6 +48,10 @@ install::
 		else 						\
 			$(CUSTOM_MAKEINSTALL);				\
 		fi;						\
+		if [ "$(MODULENAME)" != "" -a "$(MODULESPATH)" != "" ]; then		\
+			mkdir -p $(ROOT)/$(MODULESPATH);     				\
+			$(INSTALL) -m 644 ../modulefile $(ROOT)/$(MODULESPATH)/$(MODULENAME);  	\
+		fi;								\
 		if [ "$(INSTALLEXTRA)" != "" ]; then $(CUSTOM_INSTALLEXTRA); fi; \
 		module purge; 					\
 	)

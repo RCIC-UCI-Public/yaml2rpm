@@ -22,6 +22,7 @@ default: $(PKGS)
 %.pkg : %.yaml
 	make cleantmp $(TMPBUILD)
 	$(GENERATE) $< > $(TMPBUILD)/$(DEFINITIONS)
+	- $(GENERATE) -m $< > $(TMPBUILD)/modulefile
 	- install $$($(GENERATE) --query=patch $<) $(TMPBUILD)
 	- install  $(SOURCES)/$$($(GENERATE) --query=tarball $<) $(TMPBUILD)
 	make -C $(TMPBUILD) pkg

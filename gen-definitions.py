@@ -220,7 +220,7 @@ class moduleGenerator(object):
 		rstr = ""
 		rstr += self.gen_header()
 		rstr += self.gen_whatis()
-		rstr += "module prepend\n%s\n" % self.prepend_path() 
+		rstr += self.prepend_path() 
 		return rstr
 
 class makeIncludeGenerator(object):
@@ -265,6 +265,21 @@ class makeIncludeGenerator(object):
 			rstr += "MODULES \t = %s\n" % mods 
 		except:
 			pass
+
+		try:
+                        mpath = ''
+			mpath = self.mk.rLookup("module.path")
+		except:
+			pass
+		rstr += "MODULESPATH \t = %s\n" % mpath 
+
+		try:
+                        mname = ''
+			mname = self.mk.rLookup("module.name")
+		except:
+			pass
+		rstr += "MODULENAME \t = %s\n" % mname 
+
 		try:
 			rstr += "BUILDTARGET \t = %s\n" % self.mk.rLookup("build.target")
 		except:
