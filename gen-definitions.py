@@ -242,6 +242,11 @@ class makeIncludeGenerator(object):
 		rstr += "DESCRIPTION \t = %s\n" % self.mk.rLookup("description")
 		rstr += "PKGROOT \t = %s\n" % self.mk.rLookup("root")
 
+		try:
+			rstr +=  "SRC_DIR\t = %s\n" % self.mk.rLookup("src_dir")
+		except:
+			pass
+
 		# The following are optional and are put in try blocks
 		stdconfigure = "+=" 
 		try:

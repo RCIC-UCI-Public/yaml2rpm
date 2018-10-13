@@ -1,0 +1,30 @@
+---
+- package: llvm 
+  name: llvm
+  version: 7.0.0
+  extension: src.tar.gz
+  vendor_source: http://releases.llvm.org/7.0.0/llvm-7.0.0.src.tar.xz
+  description: >
+    LLVM version {{ version }}.  The LLVM Project is a collection of modular and reusable compiler 
+    and toolchain technologies. Despite its name, LLVM has little to do with traditional virtual machines. 
+    The name "LLVM" itself is not an acronym; it is the full name of the project.
+  pkgname: foundation-{{ name }}
+  root: "{{ pkg_defaults.foundation }}/{{ name }}/{{ version }}"
+  src_dir: "{{ name }}-{{ version }}.src"
+  build:
+    configure: (mkdir builddir; cd builddir; cmake --prefix={{ root }} ..)
+    configure_args: 
+    modules: cmake
+    pkgmake: cmake
+    target: --build builddir
+  module:
+    name: "{{ version }}"
+    path: "{{ pkg_defaults.module.path }}/{{ package }}"
+    prepend_path:
+      - "{{ pkg_defaults.module.prepend_path }}"
+  install:
+    makeinstall: (cd builddir; {{ build.pkgmake }} -DCMAKE_INSTALL_PREFIX=$(ROOT)/{{ root }} -P cmake_install.cmake) 
+    installextra: $(INSTALL) -m 644  README* LICENSE $(ROOT)/{{ root }}
+  files:
+    -  "{{ root }}"
+    -  "{{ module.path }}/{{ module.name }}" 

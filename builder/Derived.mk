@@ -1,6 +1,8 @@
 # These are Derived Makefile definitions based on Rules.mk Defaults.mk Definitions.mk
 SRC_TARBALL =  $(TARNAME)-$(VERSION).$(TARBALL-EXTENSION)
+ifndef SRC_DIR
 SRC_DIR	= $(TARNAME)-$(VERSION)
+endif
 
 ## Files for Package
 CONFIG.DESCRIPTION = $(CONFIGURE) $(CONFIGURE_ARGS)
