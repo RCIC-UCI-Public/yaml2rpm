@@ -2,7 +2,7 @@
 - package: llvm 
   name: llvm
   version: 7.0.0
-  extension: src.tar.gz
+  extension: src.tar.xz
   vendor_source: http://releases.llvm.org/7.0.0/llvm-7.0.0.src.tar.xz
   description: >
     LLVM version {{ version }}.  The LLVM Project is a collection of modular and reusable compiler 

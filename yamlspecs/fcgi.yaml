@@ -13,6 +13,6 @@
     target: 
     patchfile: "{{ name }}-{{ version }}.patch"
   install:
-    installextra: $(INSTALL) -m 644  README* LICENSE $(ROOT){{ root }}
+    installextra: $(INSTALL) -m 644  README* LICENSE $(ROOT)/{{ root }}
   files:
     - "{{ root }}" 
