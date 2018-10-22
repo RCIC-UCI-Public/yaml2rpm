@@ -1,2 +1,5 @@
 # Modules to build. Order is NOT important
+fcgi
+ior
+pigz
 yaml2rpm
