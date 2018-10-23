@@ -13,6 +13,8 @@ RPM.PROVIDES	= $(TARNAME),$(VERSION)
 #COMPRESSED CAT
 ifneq (,$(findstring bz2, $(TARBALL-EXTENSION)))
 CAT-COMPRESS = bzcat
+else ifneq (,$(findstring xz, $(TARBALL-EXTENSION)))
+CAT-COMPRESS = xzcat
 else
 CAT-COMPRESS = zcat
 endif

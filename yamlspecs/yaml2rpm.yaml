@@ -14,8 +14,9 @@
     to the essentials into a yaml file that goes through some automated steps to create an RPM.
   pretar: >
     mkdir {{ name }}-{{ version }};
-    tar cf - Makefile pkg-defaults.yaml ../gen-definitions.py ../README.md ../builder samples |
+    tar cf - ../Makefile ../gen-definitions.py ../README.md ../builder samples |
     tar xf - -C {{ name }}-{{ version }};
+    install Makefile {{ name }}-{{ version }}/samples;
     tar czf ../sources/{{ srctar }} {{ name }}-{{ version }} 
   build:
     configure: echo

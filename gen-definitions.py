@@ -243,6 +243,10 @@ class makeIncludeGenerator(object):
 		rstr += "PKGROOT \t = %s\n" % self.mk.rLookup("root")
 
 		try:
+			rstr += "VENDOR\t = %s\n" % self.mk.rLookup("vendor")
+		except:
+			pass
+		try:
 			rstr +=  "SRC_DIR\t = %s\n" % self.mk.rLookup("src_dir")
 		except:
 			pass
