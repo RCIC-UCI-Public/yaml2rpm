@@ -40,10 +40,12 @@ class mkParser(object):
 			self.combo = self.defaults.copy()
 			self.combo.update(self.kvdict[0])
 
-	def lookup(self,e,ldict=None,stringify=True):
+	def lookup(self,e,ldict=None,stringify=True,listSep=None):
 		"""Looks up x.y.z references in multilevel dictionary
 		   stringify: True - return a string representation of contents
                               False - return the contents (could be any python type)
+		   listSep:  for String representations of lists use listSep as separator
+                             if L=[a,b,c] will return 'a' listSep 'b' listSep 'c'
                    if the returned value is a list, this will flatten the list for
                    simplicity """
 
@@ -59,7 +61,10 @@ class mkParser(object):
 		if type(val) is list: 
 			val = self.flatten(val)
 		if stringify:
-			return str(val)
+			if listSep is not None:
+				return listSep.join(val)
+			else:
+				return str(val)
 		else:
 			return val
 
@@ -68,9 +73,9 @@ class mkParser(object):
 		return self.lookup(v.replace('{{','').replace('}}','').strip(),vdict,stringify)
 
 
-	def rLookup(self,e,stringify=True):
+	def rLookup(self,e,stringify=True,listSep=None):
 		"""resolve lookups"""
-		rhs = self.lookup(e,self.combo,stringify)
+		rhs = self.lookup(e,self.combo,stringify,listSep)
 		if stringify:
 			resolved = self.replaceVars(rhs,self.varsdict)
 		else:
@@ -252,6 +257,11 @@ class makeIncludeGenerator(object):
 			pass
 
 		# The following are optional and are put in try blocks
+		try:
+			rstr +=  "PRECONFIGURE\t = %s\n" % self.mk.rLookup("build.preconfigure")
+		except:
+		 	rstr += "PRECONFIGURE = 'echo no preconfigure required'"
+
 		stdconfigure = "+=" 
 		try:
 			rstr +=  "CONFIGURE \t = %s\n" % self.mk.rLookup("build.configure")
@@ -342,7 +352,7 @@ class queryProcessor(object):
 		""" mkp is an mkParser, already initialized """
 		self.mk = mkp
 
-	def processQuery(self,query,quiet=False):
+	def processQuery(self,query,quiet=False,listSep=None):
 		rq = query.strip().lower()
 		if rq == "patch":
 			rq = "build.patchfile"
@@ -363,7 +373,9 @@ class queryProcessor(object):
 			print rstr
 			sys.exit(0)
 		try:
-			rval = self.mk.rLookup(rq)
+			rval = self.mk.rLookup(rq,listSep=listSep)
+			if type(rval) is list and listSep is not None:
+				rval = listSep.join(rval)
 		except:
 			if not quiet:
 				print 'False'
@@ -393,8 +405,9 @@ def main(argv):
 	queryType = ''
 	quiet = False
 	dflts_file = 'pkg-defaults.yaml'
+	listSep = None
 	try:
-		opts, args = getopt.getopt(argv,"d:hmq:Q",["defaults=","help","module","query=","quiet"])
+		opts, args = getopt.getopt(argv,"d:hl:mq:Q",["defaults=","help","module","listsep=","query=","quiet"])
 	except getopt.GetoptError:
 		usage()
 		sys.exit(2)
@@ -404,6 +417,8 @@ def main(argv):
 			sys.exit()
 		elif opt in ("-d", "--defaults"):
 			dflts_file = arg
+		elif opt in ("-l", "--listsep"):
+		 	listSep = arg	
 		elif opt in ("-m", "--module"):
 		 	doModule = True	
 		elif opt in ("-q", "--query"):
@@ -411,8 +426,6 @@ def main(argv):
 			queryType = arg
 		elif opt in ("-Q", "--quiet"):
 		 	quiet = True	
-
-		
 
 ##	Open files, parse, generate
 	yamlfile = sys.argv[-1]
@@ -428,7 +441,7 @@ def main(argv):
 	if doModule: 
 		print mg.generate() 
 	elif doQuery:
-		qp.processQuery(queryType,quiet)
+		qp.processQuery(queryType,quiet,listSep)
 	else:
 		print mig.generate()
 
