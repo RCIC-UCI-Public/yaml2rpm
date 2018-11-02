@@ -32,6 +32,7 @@ build:
 		if [ "$(MODULES)" !=  "" ]; then module load $(MODULES); fi; 			\
 		cd $(SRC_DIR);					\
 		$(PATCH_METHOD) $(PATCH_ARGS) < ../$(PATCH_FILE);  		\
+		$(PRECONFIGURE);				\
 		$(CONFIGURE) $(CONFIGURE_ARGS);  		\
 		$(PKGMAKE) $(BUILDTARGET) ;			\
 		module purge; 					\

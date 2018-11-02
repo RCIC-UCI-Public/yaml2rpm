@@ -216,8 +216,24 @@ class moduleGenerator(object):
 		paths = self.mk.flatten(paths)
 		template = "prepend-path\t%s\t%s\n"
 		for path in paths:
-			pName,pPath = path.split(None,2)
+			pName,pPath = re.split('[ \t]+', path, 1) 
 			rstr += template % ( self.mk.resolveStr(pName), self.mk.resolveStr(pPath))
+		return rstr
+
+
+ 	def gen_setenv(self):
+		""" Create Environment Variables from module.setenv list """
+		rstr = ""
+		try:
+			entries = self.mk.rLookup("module.setenv", stringify=False)
+		except:
+			return rstr
+		envVars = [ self.mk.resolveStr(p) for p in entries ]
+		envVars = self.mk.flatten(envVars)
+		template = "setenv\t%s\t%s\n"
+		for envVar in envVars:
+			eName,eVal = re.split('[ \t]+', envVar, 1)
+			rstr += template % ( self.mk.resolveStr(eName), self.mk.resolveStr(eVal))
 		return rstr
 
 	def generate(self):
@@ -225,6 +241,7 @@ class moduleGenerator(object):
 		rstr = ""
 		rstr += self.gen_header()
 		rstr += self.gen_whatis()
+		rstr += self.gen_setenv()
 		rstr += self.prepend_path() 
 		return rstr
 
@@ -260,7 +277,7 @@ class makeIncludeGenerator(object):
 		try:
 			rstr +=  "PRECONFIGURE\t = %s\n" % self.mk.rLookup("build.preconfigure")
 		except:
-		 	rstr += "PRECONFIGURE = 'echo no preconfigure required'"
+		 	rstr += "PRECONFIGURE = echo no preconfigure required\n"
 
 		stdconfigure = "+=" 
 		try:
@@ -281,7 +298,7 @@ class makeIncludeGenerator(object):
 				mods=jmods
 			if mods is None:
 				mods = ""
-			rstr += "MODULES \t = %s\n" % mods 
+			rstr += "MODULES \t = %s\n" % self.mk.resolveStr(mods) 
 		except:
 			pass
 
@@ -330,7 +347,7 @@ class makeIncludeGenerator(object):
 			if type(reqs) is list:
 				jreqs = ",".join(reqs)
 				reqs = jreqs
-			rstr += "RPM.REQUIRES\t = %s\n" % reqs
+			rstr += "RPM.REQUIRES\t = %s\n" % self.mk.resolveStr(reqs)
 		except:
 			pass
 
