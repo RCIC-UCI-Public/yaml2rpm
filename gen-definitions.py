@@ -88,6 +88,18 @@ class mkParser(object):
 		""" Resolve a string with vars """
 		return self.replaceVars(str,self.varsdict)
 
+	def lookupAndResolve(self,keyword,joinString):
+		""" Lookup a keyword/keyval pair. 
+		    if keval is a list, join the elements
+		    via the joinString, then resolve elements 
+                    Note: throws an exception if keyword does not exist """
+
+		elems =  self.rLookup(keyword,stringify=False)
+		if type(elems) is list:
+			joinedElems = joinString.join(elems)
+			elems = joinedElems 
+		return self.resolveStr(elems)
+
 	def hasVars(self,s):
 		""" determine if a string has vars {{ }} """
 		return len(re.findall(self.varpat,str(s))) > 0
@@ -264,6 +276,12 @@ class makeIncludeGenerator(object):
 		rstr += "DESCRIPTION \t = %s\n" % self.mk.rLookup("description")
 		rstr += "PKGROOT \t = %s\n" % self.mk.rLookup("root")
 
+		# The following are optional and are put in try blocks
+
+		try:
+			rstr += "RELEASE\t = %s\n" % self.mk.rLookup("release")
+		except:
+			pass
 		try:
 			rstr += "VENDOR\t = %s\n" % self.mk.rLookup("vendor")
 		except:
@@ -273,7 +291,6 @@ class makeIncludeGenerator(object):
 		except:
 			pass
 
-		# The following are optional and are put in try blocks
 		try:
 			rstr +=  "PRECONFIGURE\t = %s\n" % self.mk.rLookup("build.preconfigure")
 		except:
@@ -292,13 +309,10 @@ class makeIncludeGenerator(object):
 		except:
 			pass
 		try:
-			mods = self.mk.rLookup("build.modules", stringify=False)
-			if type(mods) is list:
-				jmods = ",".join(mods)
-				mods=jmods
-			if mods is None:
+			mods =  self.mk.lookupAndResolve("build.modules",",")
+			if mods == "None":
 				mods = ""
-			rstr += "MODULES \t = %s\n" % self.mk.resolveStr(mods) 
+			rstr += "MODULES \t = %s\n" % mods 
 		except:
 			pass
 
@@ -342,25 +356,31 @@ class makeIncludeGenerator(object):
 		except:
 			pass
 		try:
-			reqs =  self.mk.rLookup("requires",stringify=False)
-			### print reqs,type(reqs)
-			if type(reqs) is list:
-				jreqs = ",".join(reqs)
-				reqs = jreqs
-			rstr += "RPM.REQUIRES\t = %s\n" % self.mk.resolveStr(reqs)
+			reqs =  self.mk.lookupAndResolve("requires",",")
+			rstr += "RPM.REQUIRES\t = %s\n" % reqs
 		except:
 			pass
 
 
 		try:
-			files =  self.mk.rLookup("files",stringify=False)
-			if type(files) is list:
-				allfiles = " \\n\\\n".join(files)
-				files = allfiles 
-			rstr += "RPM.FILES\t = %s\n" % self.mk.resolveStr(files) 
+			files =  self.mk.lookupAndResolve("files","\\n\\\n")
+			rstr += "RPM.FILES\t = %s\n" % files 
 		except:
 			rstr += "RPM.FILES\t = $(PKGROOT)\n" 
 
+
+		try:
+			extras =  self.mk.lookupAndResolve("rpm.extras","\\n\\\n")
+			rstr += "RPM.EXTRAS\t = %s\n" % extras 
+
+		except:
+			pass
+		try:
+			scriptlets = self.rLookup("rpm.scriptlets")
+			rstr += "RPM.SCRIPTLETS.FILE\t = %s\n" % scriplets
+		except:
+			pass
+			
 		return rstr
 
 class queryProcessor(object):
