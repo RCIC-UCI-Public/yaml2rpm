@@ -3,6 +3,7 @@
   name: cmake
   version: 3.12.3
   extension: tar.gz
+  vendor_source: https://cmake.org/files/v3.12/cmake-{{ version }}.tar.gz
   description: >
     Cmake version {{ version }}. CMake is an open-source, cross-platform family of tools designed to build, 
     test and package software. CMake is used to control the software compilation process using simple 
