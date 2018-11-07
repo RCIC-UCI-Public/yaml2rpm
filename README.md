@@ -99,5 +99,60 @@ make unbootstrap
 ```
 At this point, you should have a compatible set of RPMS for gcc and some key supporting libraries. 
 
+# The YAML Definition file
+The basic notion of the defintion file to record on the bare minimum needed to define a package. Since it is usual for groupings of packages to share some common definitions, the generator supports a "defaults" file.  Here is a very simple yaml file taken from the samples directory of the `yaml2rpm` package.
+```
+ package: iperf version 3 network tester
+  name: iperf
+  version: "3.6"
+  extension: tar.gz
+  description: >
+    iperf3 version {{ version }}. iperf is a tool for active measurements of the maximum achievable
+    bandwidth on IP networks.  It supports tuning of various parameters
+    related to timing, protocols, and buffers.  For each test it reports
+    the measured throughput / bitrate, loss, and other parameters.
+  vendor_source: https://downloads.es.net/pub/iperf/iperf-{{ version }}.tar.gz
+  root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"
+  build:
+    modules:
+    target:
+  install:
+    installextra: $(INSTALL) -m 644  README* LICENSE $(ROOT){{ root }}
+```
+YAML is essentially key-value storage and indentation indicates "dotted" values. Yaml2rpm interprets {{ *variable* }} as a reference.  In this particular example `description: Iperf3 version {{ version }}` will be expanded to "description: Iperf3 version 3.6.  iperf is very well-behaved software source using the standard "./configure; make; make install" pattern of compilation/installation.  The default configure invoked by yaml2rpm in this case would be  `./configure --prefix={{ root }}`.  This can be easily overridden for other software packaging patterns.
+
+## pkg-defaults.yaml
+It is useful to have defaults that can be shared by several packages.  In the samples directory the following pkg-defaults.yaml file is given:
+```
+pkg_defaults:
+  app_path: /data/apps
+  foundation: /opt/software
+  python_base: /usr/lib64/python2.7/
+  python_pkgs: "{{ pkg_defaults.python_base }}/site-packages"
+  module:
+    path: /usr/share/Modules/modulefiles
+    prepend_path:
+      - PATH {{ root }}/bin
+      - LD_LIBRARY_PATH {{ root }}/lib
+      - MANPATH {{ root }}/share/man
+      - PKG_CONFIG_PATH  {{ root }}/lib/pkgconfig
+    logger:  exec /bin/logger -p local6.notice - t module-hpc $env(USER) {{ name }}/{{ version }}
+```
+This for common definition, but nothing is referenced unless the package yaml file utilizes it. For example,
+in iperf.yaml it references: `root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"`, which will get fully resolved to
+root: /data/apps/iperf/3.6.   In yaml, the key `pkg_defaults.module.prepend_path` is a list.  Notice that its definition, `{{ root }}` is taken from definition in the package (iperf.yaml) yaml file.  This is by design.  Indeed you should think of the variable universe as
+coming from the pair (package.yaml,pkg-defaults.yaml). If you want the pkg-defaults-defined variable, you must prefix it (see python_pkgs above for an example).
+
+## Query: gen-defintions.py --query=<varname> <package.yaml>
+	
+the definitions parser allows you to query the resolved version of a variable - but only those keys defined in the package.yaml file (including keys that reference variables in the pkg-defaults.yaml file).  To download, from the vendor source website the iperf tarball you could use
+```
+wget $(/opt/rocks/yaml2rpm/gen-definitions.py --query=vendor_source iperf.yaml)
+```
+query mode is used in creating the directory structure and copying files. It is also very helpful for the packager to debug resolved definitions. 
+
+
+
+
 
 
