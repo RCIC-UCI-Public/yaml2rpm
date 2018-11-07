@@ -1,10 +1,15 @@
 ---
-- package: Nlopt - Non-linear optimization 
+- package: NLopt - Non-linear optimization 
   name: nlopt
   version: 2.5.0
   extension: tar.gz
   pkgname: "{{ name }}"
-  description: Non-Linear optimization {{ version }}
+  vendor_source: https://github.com/stevengj/nlopt/archive/v{{ version }}.tar.gz
+  description: >
+    NLopt non-linear optimization {{ version }}. NLopt is a free/open-source library 
+    for nonlinear optimization, providing a common interface for a number of different 
+    free optimization routines available online as well as original implementations of 
+    various other algorithms.
   root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"
   build:
     configure: cmake -DCMAKE_INSTALL_PREFIX={{ root }}

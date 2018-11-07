@@ -1,9 +1,14 @@
 ---
 - package: iperf version 3 network tester 
   name: iperf
-  version: 3.3 
+  version: "3.6"
   extension: tar.gz
-  description: Iperf3 version {{ version }}
+  description: >
+   iperf3 version {{ version }}. iperf is a tool for active measurements of the maximum achievable
+   bandwidth on IP networks.  It supports tuning of various parameters
+   related to timing, protocols, and buffers.  For each test it reports
+   the measured throughput / bitrate, loss, and other parameters.
+  vendor_source: https://downloads.es.net/pub/iperf/iperf-{{ version }}.tar.gz
   root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"
   build:
     modules: 

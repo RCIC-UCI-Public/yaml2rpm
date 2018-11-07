@@ -1,13 +1,17 @@
 ---
 - package: Openmpi 
   name: openmpi 
-  version: 2.1.1
+  version: 2.1.5
   extension: tar.gz
-  description: OpenMPI version {{ version }}
+  description: >
+    OpenMPI version {{ version }}. Open MPI is an open source, freely available 
+    implementation of the MPI specifications. The Open MPI software achieves high performance; 
+    the Open MPI project is quite receptive to community input.
+    vendor_source: https://download.open-mpi.org/release/open-mpi/v2.1/openmpi-{{ version }}.tar.gz
   root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"
   build:
     configure_args: --with-verbs --with-sge --with-slurm --enable-static 
-    modules: opt-devel
+    modules: 
     target: all
   install:
      installextra: $(INSTALL) -m 644  README $(ROOT){{ root }}

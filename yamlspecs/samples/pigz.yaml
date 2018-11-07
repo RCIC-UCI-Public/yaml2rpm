@@ -3,8 +3,13 @@
   name: pigz
   version: "2.4"
   extension: tar.gz
-  vendor_source: https://zlib.net/pigz/pigz-2.4.tar.gz
-  description: Pigz Parallel Gzip version {{ version }}
+  vendor_source: https://zlib.net/pigz/pigz-{{ version }}.tar.gz
+  description: >
+    Pigz Parallel Gzip version {{ version }}. pigz, which stands for parallel 
+    implementation of gzip, is a fully functional replacement for gzip that exploits 
+    multiple processors and multiple cores to the hilt when compressing data. pigz was 
+    written by Mark Adler, and uses the zlib and pthread libraries. To compile and use pigz,
+    please read the README file in the source code distribution
   root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"
   build:
     configure: echo 

@@ -1,3 +1,4 @@
 # These are system packages required for build and can be installed with
 # make bootstrap
 numpy
+zlib-devel
