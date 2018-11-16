@@ -2,6 +2,9 @@
 # Uncomment this line if using the yaml2rpm files
 TEMPLATEDIR=/opt/rocks/yaml2rpm
 
+## Name of this Makefile
+THISMAKE := $(lastword $(MAKEFILE_LIST))
+
 ## System template dir should be /opt/rocks/yaml2rpm
 ## if not defined, expect local copy (e.g. as in master Git repo)
 ifndef TEMPLATEDIR
@@ -10,8 +13,9 @@ endif
 
 BUILDTEMPLATE = builder
 TEMPLATE_FILES = $(wildcard $(TEMPLATEDIR)/$(BUILDTEMPLATE)/*)
-GENERATE = $(TEMPLATEDIR)/gen-definitions.py
 DEFINITIONS = Definitions.mk
+DEFAULTS = pkg-defaults.yaml
+GENERATE = $(TEMPLATEDIR)/gen-definitions.py -d $(DEFAULTS)
 
 ## Local sources of tarballs
 LOCALREPODIR = ..
@@ -26,9 +30,12 @@ TMPBUILD = tmpbuild
 #                     be built
 # MODULES - the packages to be built
 
-BOOTSTRAP_MODULES = $(shell  grep -v '\#' modules.bootstrap) 
-BOOTSTRAP_SYSTEM = $(shell  grep -v '\#' modules.system) 
-MODULES = $(shell  grep -v '\#' modules.build | sed 's/$$/.yaml/') 
+BOOTSTRAP_MODULES_FILE = modules.bootstrap 
+BOOTSTRAP_SYSTEM_FILE = modules.system 
+BUILD_MODULES_FILE =  modules.build
+BOOTSTRAP_MODULES = $(shell  grep -v '\#' $(BOOTSTRAP_MODULES_FILE)) 
+BOOTSTRAP_SYSTEM = $(shell  grep -v '\#' $(BOOTSTRAP_SYSTEM_FILE)) 
+MODULES = $(shell  grep -v '\#' $(BUILD_MODULES_FILE) | sed 's/$$/.yaml/') 
 
 PKGS = $(MODULES:.yaml=.pkg)
 
@@ -47,22 +54,23 @@ default: $(PKGS)
 ## 8. Touch pkg file to indicate the build was completed.
 
 %.pkg : %.yaml
-	make cleantmp $(TMPBUILD)
+	make -e -f $(THISMAKE) cleantmp $(TMPBUILD)
 	$(GENERATE) $< > $(TMPBUILD)/$(DEFINITIONS)
 	- $(GENERATE) -m $< > $(TMPBUILD)/modulefile
 	- $(GENERATE) --query=pretar $< | /bin/sh
 	- install $$($(GENERATE) --query=patch $<) $(TMPBUILD)
 	- install  $(SOURCES)/$$($(GENERATE) --query=tarball $<) $(TMPBUILD)
-	- (for src in $$($(GENERATE) --listsep=" " --query=addsource $<); do  \
+	- (for src in $$($(GENERATE) --listsep=" " --query=addsource --quiet $<); do  \
 		install $(SOURCES)/$$src $(TMPBUILD); done)
-	make -C $(TMPBUILD) pkg
+	make -e -C $(TMPBUILD) pkg 
 	touch $@
 
 bootstrap: 
 	- yum -y install $(BOOTSTRAP_SYSTEM) 
+	echo $(BOOTSTRAP_MODULES)
 	( for mod in $(BOOTSTRAP_MODULES); do					\
-		make $$mod.pkg;							\
-		make -C $(LOCALREPODIR) createlocalrepo; 			\
+		make -e -f $(THISMAKE) $$mod.pkg;							\
+		make -e -C $(LOCALREPODIR) createlocalrepo; 			\
 		rpmname=$$($(GENERATE) --query=pkgname $$mod.yaml);		\
 		yum -y -c $(LOCALREPODIR)/yum.conf install $$rpmname;		\
 	  done									\
@@ -90,6 +98,7 @@ cleanpkg:
 	- /bin/rm *pkg
 
 cleanyaml:
+	echo $(MODULES)
 	( for mod in $(MODULES); do					\
 		cleandir=$$($(GENERATE) --query=clean $$mod);		\
 		if [ $$? == 0 ]; then /bin/rm -r $$cleandir; fi;		\
@@ -99,3 +108,8 @@ cleanyaml:
 clean: cleanpkg cleantmp cleanyaml
 
 veryclean: clean
+
+FORCE:
+
+diag:
+	echo $(BOOTSTRAP_MODULES)
