@@ -1,7 +1,16 @@
 #####################################################################
-## This is for generic module autoloading 
+## This is for generic module autoloading. It keeps track 
+## of Autoloaded modules.  This type of functionality is becoming part
+## of the environment modules (and LUA modules). This particular code
+## will eventually be not needed.
+##
 ## It is intended to be sourced in specific environment module files
+## See examples in yaml2rpm-generated RPMS
 ## Load and Unload functions
+## (C) 2018-2019 UC Regents
+## Research Cyberinfrastructure Center, UC Irvine
+## Author: Philip M. Papadopoulos
+
 proc LoadPrereq { a } {
     global AUTOLOADED
     if { ! [is-loaded $a] } {
