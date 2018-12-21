@@ -21,6 +21,36 @@ class Loader(yaml.SafeLoader):
 
 Loader.add_constructor('!include', Loader.include)
 
+
+class IncParser(file):
+	""" This class handles !include directives to have a more natural 'include this
+            yaml file' and merge with keys """
+	def __init__(self,f,mode='r'):
+		with open(f,mode) as f:
+			self.items = [l for l in f]
+		self.iter = iter(self.items)
+		self.child = None
+
+	def read(self,size):
+		try:
+			if not self.child:
+				line = self.iter.next()
+			else:
+				line = self.child.iter.next()
+			
+			if line.startswith("!include"):
+				incName = line.split()[1]
+				self.child = IncParser(incName)
+				line = self.child.iter.next()
+			# print "iterated: '%s'" % line 
+			return line 
+		except StopIteration:
+			if self.child is not None:
+				self.child = None
+				return self.read(size)
+			else:
+				return None
+		
 class mkParser(object):
 	def __init__(self):
 		self.varsdict = {}
@@ -30,16 +60,29 @@ class mkParser(object):
 		self.combo = None 
 
 	def readPkgYaml(self,fname):
-		with open(fname,"r") as f: 
-			self.kvdict = yaml.load(f,Loader)
-			self.combine()
+		f = IncParser(fname)
+		docs = yaml.load_all(f,Loader)
+		self.kvdict = self.mergeDocs(docs) 
+		self.combine()
 	
 	def readDefaultsYaml(self,fname):
-		with open(fname,"r") as f: 
-			self.defaults = yaml.load(f,Loader)
-			self.combine()
+		f = IncParser(fname)
+		docs = yaml.load_all(f,Loader)
+		self.defaults = self.mergeDocs(docs)
+		self.combine()
 
-
+	def mergeDocs(self,docs):
+		""" Merge parsed YAML docs into a single dictionary. Keys are overwritten of 
+                    multiple docs have the same key """
+		fullDict = {}
+		for d in docs: 
+			if type(d) is list:
+				srcDct = d[0]
+			else:
+				srcDct = d
+			for k in srcDct.keys():
+				fullDict[k] = srcDct[k]
+		return fullDict
 	def combine(self):
 		""" Combine pkg and defaults """
 		# logic: if either defaults or kvdict is None, combo is whatever we have
@@ -48,10 +91,10 @@ class mkParser(object):
 			if self.defaults is not None:
 				self.combo = self.defaults.copy() 
 			elif self.kvdict is not None:
-				self.combo = self.kvdict[0].copy() 
+				self.combo = self.kvdict.copy() 
 		if self.defaults is not None and self.kvdict is not None:
 			self.combo = self.defaults.copy()
-			self.combo.update(self.kvdict[0])
+			self.combo.update(self.kvdict)
 
 	def lookup(self,e,ldict=None,stringify=True,listSep=None):
 		"""Looks up x.y.z references in multilevel dictionary
@@ -97,21 +140,22 @@ class mkParser(object):
 			return ''
 		return resolved
 		
-	def resolveStr(self,str):
+	def resolveStr(self,str,listSep=None):
 		""" Resolve a string with vars """
-		return self.replaceVars(str,self.varsdict)
+		return self.replaceVars(str,self.varsdict,listSep)
 
-	def lookupAndResolve(self,keyword,joinString):
+	def lookupAndResolve(self,keyword,joinString,listSep=None):
 		""" Lookup a keyword/keyval pair. 
 		    if keval is a list, join the elements
 		    via the joinString, then resolve elements 
                     Note: throws an exception if keyword does not exist """
 
-		elems =  self.rLookup(keyword,stringify=False)
+		elems =  self.rLookup(keyword,stringify=False,listSep=listSep )
+		#print "XXX", elems, type(elems),listSep, type(listSep)
 		if type(elems) is list:
 			joinedElems = joinString.join(elems)
 			elems = joinedElems 
-		return self.resolveStr(elems)
+		return self.resolveStr(elems,listSep)
 
 	def hasVars(self,s):
 		""" determine if a string has vars {{ }} """
@@ -127,15 +171,16 @@ class mkParser(object):
 		re.findall(self.varpat,str(s)))
 		return lvars
 
-	def replaceVars(self, src, vdict):
+	def replaceVars(self, src, vdict, listSep=None):
 		""" replace the vars in src with variables in a variables dict  """
-		### print "XXXX", src, type(src)
 		work = src
 		if type(src) is not list:
 			work = [ str(src) ]
+		# print "YYYY", src, type(src),work, type(work)
 		rwork=[]
 		for elem in work:
 			if type(elem) is type("string"):
+				# print "VVVV", elem
 				newlist = []
 				for var in self.varsInString(elem):
 					expand = self.vLookup(var,vdict,stringify=False)
@@ -143,16 +188,23 @@ class mkParser(object):
 						elem = elem.replace(var,expand)
 					else:
 						# Variable expanded to another list, recurse
-						tmp = self.replaceVars(expand,vdict)
-						newlist.extend(tmp)
+						tmp = self.replaceVars(expand,vdict,listSep)
+						if listSep is None:
+							newlist.extend(tmp)
+						else:
+							# print "VVVU", tmp, listSep.join(tmp)
+							elem = elem.replace(var, listSep.join(tmp))
 				if len(newlist) == 0:
+					# print "UUUA", elem 
 					rwork.append(elem)
 				else:	
+					# print "UUUE", elem 
 					rwork.extend(newlist)
 			else:
-				tmp = self.replaceVars(elem,vdict)
+				# print "WWWW", elem
+				tmp = self.replaceVars(elem,vdict,listSep)
 				rwork.append(tmp)
-		### print "ZZZZ", rwork
+		# print "ZZZZ", rwork
 		if len(rwork) == 1:
 			return rwork[0]
 		else:
@@ -219,9 +271,22 @@ class moduleGenerator(object):
 ## module.skeleton adapted from modulizer script originally written by Harry Mangalam (hjm)
 ## Date: %s
 ## Built on: %s
+source /opt/rcic/include/rcic-module-head.tcl
 """ 
 		rstr = profile % (str(datetime.date.today()),socket.getfqdn())	
 		return rstr
+
+
+	def gen_tail(self):
+		profile = """
+#####################################################################
+## Standard tail for invoking autoloading functionality 
+## 
+source /opt/rcic/include/rcic-module-tail.tcl
+""" 
+		rstr = profile 
+		return rstr
+
 	def gen_whatis(self):
 		desc = """set DESC \"                            %s/%s
 %s
@@ -262,13 +327,31 @@ class moduleGenerator(object):
 			rstr += template % ( self.mk.resolveStr(eName), self.mk.resolveStr(eVal))
 		return rstr
 
+
+ 	def gen_prereqs(self):
+		""" load other modules as  prereqs"""
+		rstr = ""
+		try:
+			entries = self.mk.rLookup("module.prereq", stringify=False)
+		except:
+			return rstr
+		prereqs = [ self.mk.resolveStr(p) for p in entries ]
+		prereqs = self.mk.flatten(prereqs)
+		template = 'if { [module-info mode load] } { LoadPrereq "%s" }\nprereq\t%s\n'
+		for prereq in prereqs:
+			mod = self.mk.resolveStr(prereq)
+			rstr += template % (mod,mod)
+		return rstr
+
 	def generate(self):
 		""" return a string that can written as  module file """
 		rstr = ""
 		rstr += self.gen_header()
 		rstr += self.gen_whatis()
 		rstr += self.gen_setenv()
+		rstr += self.gen_prereqs()
 		rstr += self.prepend_path() 
+		rstr += self.gen_tail() 
 		return rstr
 
 class makeIncludeGenerator(object):
@@ -323,7 +406,7 @@ class makeIncludeGenerator(object):
 		except:
 			pass
 		try:
-			mods =  self.mk.lookupAndResolve("build.modules",",")
+			mods =  self.mk.lookupAndResolve("build.modules"," ")
 			if mods == "None":
 				mods = ""
 			rstr += "MODULES \t = %s\n" % mods 
@@ -370,7 +453,9 @@ class makeIncludeGenerator(object):
 		except:
 			pass
 		try:
-			reqs =  self.mk.lookupAndResolve("requires",",")
+			reqs =  self.mk.lookupAndResolve("requires"," ")
+			if type(reqs) is list:
+				reqs = " ".join(reqs)
 			rstr += "RPM.REQUIRES\t = %s\n" % reqs
 		except:
 			pass
@@ -384,7 +469,7 @@ class makeIncludeGenerator(object):
 
 
 		try:
-			extras =  self.mk.lookupAndResolve("rpm.extras","\\n\\\n")
+			extras =  self.mk.lookupAndResolve("rpm.extras","\\n\\\n",listSep=" ")
 			rstr += "RPM.EXTRAS\t = %s\n" % extras 
 
 		except:

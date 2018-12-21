@@ -1,0 +1,24 @@
+---
+- package: RCIC module support 
+  name: rcic-module-support 
+  version: "1.0"
+  extension: tar.gz
+  root: "/opt/rcic"
+  srctar: "{{ name }}-{{ version }}.{{ extension }}"
+  pkgname: "{{ name }}"
+  description: >
+    RCIC module support {{ version }}. This provides support and common code for generated environment modules 
+    created with yaml2rpm
+  pretar: >
+    mkdir {{ name }}-{{ version }};
+    tar cf - include | tar xf - -C {{ name }}-{{ version }};
+    tar czf ../sources/{{ srctar }} {{ name }}-{{ version }} 
+  build:
+    configure: echo
+    configure_args: 
+    pkgmake: echo
+  install:
+    makeinstall:  mkdir -p $(ROOT)/{{ root }}; $(TAR) cf - * | $(TAR) xf -  -C $(ROOT)/{{ root }} 
+  clean: "{{ name }}-{{ version }}"
+  files: 
+    - "{{ root }}/include/*" 
