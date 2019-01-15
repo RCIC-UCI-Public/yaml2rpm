@@ -60,6 +60,7 @@ default: $(PKGS)
 	- $(GENERATE) --query=pretar $< | /bin/sh
 	- install $$($(GENERATE) --query=patch $<) $(TMPBUILD)
 	- install  $(SOURCES)/$$($(GENERATE) --query=tarball $<) $(TMPBUILD)
+	- install $$($(GENERATE) --listsep=" " --query=addfile --quiet $<) $(TMPBUILD)
 	- (for src in $$($(GENERATE) --listsep=" " --query=addsource --quiet $<); do  \
 		install $(SOURCES)/$$src $(TMPBUILD); done)
 	make -e -C $(TMPBUILD) pkg 

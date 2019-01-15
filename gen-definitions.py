@@ -384,6 +384,10 @@ class makeIncludeGenerator(object):
 		except:
 			pass
 		try:
+			rstr +=  "SRC_TARBALL\t = %s\n" % self.mk.rLookup("src_tarball")
+		except:
+			pass
+		try:
 			rstr +=  "SRC_DIR\t = %s\n" % self.mk.rLookup("src_dir")
 		except:
 			pass

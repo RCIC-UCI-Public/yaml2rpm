@@ -1,13 +1,20 @@
+# This is a generic Makefile that is called from generate spec files.
+# in particular, in the %build section of the generated Makefile, the
+# build target of the this Makefile is invoked.
+# similarly, the install target is called by the %install section of the 
+# generated spec file
+
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
 include Override.mk
 
+# use "make" unless PKGMAKE has been specified
 ifndef  PKGMAKE
 PKGMAKE = $(MAKE) 
 endif
 
 ## These exist so that CUSTOM_* can be used in shell scripts without
-## create syntax errors
+## creating syntax errors
 
 ifndef  MAKEINSTALL
 CUSTOM_MAKEINSTALL =  echo
@@ -25,8 +32,20 @@ endif
 %: %.in
 	$(SED) $(SEDSCRIPT) $^ > $@
 
+
+# Usual build case:
+#        The SRC tarball (which is most often the downloaded tar source, unchanged)
+#        1. unpack the tarball
+#        2. change into the source directory then 
+#             a. apply patches
+#             b. apply any changes prior to configure step 
+#             c. configure the package
+#             d. build the software
+# Unusual build case:
+#        1. There is no src tarball (often just some files that need installing and packaging)
+#        2. Same as above (but definitions should override steps)
 build:
-	$(CAT-COMPRESS) $(SRC_TARBALL) |  $(TAR) -xf -
+	- $(CAT-COMPRESS) $(SRC_TARBALL) |  $(TAR) -xf -
 	(							\
 		module purge; 					\
 		if [ "$(MODULES)" !=  "" ]; then module load $(MODULES); fi; 			\
@@ -58,7 +77,7 @@ install::
 	)
 
 clean::
-	rm -rf $(SRC_DIR) 
-	rm -rf $(NAME).spec.in
+	- rm -rf $(SRC_DIR) 
+	- rm -rf $(NAME).spec.in
 
 
