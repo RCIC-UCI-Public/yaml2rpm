@@ -27,6 +27,12 @@ CUSTOM_INSTALLEXTRA =  echo
 else
 CUSTOM_INSTALLEXTRA = $(INSTALLEXTRA)
 endif 
+
+ifndef NO_SRC_DIR 
+MODFILE_DIR = ..
+else
+MODFILE_DIR = .
+endif 
 #################################################################
 
 %: %.in
@@ -70,7 +76,7 @@ install::
 		fi;						\
 		if [ "$(MODULENAME)" != "" -a "$(MODULESPATH)" != "" ]; then		\
 			mkdir -p $(ROOT)/$(MODULESPATH);     				\
-			$(INSTALL) -m 644 ../modulefile $(ROOT)/$(MODULESPATH)/$(MODULENAME);  	\
+			$(INSTALL) -m 644 $(MODFILE_DIR)/modulefile $(ROOT)/$(MODULESPATH)/$(MODULENAME);  	\
 		fi;								\
 		if [ "$(INSTALLEXTRA)" != "" ]; then $(CUSTOM_INSTALLEXTRA); fi; \
 		module purge; 					\

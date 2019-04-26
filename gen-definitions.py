@@ -328,6 +328,21 @@ source /opt/rcic/include/rcic-module-tail.tcl
 		return rstr
 
 
+ 	def gen_alias(self):
+		""" Create Aliases from module.alias list """
+		rstr = ""
+		try:
+			entries = self.mk.rLookup("module.alias", stringify=False)
+		except:
+			return rstr
+		aliasVars = [ self.mk.resolveStr(p) for p in entries ]
+		aliasVars = self.mk.flatten(aliasVars)
+		template = "set-alias\t%s\t%s\n"
+		for aliasVar in aliasVars:
+			aName,aVal = re.split('[ \t]+', aliasVar, 1)
+			rstr += template % ( self.mk.resolveStr(aName), self.mk.resolveStr(aVal))
+		return rstr
+
  	def gen_prereqs(self):
 		""" load other modules as  prereqs"""
 		rstr = ""
@@ -349,6 +364,7 @@ source /opt/rcic/include/rcic-module-tail.tcl
 		rstr += self.gen_header()
 		rstr += self.gen_whatis()
 		rstr += self.gen_setenv()
+		rstr += self.gen_alias()
 		rstr += self.gen_prereqs()
 		rstr += self.prepend_path() 
 		rstr += self.gen_tail() 
@@ -389,6 +405,11 @@ class makeIncludeGenerator(object):
 			pass
 		try:
 			rstr +=  "SRC_DIR\t = %s\n" % self.mk.rLookup("src_dir")
+		except:
+			pass
+
+		try:
+			rstr +=  "NO_SRC_DIR\t = %s\n" % self.mk.rLookup("no_src_dir")
 		except:
 			pass
 
@@ -464,6 +485,14 @@ class makeIncludeGenerator(object):
 		except:
 			pass
 
+		try:
+			provs =  self.mk.lookupAndResolve("provides"," ")
+			if type(provs) is list:
+				provs = " ".join(provs)
+			rstr += "RPM.PROVIDES\t = %s\n" % provs
+		except:
+			rstr += "RPM.PROVIDES\t = \n" 
+
 
 		try:
 			files =  self.mk.lookupAndResolve("files","\\n\\\n")
@@ -500,9 +529,12 @@ class queryProcessor(object):
 			rq = "vendor_source"
 
 		if rq == "tarball":
-			rstr = self.mk.rLookup("name")
-			rstr += "-%s" % str(self.mk.rLookup("version"))
-			rstr += ".%s" % self.mk.rLookup("extension")
+			try: 
+			   rstr = self.mk.rLookup("src_tarball")
+                        except:
+			   rstr = self.mk.rLookup("name")
+			   rstr += "-%s" % str(self.mk.rLookup("version"))
+			   rstr += ".%s" % self.mk.rLookup("extension")
 			print rstr
 			sys.exit(0)
 		if rq == "pkgname":
