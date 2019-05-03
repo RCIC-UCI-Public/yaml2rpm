@@ -14,15 +14,25 @@
     to the essentials into a yaml file that goes through some automated steps to create an RPM.
   pretar: >
     mkdir {{ name }}-{{ version }};
-    tar cf - ../Makefile ../gen-definitions.py ../README.md ../builder samples |
+    tar cf - ../Makefile ../gen-definitions.py ../README.md ../builder yaml2rpm.sh samples |
     tar xf - -C {{ name }}-{{ version }};
-    install Makefile {{ name }}-{{ version }}/samples;
+    install Makefile.tmpl {{ name }}-{{ version }}/samples/Makefile;
+    mkdir {{ name }}-{{ version }}/sys;
+    install Makefile pkg-defaults.yaml {{ name }}-{{ version }}/sys;
     tar czf ../sources/{{ srctar }} {{ name }}-{{ version }} 
   build:
     configure: echo
     configure_args: 
     pkgmake: echo
   install:
-    makeinstall:  mkdir -p $(ROOT)/{{ root }}; $(TAR) cf - * | $(TAR) xf -  -C $(ROOT)/{{ root }} 
+    makeinstall: >
+      mkdir -p $(ROOT)/{{ root }}/site; 
+      mkdir -p $(ROOT)/etc/profile.d; 
+      $(TAR) cf - * | $(TAR) xf -  -C $(ROOT)/{{ root }};
+      $(INSTALL) yaml2rpm.sh $(ROOT)/etc/profile.d
+      
   requires:  rocks-devel >= 7.1
   clean: "{{ name }}-{{ version }}"
+  files:
+    - "{{ root }}"
+    - /etc/profile.d/*

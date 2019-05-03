@@ -14,7 +14,19 @@ endif
 BUILDTEMPLATE = builder
 TEMPLATE_FILES = $(wildcard $(TEMPLATEDIR)/$(BUILDTEMPLATE)/*)
 DEFINITIONS = Definitions.mk
-DEFAULTS = pkg-defaults.yaml
+
+## Determine which defaults file to use
+SYSTEMDEFAULTS = $(TEMPLATEDIR)/sys/pkg-defaults.yaml
+SITEDEFAULTS = $(TEMPLATEDIR)/site/pkg-defaults.yaml
+LOCALDEFAULTS = ./pkg-defaults.yaml
+DEFAULTS = $(SYSTEMDEFAULTS)
+ifneq ($(wildcard $(SITEDEFAULTS)),)
+DEFAULTS = $(SITEDEFAULTS)
+endif
+ifneq ($(wildcard $(LOCALDEFAULTS)),)
+DEFAULTS = $(LOCALDEFAULTS)
+endif
+
 GENERATE = $(TEMPLATEDIR)/gen-definitions.py -d $(DEFAULTS)
 
 ## Local sources of tarballs
@@ -61,7 +73,7 @@ default: $(PKGS)
 	- install $$($(GENERATE) --query=patch $<) $(TMPBUILD)
 	- install  $(SOURCES)/$$($(GENERATE) --query=tarball $<) $(TMPBUILD)
 	- install $$($(GENERATE) --listsep=" " --query=addfile --quiet $<) $(TMPBUILD)
-	- (for src in $$($(GENERATE) --listsep=" " --query=addsource --quiet $<); do  \
+	- (for src in $$($(GENERATE) --listsep=" " --query=addsource $<); do  \
 		install $(SOURCES)/$$src $(TMPBUILD); done)
 	make -e -C $(TMPBUILD) pkg 
 	touch $@
