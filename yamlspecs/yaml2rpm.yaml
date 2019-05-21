@@ -1,12 +1,13 @@
 ---
 - package: YAML to RPM  
   name: yaml2rpm 
-  version: "1.2"
+  version: "1.3"
   extension: tar.gz
   rocks: /opt/rocks
   root: "{{ rocks }}/yaml2rpm"
   srctar: "{{ name }}-{{ version }}.{{ extension }}"
   pkgname: "{{ name }}"
+  sysyaml: pkg-defaults.yaml rpm.extras.yaml rpm.extras.filter.yaml
   description: >
     YAML to RPM {{ version }}. This is a prototype to convert a yaml specification
     into an RPM. It utilizes the tooling from rocks-devel (https://github.com/rocksclusters/core)
@@ -14,11 +15,11 @@
     to the essentials into a yaml file that goes through some automated steps to create an RPM.
   pretar: >
     mkdir {{ name }}-{{ version }};
-    tar cf - ../Makefile ../gen-definitions.py ../README.md ../builder yaml2rpm.sh samples |
-    tar xf - -C {{ name }}-{{ version }};
+    tar cf - ../Makefile ../gen-definitions.py ../README.md ../builder 
+    yaml2rpm.sh samples | tar xf - -C {{ name }}-{{ version }};
     install Makefile.tmpl {{ name }}-{{ version }}/samples/Makefile;
     mkdir {{ name }}-{{ version }}/sys;
-    install Makefile pkg-defaults.yaml {{ name }}-{{ version }}/sys;
+    install Makefile {{ sysyaml }} {{ name }}-{{ version }}/sys;
     tar czf ../sources/{{ srctar }} {{ name }}-{{ version }} 
   build:
     configure: echo
