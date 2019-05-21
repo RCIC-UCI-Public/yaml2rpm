@@ -52,4 +52,5 @@
 #
 #
 export YAML2RPM_HOME=/opt/rocks/yaml2rpm
+export YAML2RPM_INC=${YAML2RPM_HOME}/site:${YAML2RPM_HOME}/sys
 
