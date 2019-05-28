@@ -9,6 +9,7 @@ import socket
 import getopt
 import os
 
+incMap = {}
 class Loader(yaml.SafeLoader):
 	def __init__(self, stream):
 		self._root = os.path.split(stream.name)[0]
@@ -21,7 +22,10 @@ class Loader(yaml.SafeLoader):
 		super(Loader, self).__init__(stream)
 
 	def include(self, node):
+		global incMap
 		filename = os.path.join(self._root, self.construct_scalar(node))
+		if filename in incMap.keys():
+			filename = incMap[filename]
 		# look for filename in the incPath
 		for p in self.incPath:
 			try:
@@ -37,11 +41,32 @@ Loader.add_constructor('!include', Loader.include)
 class IncParser(file):
 	""" This class handles !include directives to have a more natural 'include this
             yaml file' and merge with keys """
-	def __init__(self,f,mode='r'):
-		with open(f,mode) as f:
-			self.items = [l for l in f]
-		self.iter = iter(self.items)
-		self.child = None
+	def __init__(self,filename,mode='r'):
+		global incMap
+		# read the YAML2RPM_INC environment variable. Places to look
+		# for include files
+		self.incPath = ['.']
+		try:
+			iPath = os.environ['YAML2RPM_INC']
+			self.incPath.extend( iPath.split(':'))
+		except:
+			pass	
+		# now see if the filename f should be mapped to 
+		# a different name
+		if filename in incMap.keys():
+			filename = incMap['filename']
+
+		# now go the incPath looking for the file
+		for p in self.incPath:
+			try:
+				with open(os.path.join(p,filename), 'r') as f:
+					self.items = [l for l in f]
+					self.iter = iter(self.items)
+					self.child = None
+					return
+			except:
+				pass
+		raise  Exception("%s not found in: %s" % (filename,str(self.incPath)))
 
 	def read(self,size):
 		try:
@@ -584,14 +609,16 @@ def usage():
 	print '     <pkg file>  	- YAML file with packaging definitions'
 
 def main(argv):
+        global incMap
 	doModule = False 
 	doQuery = False 
 	queryType = ''
 	quiet = False
+	mDict = {} 
 	dflts_file = 'pkg-defaults.yaml'
 	listSep = None
 	try:
-		opts, args = getopt.getopt(argv,"d:hl:mq:Q",["defaults=","help","module","listsep=","query=","quiet"])
+		opts, args = getopt.getopt(argv,"d:hl:mq:QM:",["defaults=","help","module","listsep=","query=","quiet","map="])
 	except getopt.GetoptError:
 		usage()
 		sys.exit(2)
@@ -610,7 +637,9 @@ def main(argv):
 			queryType = arg
 		elif opt in ("-Q", "--quiet"):
 		 	quiet = True	
-
+		elif opt in ("-M", "--map"):
+ 			mDict = eval(arg)
+			incMap.update(mDict)
 ##	Open files, parse, generate
 	yamlfile = sys.argv[-1]
 	mkP = mkParser()

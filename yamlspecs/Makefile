@@ -2,8 +2,9 @@
 # Uncomment this line if using the yaml2rpm files
 TEMPLATEDIR=/opt/rocks/yaml2rpm
 
-## Name of this Makefile
-THISMAKE := $(lastword $(MAKEFILE_LIST))
+## We want the name of the enclosing Makefile since
+# this particular Makefile is usually included
+THISMAKE := $(firstword $(MAKEFILE_LIST))
 
 ## System template dir should be /opt/rocks/yaml2rpm
 ## if not defined, expect local copy (e.g. as in master Git repo)
@@ -27,7 +28,7 @@ ifneq ($(wildcard $(LOCALDEFAULTS)),)
 DEFAULTS = $(LOCALDEFAULTS)
 endif
 
-GENERATE = $(TEMPLATEDIR)/gen-definitions.py -d $(DEFAULTS)
+GENERATE = $(TEMPLATEDIR)/gen-definitions.py $(GENEXTRAS) -d $(DEFAULTS) 
 
 ## Local sources of tarballs
 LOCALREPODIR = ..
@@ -97,6 +98,7 @@ unbootstrap:
 	  done;									\
           yum -y erase $$ALLRPMS 						\
 	)
+
 unbootstrap-sys:
 	yum -y erase $(BOOTSTRAP_SYSTEM);					\
 
@@ -126,3 +128,5 @@ FORCE:
 
 diag:
 	echo $(BOOTSTRAP_MODULES)
+	echo $(THISMAKE)
+	echo $(MAKEFILE_LIST)
