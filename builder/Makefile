@@ -30,8 +30,10 @@ endif
 
 ifndef NO_SRC_DIR 
 MODFILE_DIR = ..
+DO_CD = True 
 else
 MODFILE_DIR = .
+DO_CD = False
 endif 
 #################################################################
 
@@ -54,8 +56,8 @@ build:
 	- $(CAT-COMPRESS) $(SRC_TARBALL) |  $(TAR) -xf -
 	(							\
 		module purge; 					\
-		if [ "$(MODULES)" !=  "" ]; then module load $(MODULES); fi; 			\
-		cd $(SRC_DIR);					\
+		if [ "$(MODULES)" !=  "" ]; then module load $(MODULES); fi;	\
+		[ $(DO_CD) ] && cd $(SRC_DIR);    	\
 		$(PATCH_METHOD) $(PATCH_ARGS) < ../$(PATCH_FILE);  		\
 		$(PRECONFIGURE);				\
 		$(CONFIGURE) $(CONFIGURE_ARGS);  		\
@@ -66,8 +68,8 @@ build:
 install:: 
 	(							\
 		module purge; 					\
-		if [ "$(MODULES)" !=  "" ]; then module load $(MODULES); fi; 			\
-		cd $(SRC_DIR);					\
+		if [ "$(MODULES)" !=  "" ]; then module load $(MODULES); fi;	\
+		[ $(DO_CD) ] && cd $(SRC_DIR);		\
 		if [ ! -d $(ROOT)/$(PKGROOT) ]; then mkdir -p $(ROOT)/$(PKGROOT); fi; \
 		if [ "$(MAKEINSTALL)" == "" ]; then		\
 			$(MAKE) prefix=$(ROOT)/$(PKGROOT) $(INSTALLTARGET);	\

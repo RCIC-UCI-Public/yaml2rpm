@@ -106,6 +106,14 @@ $(TMPBUILD):
 	mkdir $(TMPBUILD)
 	install $(TEMPLATE_FILES) $(TMPBUILD)
 
+download:
+	if [ "$$PKG" == "" ]; then \
+	   echo "please call as make download PKG='<name of pkg>'"; \
+	else \
+ 	   url=$$($(GENERATE) --query=vendor_source $$PKG.yaml); \
+ 	   tarball=$$($(GENERATE) --query=tarball $$PKG.yaml); \
+	   wget -O $(SOURCES)/$$tarball $$url; \
+	fi
 cleantmp: 
 	- /bin/rm -rf $(TMPBUILD)
 
