@@ -23,7 +23,7 @@ This software relies on only one Rocks-created software package, but otherwise i
 
 ## Motivation
 The approach used here is one where programmatic translations are used to progressively create a subdirectory structure that mirrors the way Rocks (an example of building a qrencode RPM -  https://github.com/rocksclusters/base/blob/master/src/qrencode) builds RPMS.  In that structure, an RPM spec file is automatically created and files are put in appropriate places in which rpmbuild (https://linux.die.net/man/8/rpmbuild) can successfully build a package.  The generated spec file must define a source in a %source as well as %build, %install, %file and other RPM-specific directives.  In particular, the %source is a tarball of this directory in github (e.g. the base/src/qrencode directory). However, prior to creating the tarball, the upstream tarball (e.g. qrencode-3.4.0.tar.bz2) must be placed in base/src/qrencode directory.  The automatically generated spec file, the `%build` directive invokes the `build` target of the Makefile provided here.   In this example the section looks like:
-```
+```make
 build:
 	bunzip2 -c $(NAME)-$(VERSION).$(TARBALL_POSTFIX) | $(TAR) -xf -
 	( 							\
@@ -46,7 +46,7 @@ tested on the official CentOS 7 Amazon machine image.
 -Preparation-
 If you are using a very stripped-down CentOS image (similar to the official CentOS 7 image in Amazon, you will want to make
 certain you have the following packages and package groups installed
-```
+```bash
  yum groupinstall "Development Tools" "Console Internet Tools"
  yum install redhat-lsb wget zlib-devel environment-modules
  . /etc/profile.d/modules.sh
@@ -54,7 +54,7 @@ certain you have the following packages and package groups installed
 
 At this point, you can install the development RPMS and then build your first RPM from source.
 
-```
+```bash
 wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rocks-devel-7.1-10.x86_64.rpm
 wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/yaml2rpm-1.0-1.x86_64.rpm
 yum install rocks-devel-7.1-10.x86_64.rpm yaml2rpm-1.0-1.x86_64.rpm redhat-lsb environment-modules
@@ -63,7 +63,7 @@ yum install rocks-devel-7.1-10.x86_64.rpm yaml2rpm-1.0-1.x86_64.rpm redhat-lsb e
 For a very simple test build of an RPM, create a working directory (`workdir`) in this simple example. And then
 download the source tarball into the workdir/sources directory.  Then create the cmake RPM, it will be placed in 
 workdir/RPMS/x86_64
-```
+```bash
 mkdir -p workdir/yamlspecs
 mkdir -p workdir/sources
 cd workdir/yamlspecs; cp /opt/rocks/yaml2rpm/samples/* .
@@ -74,7 +74,7 @@ make ${NAME}.pkg
 ```
 at the end of the process, you should have an RPM in workdir/RPMS/x86_64.  You could install it on the local machine
 and have an updated version of cmake, with a environment so that you could load it with
-```
+```bash
 module load cmake
 which cmake
 ```
@@ -85,7 +85,7 @@ The version of cmake is defined in the cmake.yaml file, if you wanted to update 
 GCC (the GNU compiler collection) is relatively complex build.  It is often useful to have an updated version of gcc on your system without destroying the system-supplied gcc.  The GCC build has to be done in a certain way, packages need to be named to be non-conflicting and other items.   If you have completed the Quickstart above you can build an updated version of gcc and a set a packages. **WARNING! This process will install RPMS as it builds. You should do this on a 'disposable' build system. It takes hours to compile a gcc. **
 
 Here is the full process for building gcc using the gcc-pkgs repo
-```
+```bash
 git clone https://github.com/RCIC-UCI-Public/gcc-pkgs.git
 cd gcc-pkgs
 make download
@@ -101,7 +101,7 @@ At this point, you should have a compatible set of RPMS for gcc and some key sup
 
 # The YAML Definition file
 The basic notion of the defintion file to record on the bare minimum needed to define a package. Since it is usual for groupings of packages to share some common definitions, the generator supports a "defaults" file.  Here is a very simple yaml file taken from the samples directory of the `yaml2rpm` package.
-```
+```yaml
  package: iperf version 3 network tester
   name: iperf
   version: "3.6"
@@ -123,7 +123,7 @@ YAML is essentially key-value storage and indentation indicates "dotted" values.
 
 ## pkg-defaults.yaml
 It is useful to have defaults that can be shared by several packages.  In the samples directory the following pkg-defaults.yaml file is given:
-```
+```yaml
 pkg_defaults:
   app_path: /data/apps
   foundation: /opt/software
@@ -146,7 +146,7 @@ coming from the pair (package.yaml,pkg-defaults.yaml). If you want the pkg-defau
 ## Query: gen-defintions.py --query=<varname> <package.yaml>
 	
 the definitions parser allows you to query the resolved version of a variable - but only those keys defined in the package.yaml file (including keys that reference variables in the pkg-defaults.yaml file).  To download, from the vendor source website the iperf tarball you could use
-```
+```bash
 wget $(/opt/rocks/yaml2rpm/gen-definitions.py --query=vendor_source iperf.yaml)
 ```
 query mode is used in creating the directory structure and copying files. It is also very helpful for the packager to debug resolved definitions. 
