@@ -57,7 +57,7 @@ build:
 	(							\
 		module purge; 					\
 		if [ "$(MODULES)" !=  "" ]; then module load $(MODULES); fi;	\
-		[ $(DO_CD) ] && cd $(SRC_DIR);    	\
+		[ $(DO_CD) == True ] && cd $(SRC_DIR);    	\
 		$(PATCH_METHOD) $(PATCH_ARGS) < ../$(PATCH_FILE);  		\
 		$(PRECONFIGURE);				\
 		$(CONFIGURE) $(CONFIGURE_ARGS);  		\
@@ -69,7 +69,7 @@ install::
 	(							\
 		module purge; 					\
 		if [ "$(MODULES)" !=  "" ]; then module load $(MODULES); fi;	\
-		[ $(DO_CD) ] && cd $(SRC_DIR);		\
+		[ $(DO_CD) == True ] && cd $(SRC_DIR);		\
 		if [ ! -d $(ROOT)/$(PKGROOT) ]; then mkdir -p $(ROOT)/$(PKGROOT); fi; \
 		if [ "$(MAKEINSTALL)" == "" ]; then		\
 			$(MAKE) prefix=$(ROOT)/$(PKGROOT) $(INSTALLTARGET);	\
