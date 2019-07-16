@@ -32,7 +32,7 @@ class Loader(yaml.SafeLoader):
             try:
                 with open(os.path.join(p,filename), 'r') as f:
                     return yaml.load(f, Loader)
-            except yaml.YAMLError as exc:
+            except:
                 pass #print ("Error in configuration file:", exc)
         raise  Exception("%s not found in: %s" % (filename,str(self.incPath)))
 
@@ -644,7 +644,7 @@ def main(argv):
              mDict = eval(arg)
              incMap.update(mDict)
 ##    Open files, parse, generate
-    print ("Generated with ", sys.version)
+    # print ("Generated with ", sys.version)
     yamlfile = sys.argv[-1]
     mkP = mkParser()
     mkP.readPkgYaml(yamlfile)
