@@ -1,4 +1,4 @@
-#! /bin/env python2
+#!/bin/env python
 # Generate a Definitions.mk file - write to standard output 
 
 import yaml
@@ -32,8 +32,8 @@ class Loader(yaml.SafeLoader):
             try:
                 with open(os.path.join(p,filename), 'r') as f:
                     return yaml.load(f, Loader)
-            except:
-                pass
+            except yaml.YAMLError as exc:
+                pass #print ("Error in configuration file:", exc)
         raise  Exception("%s not found in: %s" % (filename,str(self.incPath)))
 
 Loader.add_constructor('!include', Loader.include)
@@ -76,12 +76,12 @@ class IncParser(io.FileIO):
                 #line = self.iter.next()
                 line = next(self.iter)
             else:
-                line = self.child.iter.next()
+                line = next(self.child.iter)
             
             if line.startswith("!include"):
                 incName = line.split()[1]
                 self.child = IncParser(incName)
-                line = self.child.iter.next()
+                line = next(self.child.iter)
             # print("iterated: '%s'" % line)
             return line 
         except StopIteration:
@@ -89,7 +89,7 @@ class IncParser(io.FileIO):
                 self.child = None
                 return self.read(size)
             else:
-                return None
+                return ""
         
 class mkParser(object):
     def __init__(self):
@@ -644,6 +644,7 @@ def main(argv):
              mDict = eval(arg)
              incMap.update(mDict)
 ##    Open files, parse, generate
+    print ("Generated with ", sys.version)
     yamlfile = sys.argv[-1]
     mkP = mkParser()
     mkP.readPkgYaml(yamlfile)
