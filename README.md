@@ -43,24 +43,31 @@ Yaml2rpm set out to solve part of the problem of building and packaging relative
 If you want to use prebuilt RPMS for testing on a standard CentOS machine, you can follow what is below. The following was
 tested on the official CentOS 7 Amazon machine image.
 
--Preparation-
-If you are using a very stripped-down CentOS image (similar to the official CentOS 7 image in Amazon, you will want to make
-certain you have the following packages and package groups installed
-```bash
- yum groupinstall "Development Tools" "Console Internet Tools"
- yum install redhat-lsb wget zlib-devel environment-modules
- . /etc/profile.d/modules.sh
-```
+### Prerequisits
 
-At this point, you can install the development RPMS and then build your first RPM from source.
+1. Python 2 or 3. Required python modules: yaml and datetime.
+   
+1. If you are using a very stripped-down CentOS image (similar to the official CentOS 7 image in Amazon, you will 
+   want to make certain you have the following packages and package groups installed
+   ```bash
+    yum groupinstall "Development Tools" "Console Internet Tools"
+    yum install redhat-lsb wget zlib-devel environment-modules
+    . /etc/profile.d/modules.sh
+   ```
 
-```bash
-wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rocks-devel-7.1-10.x86_64.rpm
-wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/yaml2rpm-1.0-1.x86_64.rpm
-yum install rocks-devel-7.1-10.x86_64.rpm yaml2rpm-1.0-1.x86_64.rpm redhat-lsb environment-modules
-. /etc/profile.d/rocks-devel.sh
-```
-For a very simple test build of an RPM, create a working directory (`workdir`) in this simple example. And then
+1. Install the development RPMS 
+
+   ```bash
+   wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rocks-devel-7.1-10.x86_64.rpm
+   wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/yaml2rpm-1.0-1.x86_64.rpm
+   yum install rocks-devel-7.1-10.x86_64.rpm yaml2rpm-1.0-1.x86_64.rpm redhat-lsb environment-modules
+   . /etc/profile.d/rocks-devel.sh
+   ```
+
+At this point, you can build your first RPM from source.
+
+# A simple test build
+For a very simple build of an RPM, create a working directory (`workdir`) in this simple example. And then
 download the source tarball into the workdir/sources directory.  Then create the cmake RPM, it will be placed in 
 workdir/RPMS/x86_64
 ```bash
@@ -72,7 +79,7 @@ WEBSRC=$(/opt/rocks/yaml2rpm/gen-definitions.py --query=vendor_source ${NAME}.ya
 (cd ../sources; wget ${WEBSRC})
 make ${NAME}.pkg
 ```
-at the end of the process, you should have an RPM in workdir/RPMS/x86_64.  You could install it on the local machine
+At the end of the process, you should have an RPM in workdir/RPMS/x86_64/.  You could install it on the local machine
 and have an updated version of cmake, with a environment so that you could load it with
 ```bash
 module load cmake
@@ -119,10 +126,28 @@ The basic notion of the defintion file to record on the bare minimum needed to d
   install:
     installextra: $(INSTALL) -m 644  README* LICENSE $(ROOT){{ root }}
 ```
-YAML is essentially key-value storage and indentation indicates "dotted" values. Yaml2rpm interprets {{ *variable* }} as a reference.  In this particular example `description: Iperf3 version {{ version }}` will be expanded to "description: Iperf3 version 3.6.  iperf is very well-behaved software source using the standard "./configure; make; make install" pattern of compilation/installation.  The default configure invoked by yaml2rpm in this case would be  `./configure --prefix={{ root }}`.  This can be easily overridden for other software packaging patterns.
+YAML is essentially key-value storage and indentation indicates "dotted" values. Yaml2rpm interprets {{ *variable* }} as a reference.  In this particular example 
+```yaml
+description: Iperf3 version {{ version }}
+``` 
+will be expanded to 
+```yaml
+description: Iperf3 version 3.6
+```
+Iperf is very well-behaved software source using the standard pattern of compilation/installation:
+```bash
+./configure
+make
+make install
+```
+The default configure invoked by yaml2rpm in this case would be 
+```yaml
+./configure --prefix={{ root }}
+```  
+This can be easily overridden for other software packaging patterns.
 
 ## pkg-defaults.yaml
-It is useful to have defaults that can be shared by several packages.  In the samples directory the following pkg-defaults.yaml file is given:
+It is useful to have defaults that can be shared by several packages.  In the samples/ directory the following `pkg-defaults.yaml` file is given:
 ```yaml
 pkg_defaults:
   app_path: /data/apps
@@ -138,14 +163,26 @@ pkg_defaults:
       - PKG_CONFIG_PATH  {{ root }}/lib/pkgconfig
     logger:  exec /bin/logger -p local6.notice - t module-hpc $env(USER) {{ name }}/{{ version }}
 ```
-This for common definition, but nothing is referenced unless the package yaml file utilizes it. For example,
-in iperf.yaml it references: `root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"`, which will get fully resolved to
-root: /data/apps/iperf/3.6.   In yaml, the key `pkg_defaults.module.prepend_path` is a list.  Notice that its definition, `{{ root }}` is taken from definition in the package (iperf.yaml) yaml file.  This is by design.  Indeed you should think of the variable universe as
-coming from the pair (package.yaml,pkg-defaults.yaml). If you want the pkg-defaults-defined variable, you must prefix it (see python_pkgs above for an example).
+This is for common definition, but nothing is referenced unless the package yaml file utilizes it. For example,
+the `iperf.yaml` references: 
+```yaml
+root: "{{ pkg_defaults.app_path }}/{{ name }}/{{ version }}"
+```
+which will get fully resolved to
+```yaml
+root: /data/apps/iperf/3.6
+```   
+In yaml, the key `pkg_defaults.module.prepend_path` is a list.  Notice that its definition, `{{ root }}` is taken from definition in the package yaml file  `iperf.yaml`.  This is by design.  Indeed you should think of the variable universe as
+coming from the files pair `package.yaml, pkg-defaults.yaml`. If you want the `pkg-defaults`-defined variable, you must prefix it (see python_pkgs above for an example).
 
-## Query: gen-defintions.py --query=<varname> <package.yaml>
+## Using gen-defintions.py to query
 	
-the definitions parser allows you to query the resolved version of a variable - but only those keys defined in the package.yaml file (including keys that reference variables in the pkg-defaults.yaml file).  To download, from the vendor source website the iperf tarball you could use
+The definitions parser `gen-defintions.py` allows you to query the resolved version of a variable - but only those keys defined in the `package.yaml` file and including keys that reference variables in the `pkg-defaults.yaml` file.  The syntax is:
+```bash
+gen-defintions.py  --query=varName packageName.yaml
+```
+
+To download, from the vendor source website the iperf tarball you could use
 ```bash
 wget $(/opt/rocks/yaml2rpm/gen-definitions.py --query=vendor_source iperf.yaml)
 ```
