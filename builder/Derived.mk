@@ -17,6 +17,15 @@ ifneq (,$(findstring bz2, $(TARBALL-EXTENSION)))
 CAT-COMPRESS = bzcat
 else ifneq (,$(findstring xz, $(TARBALL-EXTENSION)))
 CAT-COMPRESS = xzcat
+else ifneq (,$(findstring zip, $(TARBALL-EXTENSION)))
+CAT-COMPRESS = unzip 
 else
 CAT-COMPRESS = zcat
+endif
+
+#UNTAR
+ifneq (,$(findstring zip, $(TARBALL-EXTENSION)))
+UNTAR = /bin/wc 
+else
+UNTAR = $(TAR) -xf - 
 endif

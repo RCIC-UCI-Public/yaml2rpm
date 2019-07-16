@@ -53,7 +53,7 @@ endif
 #        1. There is no src tarball (often just some files that need installing and packaging)
 #        2. Same as above (but definitions should override steps)
 build:
-	- $(CAT-COMPRESS) $(SRC_TARBALL) |  $(TAR) -xf -
+	- $(CAT-COMPRESS) $(SRC_TARBALL) |  $(UNTAR)
 	(							\
 		module purge; 					\
 		if [ "$(MODULES)" !=  "" ]; then module load $(MODULES); fi;	\
