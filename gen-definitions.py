@@ -1,6 +1,11 @@
 #!/bin/env python
 # Generate a Definitions.mk file - write to standard output 
 
+#from __future__ import print_function
+#from builtins import next
+##from builtins import str
+#from builtins import object
+
 import yaml
 import re
 import sys
@@ -10,7 +15,10 @@ import getopt
 import os
 import io
 
-incMap = {}
+if sys.version_info.major == 3:
+    from typing import Dict
+incMap = {} # type: Dict[str, str]
+
 class Loader(yaml.SafeLoader):
     def __init__(self, stream):
         self._root = os.path.split(stream.name)[0]
@@ -25,7 +33,7 @@ class Loader(yaml.SafeLoader):
     def include(self, node):
         global incMap
         filename = os.path.join(self._root, self.construct_scalar(node))
-        if filename in incMap.keys():
+        if filename in list(incMap.keys()):
             filename = incMap[filename]
         # look for filename in the incPath
         for p in self.incPath:
@@ -55,7 +63,7 @@ class IncParser(io.FileIO):
             pass    
         # now see if the filename f should be mapped to 
         # a different name
-        if filename in incMap.keys():
+        if filename in list(incMap.keys()):
             filename = incMap['filename']
 
         # now go the incPath looking for the file
@@ -82,7 +90,6 @@ class IncParser(io.FileIO):
                 incName = line.split()[1]
                 self.child = IncParser(incName)
                 line = next(self.child.iter)
-            # print("iterated: '%s'" % line)
             return line 
         except StopIteration:
             if self.child is not None:
@@ -120,7 +127,7 @@ class mkParser(object):
                 srcDct = d[0]
             else:
                 srcDct = d
-            for k in srcDct.keys():
+            for k in list(srcDct.keys()):
                 fullDict[k] = srcDct[k]
         return fullDict
     def combine(self):
@@ -148,12 +155,11 @@ class mkParser(object):
         if ldict is None:
             ldict = self.combo
         comps=e.split('.')
-        dkey = map(lambda x: "['%s']"%x, comps)
+        dkey = ["['%s']"%x for x in comps]
         try:
             val = eval("ldict%s"%"".join(dkey))
         except:
             val = ldict[e]
-        #### print("BBBB", val)
         if type(val) is list: 
             val = self.flatten(val)
         if stringify:
@@ -191,7 +197,6 @@ class mkParser(object):
                     Note: throws an exception if keyword does not exist """
 
         elems =  self.rLookup(keyword,stringify=False,listSep=listSep )
-        #print("XXX", elems, type(elems),listSep, type(listSep))
         if type(elems) is list:
             joinedElems = joinString.join(elems)
             elems = joinedElems 
@@ -207,8 +212,7 @@ class mkParser(object):
 
     def extractVars(self,s):
         """ return a list of 'stripped' var names """
-        lvars = map(lambda x: x.replace('{{','').replace('}}','').strip(), 
-        re.findall(self.varpat,str(s)))
+        lvars = [x.replace('{{','').replace('}}','').strip() for x in re.findall(self.varpat,str(s))]
         return lvars
 
     def replaceVars(self, src, vdict, listSep=None):
@@ -216,11 +220,9 @@ class mkParser(object):
         work = src
         if type(src) is not list:
             work = [ str(src) ]
-        # print ("YYYY", src, type(src),work, type(work))
         rwork=[]
         for elem in work:
             if type(elem) is type("string"):
-                # print("VVVV", elem)
                 newlist = []
                 for var in self.varsInString(elem):
                     expand = self.vLookup(var,vdict,stringify=False)
@@ -232,19 +234,14 @@ class mkParser(object):
                         if listSep is None:
                             newlist.extend(tmp)
                         else:
-                            # print ("VVVU", tmp, listSep.join(tmp))
                             elem = elem.replace(var, listSep.join(tmp))
                 if len(newlist) == 0:
-                    # (print "UUUA", elem)
                     rwork.append(elem)
                 else:    
-                    # print("UUUE", elem)
                     rwork.extend(newlist)
             else:
-                # print "WWWW", elem
                 tmp = self.replaceVars(elem,vdict,listSep)
                 rwork.append(tmp)
-        # print "ZZZZ", rwork
         if len(rwork) == 1:
             return rwork[0]
         else:
@@ -259,7 +256,7 @@ class mkParser(object):
                     are resolved, the object varsdict will hold the resolved versions """
 
         # This loop finds all the vars that need to be replaced  in any definition
-        for key in self.combo.keys():
+        for key in list(self.combo.keys()):
             rhs = self.combo[key]
             if self.hasVars(rhs):
                 for v in self.extractVars(rhs):
@@ -267,13 +264,12 @@ class mkParser(object):
 
         # Do an initial pass of setting key-value pairs
         # Do NOT Stringify at this point
-        for v in self.varsdict.keys():
+        for v in list(self.varsdict.keys()):
             self.setVar(self.varsdict,v,self.lookup(v,self.combo,False))
 
-        # print("QQQQ", "vardict", self.varsdict)
         while True:
             changed = 0
-            for v in self.varsdict.keys():
+            for v in list(self.varsdict.keys()):
                 if self.hasVars(self.varsdict[v]):
                     rhs = self.replaceVars(self.varsdict[v],self.combo)
                     self.varsdict[v] = rhs
@@ -287,8 +283,8 @@ class mkParser(object):
             might itself be a list """
         if type(mllist) is not list:
             return None
-        sublists = filter(lambda x: type(x) is list, mllist)
-        literals = filter(lambda x: type(x) is not list, mllist)
+        sublists = list([x for x in mllist if type(x) is list])
+        literals = list([x for x in mllist if type(x) is not list])
         if len(sublists) == 0:
             return literals
         else:
@@ -301,16 +297,27 @@ class moduleGenerator(object):
         self.mk = mkp
         self.name = self.mk.rLookup("name")
         self.version = self.mk.rLookup("version")
+        try:
+            self.category = self.mk.rLookup("category") 
+        except:
+            self.category = ""
         self.description = self.mk.rLookup("description") 
-        self.logger = "if { [ module-info mode load ] } {\n  %s\n}"
-        self.logger2 = 'if { [ module-info mode load ] } {\n  puts stderr "%s"\n}'
+        self.descriptionList = self.description.split("\n")[:-1] # description as list of lines
+        self.logger = "\nif { [ module-info mode load ] } {\n  %s\n}"
+        self.listPrereqs()
+        try:
+            self.reqs =  self.mk.lookupAndResolve("requires"," " )
+            self.reqs = self.reqs.split(" ")
+        except:
+            self.reqs =  []
 
     def gen_header(self):
         profile = """#%%Module1.0
 #####################################################################
-## module.skeleton adapted from modulizer script originally written by Harry Mangalam (hjm)
 ## Date: %s
 ## Built on: %s
+## Standard header for invoking autoloading functionality 
+##
 source /opt/rcic/include/rcic-module-head.tcl
 """ 
         rstr = profile % (str(datetime.date.today()),socket.getfqdn())    
@@ -327,13 +334,38 @@ source /opt/rcic/include/rcic-module-tail.tcl
         rstr = profile 
         return rstr
 
+    def gen_help(self):
+        """ generate ModuleHelp function """
+        rstr =  '\nproc ModulesHelp { } {\n'
+        rstr += '        puts stderr "\\t%s version %s"\n' % (self.name, self.version)
+        template = '        puts stderr "\\t%s"\n'
+        for txtline in self.descriptionList: 
+            rstr += template % txtline
+        rstr =  rstr[0:-2] + '\\n"\n' # add NL to the last line item 
+        rstr += '}\n\n'
+        return rstr
+
     def gen_whatis(self):
-        desc = """set DESC \"                            %s/%s
-%s
-\"
-"""
-        rstr =  desc % (self.name, self.version, self.description)
-        rstr += 'module-whatis "\n$DESC\n"\n'
+        """ generate module-whatis lines """
+        rstr = 'module-whatis "Category_______ %s"\n' % self.category
+        rstr += 'module-whatis "Name___________ %s"\n' % self.name
+        rstr += 'module-whatis "Version________ %s"\n' % self.version
+        rstr += self.genMultiLine('module-whatis "Description____ %s"\n', self.descriptionList)
+        if self.prereqModules:
+            rstr += self.genMultiLine('module-whatis "Load modules___ %s"\n', self.prereqModules)
+        if self.reqs:
+            rstr += self.genMultiLine('module-whatis "Prerequisites__ %s"\n', self.reqs)
+        rstr += '\n'
+        return rstr
+
+    def genMultiLine(self, headline, items):
+        """ generate multi-line item for module-whatis """
+        if items == []:
+            return  headline % "none"
+        template = 'module-whatis "                %s"\n'
+        rstr = headline % items[0]
+        for txtline in items[1:]:
+            rstr += template % txtline
         return rstr
 
     def prepend_path(self):
@@ -383,31 +415,43 @@ source /opt/rcic/include/rcic-module-tail.tcl
             rstr += template % ( self.mk.resolveStr(aName), self.mk.resolveStr(aVal))
         return rstr
 
-    def gen_prereqs(self):
-        """ load other modules as  prereqs"""
-        rstr = ""
+    def listPrereqs(self):
+        """ find prerequisite modules """
+        self.prereqModules = []
         try:
             entries = self.mk.rLookup("module.prereq", stringify=False)
         except:
-            return rstr
+            return 
         prereqs = [ self.mk.resolveStr(p) for p in entries ]
-        prereqs = self.mk.flatten(prereqs)
+        self.prereqModules = self.mk.flatten(prereqs)
+
+    def gen_prereqs(self):
+        """ load other modules as prereqs """
+        rstr = ""
         template = 'if { [module-info mode load] } { LoadPrereq "%s" }\nprereq\t%s\n'
-        for prereq in prereqs:
+        for prereq in self.prereqModules:
             mod = self.mk.resolveStr(prereq)
             rstr += template % (mod,mod)
+        return rstr
+
+    def gen_logger(self):
+        """ Create logging statement """
+        logstr = "exec /bin/logger -p local6.notice -t module-hpc $env(USER) %s/%s" % (self.name, self.version)
+        rstr =  self.logger % logstr
         return rstr
 
     def generate(self):
         """ return a string that can written as  module file """
         rstr = ""
         rstr += self.gen_header()
+        rstr += self.gen_help()
         rstr += self.gen_whatis()
         rstr += self.gen_setenv()
         rstr += self.gen_alias()
         rstr += self.gen_prereqs()
         rstr += self.prepend_path() 
         rstr += self.gen_tail() 
+        rstr += self.gen_logger() 
         return rstr
 
 class makeIncludeGenerator(object):
@@ -426,11 +470,17 @@ class makeIncludeGenerator(object):
         except:
             rstr += "NAME\t = $(TARNAME)_$(VERSION)\n"
         rstr += "TARBALL-EXTENSION \t = %s\n" % self.mk.rLookup("extension")
-        rstr += "DESCRIPTION \t = %s\n" % self.mk.rLookup("description")
+
+        rstr += "DESCRIPTION \t = " 
+        self.description = self.mk.rLookup("description") 
+        self.descriptionList = self.description.split("\n")[:-1] # description as list of lines
+        for txtline in self.descriptionList: 
+            rstr += "%s \\\n" % txtline
+        rstr =  rstr[0:-2] + "\n" # rm last '\' and add NL back
+
         rstr += "PKGROOT \t = %s\n" % self.mk.rLookup("root")
 
         # The following are optional and are put in try blocks
-
         try:
             rstr += "RELEASE\t = %s\n" % self.mk.rLookup("release")
         except:
@@ -607,9 +657,9 @@ def usage():
     print('gen-defintions.py [-d <defaults file>] [-m] [-h] <pkg file>')
     print('     -d <defaults file>  - YAML file for packaging defaults')
     print('     -m                  - generate environment modules file')
-    print('        -q <type>        - query [types: patch, module, source, pkgname, tarball]')
+    print('     -q <type>           - query [types: patch, module, source, pkgname, tarball]')
     print('     -h                  - print this help')
-    print('     <pkg file>      - YAML file with packaging definitions')
+    print('     <pkg file>          - YAML file with packaging definitions')
 
 def main(argv):
     global incMap
@@ -644,7 +694,6 @@ def main(argv):
              mDict = eval(arg)
              incMap.update(mDict)
 ##    Open files, parse, generate
-    # print ("Generated with ", sys.version)
     yamlfile = sys.argv[-1]
     mkP = mkParser()
     mkP.readPkgYaml(yamlfile)
