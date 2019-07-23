@@ -11,9 +11,9 @@ import re
 import sys
 import datetime
 import socket 
-import getopt
 import os
 import io
+import argparse
 
 if sys.version_info.major == 3:
     from typing import Dict
@@ -41,7 +41,7 @@ class Loader(yaml.SafeLoader):
                 with open(os.path.join(p,filename), 'r') as f:
                     return yaml.load(f, Loader)
             except:
-                pass #print ("Error in configuration file:", exc)
+                pass 
         raise  Exception("%s not found in: %s" % (filename,str(self.incPath)))
 
 Loader.add_constructor('!include', Loader.include)
@@ -53,8 +53,7 @@ class IncParser(io.FileIO):
     def __init__(self,filename,mode='r'):
         global incMap
         super(IncParser,self).__init__(filename,mode)
-        # read the YAML2RPM_INC environment variable. Places to look
-        # for include files
+        # read the YAML2RPM_INC environment variable. Places to look for include files
         self.incPath = ['.']
         try:
             iPath = os.environ['YAML2RPM_INC']
@@ -81,7 +80,6 @@ class IncParser(io.FileIO):
     def read(self,size):
         try:
             if not self.child:
-                #line = self.iter.next()
                 line = next(self.iter)
             else:
                 line = next(self.child.iter)
@@ -653,61 +651,58 @@ class queryProcessor(object):
 ## main routine
 ## *****************************
 
-def usage():
-    print('gen-defintions.py [-d <defaults file>] [-m] [-h] <pkg file>')
-    print('     -d <defaults file>  - YAML file for packaging defaults')
-    print('     -m                  - generate environment modules file')
-    print('     -q <type>           - query [types: patch, module, source, pkgname, tarball]')
-    print('     -h                  - print this help')
-    print('     <pkg file>          - YAML file with packaging definitions')
-
 def main(argv):
     global incMap
-    doModule = False 
-    doQuery = False 
-    queryType = ''
-    quiet = False
-    mDict = {} 
-    dflts_file = 'pkg-defaults.yaml'
-    listSep = None
-    try:
-        opts, args = getopt.getopt(argv,"d:hl:mq:QM:",["defaults=","help","module","listsep=","query=","quiet","map="])
-    except getopt.GetoptError:
-        usage()
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt in ("-h", "--help"):
-            usage()    
-            sys.exit()
-        elif opt in ("-d", "--defaults"):
-            dflts_file = arg
-        elif opt in ("-l", "--listsep"):
-            listSep = arg    
-        elif opt in ("-m", "--module"):
-            doModule = True    
-        elif opt in ("-q", "--query"):
-            doQuery = True    
-            queryType = arg
-        elif opt in ("-Q", "--quiet"):
-             quiet = True    
-        elif opt in ("-M", "--map"):
-             mDict = eval(arg)
-             incMap.update(mDict)
-##    Open files, parse, generate
-    yamlfile = sys.argv[-1]
+
+    dflts_file = 'pkg-defaults.yaml'  # defaults package file, assume in the current yamlspecs/ directory 
+
+    # descriptionand help lines for the usage  help
+    description = "The definitions parser gen-defintions.py reads the yaml descripton file\n" 
+    description += "and creates include and module files needed for generating of RPM package"
+
+    helpquery = "query if value exists in the yaml file and  print  the result on stdout. Valid types are the keywords in the\n"
+    helpquery += "the yaml file: patch, module, source, pkgname, etc. Example: --query=source. If nout found, prints 'False'\n"
+
+    helpdefaults = "specify packaging defaults yaml file to use. If none is provided, use:\n"
+    helpdefaults += "(1) specific ./%s in the current yamlspecs/ directory; if exists \n" % dflts_file
+    helpdefaults += "(2) default /opt/rocks/yaml2rpm/sys/%s otherwise \n" % dflts_file 
+
+    helplsep = "use a list separator for printing a query result as a string in the case when multiple items are returned.\n"
+    helplsep += "Valid when -q option is present. Default output is a single element (str) or an array of elements [str,str]."
+
+    helpmap = "use mapping to substitute a default file with a replacement. Can use when building multiple versions of the\n"
+    helpmap += "package. Mapping is  python dictionary, ke is the original file, and the value is the substitute file. For \n"
+    helpmap += "example, -map=\"{'gcc-versions.yaml':'gcc-versions-8.yaml'}\" replaces default yaml file with a specific version"
+
+    parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
+    # optional arguments
+    parser.add_argument("-d", "--defaults", dest="dflts_file", default=dflts_file, help=helpdefaults)
+    parser.add_argument("-m", "--module",   dest="doModule",   default=False, action='store_true', help="generate environment modules file")
+    parser.add_argument("-q", "--query",    dest="doQuery",    default=False, help=helpquery)
+    parser.add_argument("-l", "--listsep",  dest="listSep",    default=None,  help=helplsep)
+    parser.add_argument("-Q", "--quiet",    dest="quiet",      default=False, action='store_true', help="supress output of query processing")
+    parser.add_argument("-M", "--map",      dest="mapf",       default=False, help=helpmap)
+    # required positional argument
+    parser.add_argument("yamlfile",  action="store", help="main YAML file with packaging definitions") 
+    args = parser.parse_args()
+    
+    if args.mapf: 
+        incMap.update(eval(args.mapf))
+
+    # Open input yaml files, parse, generate
     mkP = mkParser()
-    mkP.readPkgYaml(yamlfile)
-    mkP.readDefaultsYaml(dflts_file)
+    mkP.readPkgYaml(args.yamlfile)
+    mkP.readDefaultsYaml(args.dflts_file)
     mkP.resolveVars()
 
     mg = moduleGenerator(mkP)
     mig = makeIncludeGenerator(mkP)
     qp = queryProcessor(mkP)
 
-    if doModule: 
+    if args.doModule: 
         print(mg.generate() )
-    elif doQuery:
-        qp.processQuery(queryType,quiet,listSep)
+    elif args.doQuery:
+        qp.processQuery(args.doQuery,args.quiet,args.listSep)
     else:
         print(mig.generate())
 
