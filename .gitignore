@@ -1,0 +1,11 @@
+BUILD/
+RPMS/
+SOURCES/
+SPECS/
+cache/
+localrepo/
+sources/
+workdir/
+yamlspecs/tmpbuild/
+yum.*
+
