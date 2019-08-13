@@ -586,7 +586,11 @@ class makeIncludeGenerator(object):
             files =  self.mk.lookupAndResolve("files","\\n\\\n")
             rstr += "RPM.FILES\t = %s\n" % files 
         except:
-            rstr += "RPM.FILES\t = $(PKGROOT)\n" 
+            try:
+                files =  self.mk.lookupAndResolve("fileslist","\\n\\\n")
+                rstr += "RPM.FILESLIST\t = %s\n" % files 
+            except:
+                rstr += "RPM.FILES\t = $(PKGROOT)\n" 
 
 
         try:
