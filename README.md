@@ -43,7 +43,7 @@ Yaml2rpm set out to solve part of the problem of building and packaging relative
 If you want to use prebuilt RPMS for testing on a standard CentOS machine, you can follow what is below. The following was
 tested on the official CentOS 7 Amazon machine image.
 
-### Prerequisits
+### Prerequisites
 
 1. Python 2 or 3. Required python modules: yaml and datetime.
    
@@ -58,9 +58,11 @@ tested on the official CentOS 7 Amazon machine image.
 1. Install the development RPMS 
 
    ```bash
-   wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rocks-devel-7.1-10.x86_64.rpm
-   wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/yaml2rpm-1.0-1.x86_64.rpm
-   yum install rocks-devel-7.1-10.x86_64.rpm yaml2rpm-1.0-1.x86_64.rpm redhat-lsb environment-modules
+   YAMLRPM_VERSION=1.4-1
+   ROCKSDEVEL_VERSION=7.1-10
+   wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rocks-devel-${ROCKSDEVEL_VERSION}.x86_64.rpm
+   wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/yaml2rpm-${YAMLRPM_VERSION}.x86_64.rpm
+   yum -y install rocks-devel-${ROCKSDEVEL_VERSION}.x86_64.rpm yaml2rpm-${YAMLRPM_VERSION}.x86_64.rpm zlib-devel redhat-lsb environment-modules
    . /etc/profile.d/rocks-devel.sh
    ```
 
