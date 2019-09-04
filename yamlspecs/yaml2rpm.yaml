@@ -32,7 +32,9 @@
       $(TAR) cf - * | $(TAR) xf -  -C $(ROOT)/{{ root }};
       $(INSTALL) yaml2rpm.sh $(ROOT)/etc/profile.d
       
-  requires:  rocks-devel >= 7.1
+  requires:  
+    - rocks-devel >= 7.1
+    - PyYAML 
   clean: "{{ name }}-{{ version }}"
   files:
     - "{{ root }}"
