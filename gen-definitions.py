@@ -472,9 +472,12 @@ class makeIncludeGenerator(object):
         rstr += "DESCRIPTION \t = " 
         self.description = self.mk.rLookup("description") 
         self.descriptionList = self.description.split("\n")[:-1] # description as list of lines
-        for txtline in self.descriptionList: 
-            rstr += "%s \\\n" % txtline
-        rstr =  rstr[0:-2] + "\n" # rm last '\' and add NL back
+        if len(self.descriptionList) == 0:
+            rstr += self.description
+        else:
+            for txtline in self.descriptionList: 
+                rstr += "%s \\\n" % txtline
+            rstr =  rstr[0:-2] + "\n" # rm last '\' and add NL back
 
         rstr += "PKGROOT \t = %s\n" % self.mk.rLookup("root")
 
