@@ -36,6 +36,7 @@ SOURCES = ../sources
 ## Name of local directory for build. Cleared for each package built, so 
 ## only supports one at a time
 TMPBUILD = tmpbuild
+ADDFILTERS = addfilters
 
 ## These define the modules for bootstrap. 
 # BOOTSTRAP_SYSTEM - modules part of the OS/other repo that need to be installed for building
@@ -68,6 +69,7 @@ default: $(PKGS)
 
 %.pkg : %.yaml
 	make -e -f $(THISMAKE) cleantmp $(TMPBUILD)
+	make -e -f $(THISMAKE) $(ADDFILTERS) thismod=$<
 	$(GENERATE) $< > $(TMPBUILD)/$(DEFINITIONS)
 	- $(GENERATE) -m $< > $(TMPBUILD)/modulefile
 	- $(GENERATE) --query=pretar $< | /bin/sh
@@ -105,6 +107,9 @@ unbootstrap-sys:
 $(TMPBUILD):
 	mkdir $(TMPBUILD)
 	install $(TEMPLATE_FILES) $(TMPBUILD)
+
+$(ADDFILTERS)::
+	echo
 
 download:
 	if [ "$$PKG" == "" ]; then \
