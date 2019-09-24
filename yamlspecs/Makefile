@@ -67,6 +67,8 @@ default: $(PKGS)
 ## 7. Execute "make pkg" in the $(TMPBUILD) directory 
 ## 8. Touch pkg file to indicate the build was completed.
 
+%.pkg : $(SOURCES)
+
 %.pkg : %.yaml
 	make -e -f $(THISMAKE) cleantmp $(TMPBUILD)
 	make -e -f $(THISMAKE) $(ADDFILTERS) thismod=$<
@@ -111,7 +113,7 @@ $(TMPBUILD):
 $(ADDFILTERS)::
 	echo
 
-download:
+download: $(SOURCES)
 	if [ "$$PKG" == "" ]; then \
 	   echo "please call as make download PKG='<name of pkg>'"; \
 	else \
@@ -119,6 +121,10 @@ download:
  	   tarball=$$($(GENERATE) --query=tarball $$PKG.yaml); \
 	   wget -O $(SOURCES)/$$tarball $$url; \
 	fi
+
+$(SOURCES):
+	/bin/mkdir -p $@
+
 cleantmp: 
 	- /bin/rm -rf $(TMPBUILD)
 
