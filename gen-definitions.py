@@ -19,15 +19,23 @@ if sys.version_info.major == 3:
     from typing import Dict
 incMap = {} # type: Dict[str, str]
 
-class Loader(yaml.SafeLoader):
-    def __init__(self, stream):
-        self._root = os.path.split(stream.name)[0]
+class IncPath():
+
+    def __init__(self):
         self.incPath = ['.']
         try:
             iPath = os.environ['YAML2RPM_INC']
             self.incPath.extend( iPath.split(':'))
         except:
             pass    
+
+    def getPath(self):
+        return self.incPath
+
+class Loader(yaml.SafeLoader):
+    def __init__(self, stream):
+        self._root = os.path.split(stream.name)[0]
+        self.incPath = IncPath().getPath()
         super(Loader, self).__init__(stream)
 
     def include(self, node):
@@ -53,15 +61,8 @@ class IncParser(io.FileIO):
     def __init__(self,filename,mode='r'):
         global incMap
         super(IncParser,self).__init__(filename,mode)
-        # read the YAML2RPM_INC environment variable. Places to look for include files
-        self.incPath = ['.']
-        try:
-            iPath = os.environ['YAML2RPM_INC']
-            self.incPath.extend( iPath.split(':'))
-        except:
-            pass    
-        # now see if the filename f should be mapped to 
-        # a different name
+        self.incPath = IncPath().getPath()
+
         if filename in list(incMap.keys()):
             filename = incMap['filename']
 
@@ -103,6 +104,7 @@ class mkParser(object):
         self.kvdict = None   
         self.defaults = None 
         self.combo = None 
+        self.incPath = IncPath().getPath()
 
     def readPkgYaml(self,fname):
         f = IncParser(fname)
@@ -111,10 +113,18 @@ class mkParser(object):
         self.combine()
     
     def readDefaultsYaml(self,fname):
-        f = IncParser(fname)
-        docs = yaml.load_all(f,Loader)
-        self.defaults = self.mergeDocs(docs)
-        self.combine()
+        fnames = [fname]
+        fnames.extend( [os.path.join(p,fname) for p in self.incPath])
+        for name in fnames: 
+            try:
+                f = IncParser(name)
+       	        docs = yaml.load_all(f,Loader)
+                self.defaults = self.mergeDocs(docs)
+                self.combine()
+                return
+            except Exception as ex: 
+                pass
+        raise Exception("Could not find defaults file in %s" % str(fnames))
 
     def mergeDocs(self,docs):
         """ Merge parsed YAML docs into a single dictionary. Keys are overwritten of 
