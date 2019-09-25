@@ -1,6 +1,10 @@
 ## This a Makefile to drive the bootstrapping/building of RPMS
 # Uncomment this line if using the yaml2rpm files
 TEMPLATEDIR=/opt/rocks/yaml2rpm
+HOME=$(shell pwd)
+
+SUDO = sudo
+YUM = $(SUDO) /usr/bin/yum
 
 ## We want the name of the enclosing Makefile since
 # this particular Makefile is usually included
@@ -29,7 +33,6 @@ DEFAULTS = $(LOCALDEFAULTS)
 endif
 
 GENERATE = $(TEMPLATEDIR)/gen-definitions.py $(GENEXTRAS) -d $(DEFAULTS) 
-
 ## Local sources of tarballs
 LOCALREPODIR = ..
 SOURCES = ../sources
@@ -54,7 +57,7 @@ MODULES = $(shell  grep -v '\#' $(BUILD_MODULES_FILE) | sed 's/$$/.yaml/')
 PKGS = $(MODULES:.yaml=.pkg)
 
 
-default: $(PKGS)
+default: $(SOURCES) $(PKGS)
 
 ## This section takes the yaml file and does various interpretations to create files
 ## 1. Create temp working directory $(TMPBUILD) - install template files from $(TEMPLATEDIR)/builder
@@ -84,13 +87,13 @@ default: $(PKGS)
 	touch $@
 
 bootstrap: 
-	- yum -y install $(BOOTSTRAP_SYSTEM) 
+	- $(YUM) -y install $(BOOTSTRAP_SYSTEM) 
 	echo $(BOOTSTRAP_MODULES)
 	( for mod in $(BOOTSTRAP_MODULES); do					\
 		make -e -f $(THISMAKE) $$mod.pkg;							\
 		make -e -C $(LOCALREPODIR) createlocalrepo; 			\
 		rpmname=$$($(GENERATE) --query=pkgname $$mod.yaml);		\
-		yum -y -c $(LOCALREPODIR)/yum.conf install $$rpmname;		\
+		$(YUM) -y -c $(LOCALREPODIR)/yum.conf install $$rpmname;		\
 	  done									\
 	)
 
@@ -100,11 +103,11 @@ unbootstrap:
 		rpmname=$$($(GENERATE) --query=pkgname $$mod.yaml);		\
                 ALLRPMS="$$ALLRPMS $$rpmname";					\
 	  done;									\
-          yum -y erase $$ALLRPMS 						\
+          $(YUM) -y erase $$ALLRPMS 						\
 	)
 
 unbootstrap-sys:
-	yum -y erase $(BOOTSTRAP_SYSTEM);					\
+	$(YUM) -y erase $(BOOTSTRAP_SYSTEM);					\
 
 $(TMPBUILD):
 	mkdir $(TMPBUILD)
@@ -146,6 +149,7 @@ veryclean: clean
 FORCE:
 
 diag:
-	echo $(BOOTSTRAP_MODULES)
-	echo $(THISMAKE)
-	echo $(MAKEFILE_LIST)
+	echo "HOME:  $(HOME)"
+	echo "BOOTSTRAP_MODULES: $(BOOTSTRAP_MODULES)"
+	echo "THISMAKE: $(THISMAKE)"
+	echo "MAKEFILE_LIST: $(MAKEFILE_LIST)"
