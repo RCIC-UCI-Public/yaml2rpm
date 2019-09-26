@@ -59,7 +59,7 @@ tested on the official CentOS 7 Amazon machine image.
 
    ```bash
    YAMLRPM_VERSION=1.4-1
-   ROCKSDEVEL_VERSION=7.1-10
+   ROCKSDEVEL_VERSION=7.1-11
    RCICMODULE_VERSION=1.0-1
    wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rocks-devel-${ROCKSDEVEL_VERSION}.x86_64.rpm
    wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/yaml2rpm-${YAMLRPM_VERSION}.x86_64.rpm
