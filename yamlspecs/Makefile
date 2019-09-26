@@ -73,6 +73,7 @@ default: $(SOURCES) $(PKGS)
 %.pkg : $(SOURCES)
 
 %.pkg : %.yaml
+	echo "===== Building $@ ( $$(date) )========" 
 	make -e -f $(THISMAKE) cleantmp $(TMPBUILD)
 	make -e -f $(THISMAKE) $(ADDFILTERS) thismod=$<
 	$(GENERATE) $< > $(TMPBUILD)/$(DEFINITIONS)
@@ -85,7 +86,7 @@ default: $(SOURCES) $(PKGS)
 		install $(SOURCES)/$$src $(TMPBUILD); done)
 	make -e -C $(TMPBUILD) pkg 
 	touch $@
-
+	echo "===== Completed $@ ( $$(date) )========" 
 bootstrap: 
 	- $(YUM) -y install $(BOOTSTRAP_SYSTEM) 
 	echo $(BOOTSTRAP_MODULES)
