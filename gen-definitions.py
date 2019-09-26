@@ -483,7 +483,7 @@ class makeIncludeGenerator(object):
         self.description = self.mk.rLookup("description") 
         self.descriptionList = self.description.split("\n")[:-1] # description as list of lines
         if len(self.descriptionList) == 0:
-            rstr += self.description
+            rstr += self.description + "\n"
         else:
             for txtline in self.descriptionList: 
                 rstr += "%s \\\n" % txtline
@@ -491,34 +491,33 @@ class makeIncludeGenerator(object):
 
         rstr += "PKGROOT \t = %s\n" % self.mk.rLookup("root")
 
-        # The following are optional and are put in try blocks
-        try:
-            rstr += "RELEASE\t = %s\n" % self.mk.rLookup("release")
-        except:
-            pass
-        try:
-            rstr += "VENDOR\t = %s\n" % self.mk.rLookup("vendor")
-        except:
-            pass
-        try:
-            rstr +=  "SRC_TARBALL\t = %s\n" % self.mk.rLookup("src_tarball")
-        except:
-            pass
-        try:
-            rstr +=  "SRC_DIR\t = %s\n" % self.mk.rLookup("src_dir")
-        except:
-            pass
-
-        try:
-            rstr +=  "NO_SRC_DIR\t = %s\n" % self.mk.rLookup("no_src_dir")
-        except:
-            pass
-
-        try:
-            rstr +=  "PRECONFIGURE\t = %s\n" % self.mk.rLookup("build.preconfigure")
-        except:
-             rstr += "PRECONFIGURE = echo no preconfigure required\n"
-
+        # Standard options and defaults, if defined
+        # Format of these tuples
+        #           (MAKEFILE VAR, YAML VAR, [default])
+        options=[ ("RELEASE","release"),("VENDOR", "vendor"), ("SRC_TARBALL","src_tarball")]
+        options.extend([ ("SRC_DIR","src_dir"),("NO_SRC_DIR", "no_src_dir") ])
+        options.extend([ ("PRECONFIGURE", "build.preconfigure","echo no preconfigure required")])
+        options.extend([ ("BUILDTARGET", "build.target")])
+        options.extend([ ("PKGMAGE", "build.pkgmake")])
+        options.extend([ ("MAKEINSTALL", "install.makeinstall")])
+        options.extend([ ("INSTALLEXTRA", "install.installextra")])
+        options.extend([ ("MODULENAME", "module.name","")])
+        options.extend([ ("MODULESPATH", "module.path","")])
+        options.extend([ ("RPMS.SCRIPTSLETS.FILE", "rpm.scriptlets")])
+        
+        # The options look the same in the Makefile, some have defaults
+        for option in options:
+            mfVar = option[0]
+            yamlVar = option[1]
+            try:
+                rVar = self.mk.rLookup(yamlVar)
+                rstr += "%s\t = %s\n" % (mfVar,rVar)
+            except:
+                # if it has a default value, print it. 
+                if len(option) == 3: 
+                   rstr += "%s\t = %s\n" % (mfVar,option[2])
+                
+        # Handle configure separately
         stdconfigure = "+=" 
         try:
             rstr +=  "CONFIGURE \t = %s\n" % self.mk.rLookup("build.configure")
@@ -540,44 +539,11 @@ class makeIncludeGenerator(object):
             pass
 
         try:
-            mpath = ''
-            mpath = self.mk.rLookup("module.path")
-        except:
-            pass
-        rstr += "MODULESPATH \t = %s\n" % mpath 
-
-        try:
-            mname = ''
-            mname = self.mk.rLookup("module.name")
-        except:
-            pass
-        rstr += "MODULENAME \t = %s\n" % mname 
-
-        try:
-            rstr += "BUILDTARGET \t = %s\n" % self.mk.rLookup("build.target")
-        except:
-            pass
-
-        try:
-            rstr += "PKGMAKE \t = %s\n" % self.mk.rLookup("build.pkgmake")
-        except:
-            pass
-
-        try:
             rstr += "PATCH_FILE \t = %s\n" % self.mk.rLookup("build.patchfile")
             rstr += "PATCH_METHOD \t = $(PATCH_CMD)\n" 
         except:
             rstr += "PATCH_METHOD \t = $(PATCH_NONE)\n" 
 
-        try:
-            rstr += "MAKEINSTALL \t = %s\n" % self.mk.rLookup("install.makeinstall")
-        except:
-            pass
-
-        try:
-            rstr += "INSTALLEXTRA\t = %s\n" % self.mk.rLookup("install.installextra")
-        except:
-            pass
         try:
             reqs =  self.mk.lookupAndResolve("requires"," ")
             if type(reqs) is list:
@@ -610,11 +576,6 @@ class makeIncludeGenerator(object):
             extras =  self.mk.lookupAndResolve("rpm.extras","\\n\\\n",listSep=" ")
             rstr += "RPM.EXTRAS\t = %s\n" % extras 
 
-        except:
-            pass
-        try:
-            scriptlets = self.rLookup("rpm.scriptlets")
-            rstr += "RPM.SCRIPTLETS.FILE\t = %s\n" % scriplets
         except:
             pass
             
