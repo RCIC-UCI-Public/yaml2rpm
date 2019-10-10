@@ -498,7 +498,7 @@ class makeIncludeGenerator(object):
         options.extend([ ("SRC_DIR","src_dir"),("NO_SRC_DIR", "no_src_dir") ])
         options.extend([ ("PRECONFIGURE", "build.preconfigure","echo no preconfigure required")])
         options.extend([ ("BUILDTARGET", "build.target")])
-        options.extend([ ("PKGMAGE", "build.pkgmake")])
+        options.extend([ ("PKGMAKE", "build.pkgmake")])
         options.extend([ ("MAKEINSTALL", "install.makeinstall")])
         options.extend([ ("INSTALLEXTRA", "install.installextra")])
         options.extend([ ("MODULENAME", "module.name","")])
