@@ -1,0 +1,24 @@
+#
+#  rcicmodulespath
+#
+#  RCIC Modulepath setup
+#  =====================
+#
+#  This file defines the additional setup for the module files search path.
+#  Comments may be added anywhere, which begin on '#' and continue until the end of the line
+#
+#  Each line containing a single path will be added to the RCICMODULEPATH
+#  environment variable which will be added to MODULEPATH
+#
+/opt/rcic/Modules/modulefiles/biotools
+/opt/rcic/Modules/modulefiles/chemistry
+/opt/rcic/Modules/modulefiles/compilers
+/opt/rcic/Modules/modulefiles/genomics
+/opt/rcic/Modules/modulefiles/imaging
+/opt/rcic/Modules/modulefiles/languages
+/opt/rcic/Modules/modulefiles/physics
+/opt/rcic/Modules/modulefiles/statistics
+/opt/rcic/Modules/modulefiles/tools
+$HOME/modulefiles
+#
+#/opt/rcic/Modules/modulefiles/foundation

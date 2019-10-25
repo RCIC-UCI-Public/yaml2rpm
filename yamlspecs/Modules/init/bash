@@ -1,0 +1,19 @@
+
+RCICMODULESHOME=/opt/rcic/Modules
+export RCICMODULESHOME
+
+# for RCIC defined admix modules
+if [ "${RCICMODULEPATH:-}" = "" ]; then
+  RCICMODULEPATH=`sed -n 's/[ 	#].*$//; /./H; $ { x; s/^\n//; s/\n/:/g; p; }' ${RCICMODULESHOME}/init/rcicmodulespath`
+  MODULEPATH=$MODULEPATH:$RCICMODULEPATH
+  export MODULEPATH RCICMODULEPATH
+fi
+
+# for user defined modules
+if [ "${USERMODULEPATH:-}" = "" ]; then
+  if [ -f $HOME/.usermodulespath ]; then
+    USERMODULEPATH=`sed -n 's/[   #].*$//; /./H; $ { x; s/^\n//; s/\n/:/g; p; }' ${HOME}/.usermodulespath`
+  fi
+  MODULEPATH=$MODULEPATH:$USERMODULEPATH
+  export MODULEPATH USERMODULEPATH
+fi

@@ -1,0 +1,16 @@
+
+setenv RCICMODULESHOME /opt/rcic/Modules
+
+# for RCIC defined admix modules
+if (! $?RCICMODULEPATH ) then
+  setenv RCICMODULEPATH `sed -n 's/[ 	#].*$//; /./H; $ { x; s/^\n//; s/\n/:/g; p; }' ${RCICMODULESHOME}/init/rcicmodulespath`
+  setenv MODULEPATH $MODULEPATH\:$RCICMODULEPATH
+endif
+
+# for user defined modules
+if (! $?USERMODULEPATH ) then
+  if (-f "$HOME/.usermodulespath") then
+    setenv USERMODULEPATH `sed -n 's/[ 	#].*$//; /./H; $ { x; s/^\n//; s/\n/:/g; p; }' ${HOME}/.usermodulespath`
+    setenv MODULEPATH $MODULEPATH\:$USERMODULEPATH
+  endif
+endif

@@ -1,0 +1,33 @@
+---
+- package: RCIC module path 
+  name: rcic-module-path 
+  version: "1.0"
+  extension: tar.gz
+  root: "/opt/rcic"
+  srctar: "{{ name }}-{{ version }}.{{ extension }}"
+  pkgname: "{{ name }}"
+  description: |
+    RCIC module path {{ version }}. This provides support and common code for 
+    updating modules path provided by the system with admix installed modules. 
+  addfile:
+    - rcic-modules.sh
+    - rcic-modules.csh
+  pretar: >
+    mkdir {{ name }}-{{ version }};
+    tar cf - Modules | tar xf - -C {{ name }}-{{ version }};
+    tar czf ../sources/{{ srctar }} {{ name }}-{{ version }};
+    rm -rf {{ name }}-{{ version }};
+  build:
+    configure: echo
+    configure_args: 
+    pkgmake: echo
+  install:
+    makeinstall: >
+      mkdir -p $(ROOT)/{{ root }}; 
+      mkdir -p $(ROOT)/etc/profile.d; 
+      $(TAR) cf - * | $(TAR) xf -  -C $(ROOT)/{{ root }};
+      $(INSTALL) ../rcic-modules.*sh $(ROOT)/etc/profile.d
+  clean: "{{ name }}-{{ version }}"
+  files: 
+    - "{{ root }}/Modules" 
+    - /etc/profile.d/*
