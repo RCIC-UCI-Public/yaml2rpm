@@ -6,13 +6,14 @@
   root: "/opt/rcic"
   srctar: "{{ name }}-{{ version }}.{{ extension }}"
   pkgname: "{{ name }}"
-  description: >
-    RCIC module support {{ version }}. This provides support and common code for generated environment modules 
-    created with yaml2rpm
+  description: |
+    RCIC module support {{ version }}. This provides support and common code 
+    for generated environment modules created with yaml2rpm
   pretar: >
     mkdir {{ name }}-{{ version }};
     tar cf - include | tar xf - -C {{ name }}-{{ version }};
-    tar czf ../sources/{{ srctar }} {{ name }}-{{ version }} 
+    tar czf ../sources/{{ srctar }} {{ name }}-{{ version }};
+    rm -rf {{ name }}-{{ version }};
   build:
     configure: echo
     configure_args: 
