@@ -8,6 +8,9 @@
 ## Research Cyberinfrastructure Center, UC Irvine
 ## Author: Philip M. Papadopoulos
 ---
+no_src_dir: True
+src_tarball: none
+foundation: ""
 build:
   configure: echo 
   pkgmake: echo 
@@ -15,9 +18,14 @@ build:
 install:
    makeinstall: echo 
 files:
-  -  "{{ module.path }}/{{ module.name }} "
+  -  "{{ module.path }}"
 requires:
-  - "{{ name }}"
+  - "{{foundation}}{{ name }}"
   - rcic-module-support
 rpm:
   extras: ""
+module:
+  name: "{{version}}"
+  path: "{{pkg_defaults.module.path}}/{{name}}"
+  prepend_path:
+    - "{{pkg_defaults.module.prepend_path}}"
