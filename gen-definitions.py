@@ -138,10 +138,11 @@ class mkParser(object):
             for k in list(srcDct.keys()):
                 fullDict[k] = srcDct[k]
         return fullDict
+
     def combine(self):
         """ Combine pkg and defaults """
         # logic: if either defaults or kvdict is None, combo is whatever we have
-                # if both are available combine
+        # if both are available combine
         if self.defaults is None or self.kvdict is None:
             if self.defaults is not None:
                 self.combo = self.defaults.copy() 
@@ -185,7 +186,7 @@ class mkParser(object):
 
     def rLookup(self,e,stringify=True,listSep=None):
         """resolve lookups"""
-        rhs = self.lookup(e,self.combo,stringify,listSep)
+        rhs = self.lookup(e,self.combo,stringify,listSep=listSep)
         if stringify:
             resolved = self.replaceVars(rhs,self.varsdict)
         else:
@@ -303,21 +304,24 @@ class moduleGenerator(object):
     def __init__(self,mkp):
         """ mkp is an mkParser, already initialized """
         self.mk = mkp
-        self.name = self.mk.rLookup("name")
-        self.version = self.mk.rLookup("version")
         try:
             self.category = self.mk.rLookup("category") 
         except:
             self.category = ""
-        self.description = self.mk.rLookup("description") 
-        self.descriptionList = self.description.split("\n")[:-1] # description as list of lines
-        self.logger = "\nif { [ module-info mode load ] } {\n  %s\n}"
-        self.listPrereqs()
         try:
-            self.reqs =  self.mk.lookupAndResolve("requires"," " )
-            self.reqs = self.reqs.split(" ")
+            self.name = self.mk.rLookup("name")
+            self.version = self.mk.rLookup("version")
+            self.description = self.mk.rLookup("description") 
+            self.descriptionList = self.description.split("\n")[:-1] # description as list of lines
+            self.logger = "\nif { [ module-info mode load ] } {\n  %s\n}"
+            self.listPrereqs()
+            try:
+                self.reqs =  self.mk.lookupAndResolve("requires"," " )
+                self.reqs = self.reqs.split(" ")
+            except:
+                self.reqs =  []
         except:
-            self.reqs =  []
+            pass
 
     def gen_header(self):
         profile = """#%%Module1.0
@@ -470,31 +474,31 @@ class makeIncludeGenerator(object):
 
     def generate(self):
         rstr = ""
+        # The following are "Required" keys - meaning packaging should fail without them
+        # However, if we use this parsing for other reasons, having these be missing might be OK 
         # The following are required keys -- throw an error if they don't exist
-        rstr += "TARNAME\t = %s\n" % self.mk.rLookup("name")
-        rstr += "VERSION\t = %s\n" % str(self.mk.rLookup("version"))
-        try:
-            rstr += "NAME\t = %s\n" % self.mk.rLookup("pkgname")
-        except:
-            rstr += "NAME\t = $(TARNAME)_$(VERSION)\n"
-        rstr += "TARBALL-EXTENSION \t = %s\n" % self.mk.rLookup("extension")
+        options=[ ("TARNAME","name"),("VERSION", "version")]
+        options.extend([ ("NAME","pkgname","$(TARNAME)_$(VERSION)") ])
+        options.extend([ ("TARBALL-EXTENSION","extension") ])
+        options.extend([ ("PKGROOT","root") ])
 
         rstr += "DESCRIPTION \t = " 
-        self.description = self.mk.rLookup("description") 
-        self.descriptionList = self.description.split("\n")[:-1] # description as list of lines
-        if len(self.descriptionList) == 0:
-            rstr += self.description + "\n"
-        else:
-            for txtline in self.descriptionList: 
-                rstr += "%s \\\n" % txtline
-            rstr =  rstr[0:-2] + "\n" # rm last '\' and add NL back
-
-        rstr += "PKGROOT \t = %s\n" % self.mk.rLookup("root")
+        try:
+            self.description = self.mk.rLookup("description") 
+            self.descriptionList = self.description.split("\n")[:-1] # description as list of lines
+            if len(self.descriptionList) == 0:
+                rstr += self.description + "\n"
+            else:
+                for txtline in self.descriptionList: 
+                    rstr += "%s \\\n" % txtline
+                rstr =  rstr[0:-2] + "\n" # rm last '\' and add NL back
+        except:
+            rstr += "\n"
 
         # Standard options and defaults, if defined
         # Format of these tuples
         #           (MAKEFILE VAR, YAML VAR, [default])
-        options=[ ("RELEASE","release"),("VENDOR", "vendor"), ("SRC_TARBALL","src_tarball")]
+        options.extend([ ("RELEASE","release"),("VENDOR", "vendor"), ("SRC_TARBALL","src_tarball") ])
         options.extend([ ("SRC_DIR","src_dir"),("NO_SRC_DIR", "no_src_dir") ])
         options.extend([ ("PRECONFIGURE", "build.preconfigure","echo no preconfigure required")])
         options.extend([ ("BUILDTARGET", "build.target")])
@@ -503,7 +507,7 @@ class makeIncludeGenerator(object):
         options.extend([ ("INSTALLEXTRA", "install.installextra")])
         options.extend([ ("MODULENAME", "module.name","")])
         options.extend([ ("MODULESPATH", "module.path","")])
-        options.extend([ ("RPMS.SCRIPTSLETS.FILE", "rpm.scriptlets")])
+        options.extend([ ("RPMS.SCRIPTLETS.FILE", "rpm.scriptlets")])
         
         # The options look the same in the Makefile, some have defaults
         for option in options:
@@ -611,19 +615,16 @@ class queryProcessor(object):
             print(rstr)
             sys.exit(0)
         try:
-            rval = self.mk.rLookup(rq,listSep=listSep)
-            if type(rval) is list and listSep is not None:
-                rval = listSep.join(rval)
+            rval = self.mk.lookupAndResolve(rq,listSep,listSep=listSep)
         except:
             if not quiet:
                 print('False')
             sys.exit(-1)
             
-        if not quiet:
-            if len(rval) > 0:
-                print(rval)
-            else:
-                print('True')
+        if len(rval) > 0:
+            print(rval)
+        elif not quiet:
+            print('True')
 
 ## *****************************
 ## main routine
@@ -645,6 +646,8 @@ def main(argv):
     helpdefaults += "(1) specific ./%s in the current yamlspecs/ directory; if exists \n" % dflts_file
     helpdefaults += "(2) default /opt/rocks/yaml2rpm/sys/%s otherwise \n" % dflts_file 
 
+    helpskipdefaults = "To skips all defaults reading" 
+
     helplsep = "use a list separator for printing a query result as a string in the case when multiple items are returned.\n"
     helplsep += "Valid when -q option is present. Default output is a single element (str) or an array of elements [str,str]."
 
@@ -655,6 +658,7 @@ def main(argv):
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
     # optional arguments
     parser.add_argument("-d", "--defaults", dest="dflts_file", default=dflts_file, help=helpdefaults)
+    parser.add_argument("-D", "--no-defaults", dest="skipDefaults", default=False, action='store_true', help=helpskipdefaults)
     parser.add_argument("-m", "--module",   dest="doModule",   default=False, action='store_true', help="generate environment modules file")
     parser.add_argument("-q", "--query",    dest="doQuery",    default=False, help=helpquery)
     parser.add_argument("-l", "--listsep",  dest="listSep",    default=None,  help=helplsep)
@@ -670,7 +674,8 @@ def main(argv):
     # Open input yaml files, parse, generate
     mkP = mkParser()
     mkP.readPkgYaml(args.yamlfile)
-    mkP.readDefaultsYaml(args.dflts_file)
+    if not args.skipDefaults:
+        mkP.readDefaultsYaml(args.dflts_file)
     mkP.resolveVars()
 
     mg = moduleGenerator(mkP)

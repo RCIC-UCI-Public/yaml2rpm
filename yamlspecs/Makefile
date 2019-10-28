@@ -46,13 +46,47 @@ ADDFILTERS = addfilters
 # BOOTSTRAP_MODULES - pkgs that need to be built and installed locally before anything else can be 
 #                     be built
 # MODULES - the packages to be built
+#
+# These can be specified in packages.yaml file, eg.
+#
+# bootstrap:
+#    - packagename
+#    - packagename2
+# system:
+#    - rpm name
+#    - rpm name2
+# build:
+#    - packagename1
+#    - packagename2
+# manifest:
+#    - packagename
+#    - rpm name 
+# 
+# OR, in files with these listed.
+#  Filenames: modules.bootstrap, modules.system, modules.build, modules.manifest
+# with bootstrap, system, modules entries. Components are lists of modules
 
-BOOTSTRAP_MODULES_FILE = modules.bootstrap 
-BOOTSTRAP_SYSTEM_FILE = modules.system 
-BUILD_MODULES_FILE =  modules.build
+BOOTSTRAP_MODULES_FILE = $(wildcard modules.bootstrap) 
+BOOTSTRAP_SYSTEM_FILE = $(wildcard modules.system)
+BUILD_MODULES_FILE =  $(wildcard modules.build)
+MANIFEST_FILE =  $(wildcard modules.manifest)
+ifeq ($(MANIFEST_FILE),)
+MANIFEST_FILE = $(BUILD_MODULES_FILE)
+endif
+
+PACKAGES_FILE = $(wildcard packages.yaml)
+
+ifneq ($(PACKAGES_FILE),)
+BOOTSTRAP_MODULES = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=bootstrap  $(PACKAGES_FILE)) 
+BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --query=system  $(PACKAGES_FILE)) 
+MODULES = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
+MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --query=manifest  $(PACKAGES_FILE)) 
+else
 BOOTSTRAP_MODULES = $(shell  grep -v '\#' $(BOOTSTRAP_MODULES_FILE)) 
 BOOTSTRAP_SYSTEM = $(shell  grep -v '\#' $(BOOTSTRAP_SYSTEM_FILE)) 
 MODULES = $(shell  grep -v '\#' $(BUILD_MODULES_FILE) | sed 's/$$/.yaml/') 
+MANIFEST = $(shell  grep -v '\#' $(MANIFEST_FILE)) 
+endif
 
 PKGS = $(MODULES:.yaml=.pkg)
 
@@ -87,6 +121,18 @@ default: $(SOURCES) $(PKGS)
 	make -e -C $(TMPBUILD) pkg 
 	touch $@
 	echo "===== Completed $@ ( $$(date) )========" 
+
+manifest:
+	( for pkg in $(MANIFEST); do					\
+		if [ -f $$pkg.yaml ]; then				\
+		     $(GENERATE) --query=pkgname $$pkg.yaml;		\
+		else							\
+			echo $$pkg;					\
+		fi;							\
+	  done								\
+	)
+
+	
 bootstrap: 
 	- $(YUM) -y install $(BOOTSTRAP_SYSTEM) 
 	echo $(BOOTSTRAP_MODULES)
@@ -152,5 +198,6 @@ FORCE:
 diag:
 	echo "HOME:  $(HOME)"
 	echo "BOOTSTRAP_MODULES: $(BOOTSTRAP_MODULES)"
+	echo "MANIFEST: $(MANIFEST)"
 	echo "THISMAKE: $(THISMAKE)"
 	echo "MAKEFILE_LIST: $(MAKEFILE_LIST)"

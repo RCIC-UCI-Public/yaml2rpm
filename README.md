@@ -34,7 +34,7 @@ build:
 ```
 This build target looks very similar to what you would do if your are building software without placing it into a package. And that is intentional.
 
-In building literally hundreds of packages, the basic approach works quite well, but it comes that price of excessive code copying. The goal of the YAML-based generation of a package is to remove as much gratuitous "copy-and-paste" structure as possible.  While the above is very simple (and actually a quite common build motif), there are many variations on how something is built, what it is dependent upon, and the like.   In real use on, for example, academic computing clusters groupings of software have common dependencies.  A routine example is software that depends upon a newer version of gcc. The new version of gcc must be installed alongside the system version. The gcc-pkgs repository (https://github.com/RCIC-UCI-Public/gcc-pkgs) uses yaml2rpm to build an updated version of gcc, a module file, and some compatible libraries.  Those packages can then be installed and used to build other software.  
+In building literally hundreds of packages, the basic approach works quite well, but it comes that price of excessive code copying. The goal of the YAML-based generation of a package is to remove as much gratuitous "copy-and-paste" structure as possible.  While the above is very simple (and actually a quite common build motif), there are many variations on how something is built, what it is dependent upon, and the like.   In real use on, for example, academic computing clusters groupings of software have common dependencies.  A routine example is software that depends upon a newer version of gcc. The new version of gcc must be installed alongside the system version. The gcc-admin repository (https://github.com/RCIC-UCI-Public/gcc-admin) uses yaml2rpm to build an updated version of gcc, a module file, and some compatible libraries.  Those packages can then be installed and used to build other software.  
 
 Yaml2rpm set out to solve part of the problem of building and packaging relatively complex software.  At its core, is creates packages in the RPM format, but without the pain of manually building  and maintaining spec files.  A developer who wants to build yaml2rpm-generated packages must still have some familiarity with RPM concepts and yum. 
 
@@ -58,15 +58,18 @@ tested on the official CentOS 7 Amazon machine image.
 1. Install the development RPMS 
 
    ```bash
-   YAMLRPM_VERSION=1.4-1
+   YAMLRPM_VERSION=1.5-1
    ROCKSDEVEL_VERSION=7.1-11
    RCICMODULE_VERSION=1.0-1
+   RCICMODULEPATH_VERSION=1.0-1
    wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rocks-devel-${ROCKSDEVEL_VERSION}.x86_64.rpm
    wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/yaml2rpm-${YAMLRPM_VERSION}.x86_64.rpm
    wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rcic-module-support-${RCICMODULE_VERSION}.x86_64.rpm
-   yum -y install rocks-devel-${ROCKSDEVEL_VERSION}.x86_64.rpm yaml2rpm-${YAMLRPM_VERSION}.x86_64.rpm rcic-module-support-${RCICMODULE_VERSION}.x86_64.rpm zlib-devel redhat-lsb environment-modules
+   wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rcic-module-path-${RCICMODULEPATH_VERSION}.x86_64.rpm
+   yum -y install rocks-devel-${ROCKSDEVEL_VERSION}.x86_64.rpm yaml2rpm-${YAMLRPM_VERSION}.x86_64.rpm rcic-module-support-${RCICMODULE_VERSION}.x86_64.rpm rcic-module-path-${RCICMODULEPATH_VERSION} zlib-devel redhat-lsb environment-modules
    . /etc/profile.d/rocks-devel.sh
    . /etc/profile.d/yaml2rpm.sh
+   . /etc/profile.d/rcic-modules.sh
    ```
 
 At this point, you can build your first RPM from source.
@@ -96,10 +99,10 @@ The version of cmake is defined in the cmake.yaml file, if you wanted to update 
 # A Deeper Example
 GCC (the GNU compiler collection) is relatively complex build.  It is often useful to have an updated version of gcc on your system without destroying the system-supplied gcc.  The GCC build has to be done in a certain way, packages need to be named to be non-conflicting and other items.   If you have completed the Quickstart above you can build an updated version of gcc and a set a packages. **WARNING! This process will install RPMS as it builds. You should do this on a 'disposable' build system. It takes hours to compile a gcc. **
 
-Here is the full process for building gcc using the gcc-pkgs repo
+Here is the full process for building gcc using the gcc-admix repo
 ```bash
-git clone https://github.com/RCIC-UCI-Public/gcc-pkgs.git
-cd gcc-pkgs
+git clone https://github.com/RCIC-UCI-Public/gcc-admix.git
+cd gcc-admix
 make download
 cd yamlspecs
 (make bootstrap &> /tmp/bootstrap-gcc.log; make &> /tmp/build-gcc.log) &

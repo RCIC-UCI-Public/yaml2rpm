@@ -1,0 +1,27 @@
+---
+# bootstrap and system packages built/installed when "make bootstrap" is invoked
+
+# All of these should be lists, see the build: example for yaml2rpm
+
+# BOOTSTRAP
+# Pre-reqs for building all packages. These packages are built, in order, and installed as they are built. 
+bootstrap:
+
+# SYSTEM
+# Packages supplied by the OS vendor that must be installed prior to building anything in this admix
+system:
+
+# BUILD
+# Packages that must be built in this admix
+build:
+   - yaml2rpm
+   - rcic-module-support
+   - rcic-module-path
+
+# MANIFEST
+# List of packages that would probably be installed on a generic target system
+# This says the manifest is  all built packages. All built and all system packages is 
+# another rational configuration
+
+manifest:  
+   - "{{ build }}"
