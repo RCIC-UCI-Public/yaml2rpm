@@ -14,6 +14,7 @@ import socket
 import os
 import io
 import argparse
+import pdb
 
 if sys.version_info.major == 3:
     from typing import Dict
@@ -206,9 +207,16 @@ class mkParser(object):
                     Note: throws an exception if keyword does not exist """
 
         elems =  self.rLookup(keyword,stringify=False,listSep=listSep )
+        #pdb.set_trace()
         if type(elems) is list:
-            joinedElems = joinString.join(elems)
-            elems = joinedElems 
+            rv = []
+	    for e in elems:
+                expanded = self.replaceVars(e,self.varsdict)
+                if type(expanded) is list:
+                     rv.extend(expanded)
+                else: 
+                     rv.extend([expanded])
+            elems = joinString.join(rv) 
         return self.resolveStr(elems,listSep)
 
     def hasVars(self,s):
@@ -241,7 +249,10 @@ class mkParser(object):
                         # Variable expanded to another list, recurse
                         tmp = self.replaceVars(expand,vdict,listSep)
                         if listSep is None:
-                            newlist.extend(tmp)
+                            if type(tmp) is list:
+                                newlist.extend(tmp)
+                            else:
+                                newlist.extend([tmp])
                         else:
                             elem = elem.replace(var, listSep.join(tmp))
                 if len(newlist) == 0:
