@@ -8,14 +8,13 @@
 #  Comments  begin with '#' and continue until the 
 #  end of the line and may be added anywhere.
 #
-/opt/rcic/Modules/modulefiles/foundation
-/opt/rcic/Modules/modulefiles/biotools
-/opt/rcic/Modules/modulefiles/chemistry
-/opt/rcic/Modules/modulefiles/compilers
-/opt/rcic/Modules/modulefiles/genomics
-/opt/rcic/Modules/modulefiles/imaging
-/opt/rcic/Modules/modulefiles/languages
-/opt/rcic/Modules/modulefiles/physics
-/opt/rcic/Modules/modulefiles/statistics
-/opt/rcic/Modules/modulefiles/tools
+/opt/rcic/Modules/modulefiles/BIOTOOLS
+/opt/rcic/Modules/modulefiles/CHEMISTRY
+/opt/rcic/Modules/modulefiles/COMPILERS
+/opt/rcic/Modules/modulefiles/GENOMICS
+/opt/rcic/Modules/modulefiles/IMAGING
+/opt/rcic/Modules/modulefiles/LANGUAGES
+/opt/rcic/Modules/modulefiles/PHYSICS
+/opt/rcic/Modules/modulefiles/STATISTICS
+/opt/rcic/Modules/modulefiles/TOOLS
 $HOME/modulefiles
