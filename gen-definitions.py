@@ -319,10 +319,15 @@ class moduleGenerator(object):
             self.category = self.mk.rLookup("category") 
         except:
             self.category = ""
+
+        try:
+            self.description = self.mk.rLookup("description") 
+        except:
+            self.description = ""
+
+        self.set_version()
         try:
             self.name = self.mk.rLookup("name")
-            self.version = self.mk.rLookup("version")
-            self.description = self.mk.rLookup("description") 
             self.descriptionList = self.description.split("\n")[:-1] # description as list of lines
             self.logger = "\nif { [ module-info mode load ] } {\n  %s\n}"
             self.listPrereqs()
@@ -331,6 +336,19 @@ class moduleGenerator(object):
                 self.reqs = self.reqs.split(" ")
             except:
                 self.reqs =  []
+        except:
+            pass
+
+    def set_version(self):
+        '''Handle the case when no number is needed in module name '''
+        try:
+            self.version = self.mk.rLookup("version") 
+        except:
+            self.version = ""
+
+        try:
+            flag = self.mk.rLookup("module.nonumber") 
+            self.version = ""
         except:
             pass
 
@@ -360,7 +378,10 @@ source /opt/rcic/include/rcic-module-tail.tcl
     def gen_help(self):
         """ generate ModuleHelp function """
         rstr =  '\nproc ModulesHelp { } {\n'
-        rstr += '        puts stderr "\\t%s version %s"\n' % (self.name, self.version)
+        if len(self.version) > 0:
+            rstr += '        puts stderr "\\tModule: %s version %s"\n' % (self.name, self.version)
+        else:
+            rstr += '        puts stderr "\\tModule: %s"\n' % (self.name)
         template = '        puts stderr "\\t%s"\n'
         for txtline in self.descriptionList: 
             rstr += template % txtline
@@ -372,7 +393,8 @@ source /opt/rcic/include/rcic-module-tail.tcl
         """ generate module-whatis lines """
         rstr = 'module-whatis "Category_______ %s"\n' % self.category
         rstr += 'module-whatis "Name___________ %s"\n' % self.name
-        rstr += 'module-whatis "Version________ %s"\n' % self.version
+        if len(self.version) > 0:
+            rstr += 'module-whatis "Version________ %s"\n' % self.version
         rstr += self.genMultiLine('module-whatis "Description____ %s"\n', self.descriptionList)
         if self.prereqModules:
             rstr += self.genMultiLine('module-whatis "Load modules___ %s"\n', self.prereqModules)
@@ -459,7 +481,10 @@ source /opt/rcic/include/rcic-module-tail.tcl
 
     def gen_logger(self):
         """ Create logging statement """
-        logstr = "exec /bin/logger -p local6.notice -t module-hpc $env(USER) %s/%s" % (self.name, self.version)
+        if len(self.version) > 0:
+            logstr = "exec /bin/logger -p local6.notice -t module-hpc $env(USER) %s/%s" % (self.name, self.version)
+        else:
+            logstr = "exec /bin/logger -p local6.notice -t module-hpc $env(USER) %s" % (self.name)
         rstr =  self.logger % logstr
         return rstr
 
