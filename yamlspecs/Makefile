@@ -1,5 +1,6 @@
 ## This a Makefile to drive the bootstrapping/building of RPMS
 # Uncomment this line if using the yaml2rpm files
+SHELL=/bin/bash
 TEMPLATEDIR=/opt/rocks/yaml2rpm
 HOME=$(shell pwd)
 
@@ -20,19 +21,8 @@ BUILDTEMPLATE = builder
 TEMPLATE_FILES = $(wildcard $(TEMPLATEDIR)/$(BUILDTEMPLATE)/*)
 DEFINITIONS = Definitions.mk
 
-## Determine which defaults file to use
-SYSTEMDEFAULTS = $(TEMPLATEDIR)/sys/pkg-defaults.yaml
-SITEDEFAULTS = $(TEMPLATEDIR)/site/pkg-defaults.yaml
-LOCALDEFAULTS = ./pkg-defaults.yaml
-DEFAULTS = $(SYSTEMDEFAULTS)
-ifneq ($(wildcard $(SITEDEFAULTS)),)
-DEFAULTS = $(SITEDEFAULTS)
-endif
-ifneq ($(wildcard $(LOCALDEFAULTS)),)
-DEFAULTS = $(LOCALDEFAULTS)
-endif
+GENERATE = $(TEMPLATEDIR)/gen-definitions.py $(GENEXTRAS)
 
-GENERATE = $(TEMPLATEDIR)/gen-definitions.py $(GENEXTRAS) -d $(DEFAULTS) 
 ## Local sources of tarballs
 LOCALREPODIR = ..
 SOURCES = ../sources
@@ -82,10 +72,10 @@ BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --q
 MODULES = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
 MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --query=manifest  $(PACKAGES_FILE)) 
 else
-BOOTSTRAP_MODULES = $(shell  grep -v '\#' $(BOOTSTRAP_MODULES_FILE)) 
-BOOTSTRAP_SYSTEM = $(shell  grep -v '\#' $(BOOTSTRAP_SYSTEM_FILE)) 
-MODULES = $(shell  grep -v '\#' $(BUILD_MODULES_FILE) | sed 's/$$/.yaml/') 
-MANIFEST = $(shell  grep -v '\#' $(MANIFEST_FILE)) 
+BOOTSTRAP_MODULES = $(shell  [ -f "$(BOOTSTRAP_MODULES_FILE)" ] && grep -v '\#' $(BOOTSTRAP_MODULES_FILE)) 
+BOOTSTRAP_SYSTEM = $(shell  [ -f "$(BOOTSTRAP_SYSTEM_FILE)" ] &&  grep -v '\#' $(BOOTSTRAP_SYSTEM_FILE)) 
+MODULES = $(shell  [ -f "$(BUILD_MODULES_FILE)" ] && grep -v '\#' $(BUILD_MODULES_FILE) | sed 's/$$/.yaml/') 
+MANIFEST = $(shell [ -f "$(MANIFEST_FILE)" ] && grep -v '\#' $(MANIFEST_FILE)) 
 endif
 
 PKGS = $(MODULES:.yaml=.pkg)
