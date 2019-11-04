@@ -15,7 +15,7 @@
     to the essentials into a yaml file that goes through some automated steps to create an RPM.
   pretar: >
     mkdir {{ name }}-{{ version }};
-    tar cf - ../Makefile ../gen-definitions.py ../README.md ../builder 
+    tar cf - ../Makefile ../gen-definitions.py ../manifest2ansible.py ../README.md ../builder 
     yaml2rpm.sh samples | tar xf - -C {{ name }}-{{ version }};
     install Makefile.tmpl {{ name }}-{{ version }}/samples/Makefile;
     mkdir {{ name }}-{{ version }}/sys;
