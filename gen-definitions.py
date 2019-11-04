@@ -61,11 +61,13 @@ class IncParser(io.FileIO):
             yaml file' and merge with keys """
     def __init__(self,filename,mode='r'):
         global incMap
+
+        if filename in list(incMap.keys()):
+            filename = incMap[filename]
+
         super(IncParser,self).__init__(filename,mode)
         self.incPath = IncPath().getPath()
 
-        if filename in list(incMap.keys()):
-            filename = incMap['filename']
 
         # now go the incPath looking for the file
         for p in self.incPath:
