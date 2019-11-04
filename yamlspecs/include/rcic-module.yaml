@@ -13,10 +13,10 @@ no_src_dir: True
 src_tarball: none
 foundation: ""
 category: ""
+pkgname: "{{foundation}}{{name}}_{{version}}-module"
 build:
   configure: echo 
   pkgmake: echo 
-  modules: 
 install:
    makeinstall: echo 
 files:
