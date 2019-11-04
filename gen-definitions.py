@@ -130,8 +130,9 @@ class mkParser(object):
         raise Exception("Could not find defaults file in %s" % str(fnames))
 
     def mergeDocs(self,docs):
-        """ Merge parsed YAML docs into a single dictionary. Keys are overwritten of 
-                    multiple docs have the same key """
+        """ Merge parsed YAML docs into a single dictionary. Keys are overwritten if 
+            multiple docs have the same key. If a key is a dictionary old and new are merged
+            the latter fileds are overwriting the former """
         fullDict = {}
         for d in docs: 
             if type(d) is list:
@@ -139,7 +140,18 @@ class mkParser(object):
             else:
                 srcDct = d
             for k in list(srcDct.keys()):
-                fullDict[k] = srcDct[k]
+                if type(srcDct[k]) is dict:
+                    if "OVERWRITE" in srcDct[k]:  # overwrite whole dict
+                        fullDict[k] = srcDct[k]
+                    elif k in fullDict:           # merge with previus dict, overwrite with new key values
+                        context = fullDict[k].copy()
+                        context.update(srcDct[k])
+                        fullDict[k] = context
+                    else:                         # add new dict item
+                        fullDict[k] = srcDct[k]
+                else:
+                    fullDict[k] = srcDct[k]
+
         return fullDict
 
     def combine(self):
@@ -529,7 +541,7 @@ class makeIncludeGenerator(object):
             else:
                 for txtline in self.descriptionList: 
                     rstr += "%s \\\n" % txtline
-                rstr =  rstr[0:-2] + "\n" # rm last '\' and add NL back
+                rstr =  rstr[0:-3] + "\n" # rm last ' \' and add NL back
         except:
             rstr += "\n"
 
