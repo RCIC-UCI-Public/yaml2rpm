@@ -2,6 +2,7 @@
 - package: RCIC module path 
   name: rcic-module-path 
   version: "1.0"
+  release: 2
   extension: tar.gz
   root: "/opt/rcic"
   srctar: "{{ name }}-{{ version }}.{{ extension }}"
