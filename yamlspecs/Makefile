@@ -26,18 +26,18 @@ GENERATE = $(TEMPLATEDIR)/gen-definitions.py $(GENEXTRAS)
 ## Local sources of tarballs
 LOCALREPODIR = ..
 SOURCES = ../sources
-## Name of local directory for build. Cleared for each package built, so 
-## only supports one at a time
+## Name of local directory for build. Cleared for each package built
+## so it only supports one build a time
 TMPBUILD = tmpbuild
 ADDFILTERS = addfilters
 
-## These define the modules for bootstrap. 
+## These define the modules.
 # BOOTSTRAP_SYSTEM - modules part of the OS/other repo that need to be installed for building
 # BOOTSTRAP_MODULES - pkgs that need to be built and installed locally before anything else can be 
 #                     be built
 # MODULES - the packages to be built
 #
-# These can be specified in packages.yaml file, eg.
+# These can be specified in packages.yaml file with components as lists of modules, eg:
 #
 # bootstrap:
 #    - packagename
@@ -52,35 +52,35 @@ ADDFILTERS = addfilters
 #    - packagename
 #    - rpm name 
 # 
-# OR, in files with these listed.
-#  Filenames: modules.bootstrap, modules.system, modules.build, modules.manifest
-# with bootstrap, system, modules entries. Components are lists of modules
-
-BOOTSTRAP_MODULES_FILE = $(wildcard modules.bootstrap) 
-BOOTSTRAP_SYSTEM_FILE = $(wildcard modules.system)
-BUILD_MODULES_FILE =  $(wildcard modules.build)
+# Alternatively, in place of packages.yaml file the same entries can be listed in separate files
+# with the following file naming convention:
+#            modules.bootstrap, modules.system, modules.build, modules.manifest
+ 
+# These are default settings. Can be overwritten in respective yamlspecs/Makefile
+# if placed AFTER the line that includes this default Makefile
+BOOTSTRAP_MODULES_FILE = modules.bootstrap 
+BOOTSTRAP_SYSTEM_FILE = wildcard modules.system
+BUILD_MODULES_FILE =  modules.build
 MANIFEST_FILE =  $(wildcard modules.manifest)
 ifeq ($(MANIFEST_FILE),)
 MANIFEST_FILE = $(BUILD_MODULES_FILE)
 endif
-
 PACKAGES_FILE = $(wildcard packages.yaml)
 
+# Values are taken from packages.yaml file or from modules.* files
 ifneq ($(PACKAGES_FILE),)
 BOOTSTRAP_MODULES = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=bootstrap  $(PACKAGES_FILE)) 
 BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --query=system  $(PACKAGES_FILE)) 
 MODULES = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
 MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --query=manifest  $(PACKAGES_FILE)) 
 else
-BOOTSTRAP_MODULES = $(shell  [ -f "$(BOOTSTRAP_MODULES_FILE)" ] && grep -v '\#' $(BOOTSTRAP_MODULES_FILE)) 
-BOOTSTRAP_SYSTEM = $(shell  [ -f "$(BOOTSTRAP_SYSTEM_FILE)" ] &&  grep -v '\#' $(BOOTSTRAP_SYSTEM_FILE)) 
-MODULES = $(shell  [ -f "$(BUILD_MODULES_FILE)" ] && grep -v '\#' $(BUILD_MODULES_FILE) | sed 's/$$/.yaml/') 
-MANIFEST = $(shell [ -f "$(MANIFEST_FILE)" ] && grep -v '\#' $(MANIFEST_FILE)) 
+BOOTSTRAP_MODULES = $(shell grep -s -v '\#' $(BOOTSTRAP_MODULES_FILE)) 
+BOOTSTRAP_SYSTEM  = $(shell grep -s -v '\#' $(BOOTSTRAP_SYSTEM_FILE)) 
+MODULES           = $(shell grep -s -v '\#' $(BUILD_MODULES_FILE) | sed 's/$$/.yaml/') 
+MANIFEST          = $(shell grep -s -v '\#' $(MANIFEST_FILE)) 
 endif
 
 PKGS = $(MODULES:.yaml=.pkg)
-
-
 default: $(SOURCES) $(PKGS)
 
 ## This section takes the yaml file and does various interpretations to create files
