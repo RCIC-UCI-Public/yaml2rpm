@@ -58,7 +58,7 @@ tested on the official CentOS 7 Amazon machine image.
 1. Install the development RPMS 
 
    ```bash
-   YAMLRPM_VERSION=1.5-1
+   YAMLRPM_VERSION=1.6-1
    ROCKSDEVEL_VERSION=7.1-11
    RCICMODULE_VERSION=1.0-1
    RCICMODULEPATH_VERSION=1.0-1
