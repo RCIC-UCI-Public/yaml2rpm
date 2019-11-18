@@ -8,6 +8,7 @@
 ##    rpm: !include rpm.extras.filter.yaml
 extras: | 
        %define _python_bytecompile_errors_terminate_build 0\n\
+       %define __python `module load {{build.modules}}; which python; module unload {{build.modules}}`\n\
        %define __spec_install_post \
        %{?__debug_package:%{__debug_install_post}}\
        module load {{ build.modules }};\
