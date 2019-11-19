@@ -339,7 +339,16 @@ class moduleGenerator(object):
         except:
             self.description = ""
 
-        self.set_version()
+        try:
+            self.logname = self.mk.rLookup("module.logname") 
+        except:
+            self.logname = ""
+
+        try:
+            self.version = self.mk.rLookup("version") 
+        except:
+            self.version = ""
+
         try:
             self.name = self.mk.rLookup("name")
             self.descriptionList = self.description.split("\n")[:-1] # description as list of lines
@@ -353,18 +362,6 @@ class moduleGenerator(object):
         except:
             pass
 
-    def set_version(self):
-        '''Handle the case when no number is needed in module name '''
-        try:
-            self.version = self.mk.rLookup("version") 
-        except:
-            self.version = ""
-
-        try:
-            flag = self.mk.rLookup("module.nonumber") 
-            self.version = ""
-        except:
-            pass
 
     def gen_header(self):
         profile = """#%%Module1.0
@@ -495,7 +492,9 @@ source /opt/rcic/include/rcic-module-tail.tcl
 
     def gen_logger(self):
         """ Create logging statement """
-        if len(self.version) > 0:
+        if len(self.logname) > 0:
+            logstr = "exec /bin/logger -p local6.notice -t module-hpc $env(USER) %s" % (self.logname)
+        elif len(self.version) > 0:
             logstr = "exec /bin/logger -p local6.notice -t module-hpc $env(USER) %s/%s" % (self.name, self.version)
         else:
             logstr = "exec /bin/logger -p local6.notice -t module-hpc $env(USER) %s" % (self.name)
