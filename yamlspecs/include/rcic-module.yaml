@@ -29,5 +29,9 @@ rpm:
 module:
   name: "{{version}}"
   path: "{{ pkg_defaults.module.RCICmpath }}/{{ category }}/{{name}}"
+  lib: "lib"
   prepend_path:
-    - "{{pkg_defaults.module.prepend_path}}"
+    - PATH {{ root }}/bin
+    - MANPATH {{ root }}/share/man
+    - LD_LIBRARY_PATH {{ root }}/{{ module.lib }}
+    - PKG_CONFIG_PATH  {{ root }}/{{ module.lib }}/pkgconfig
