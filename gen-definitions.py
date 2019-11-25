@@ -59,7 +59,7 @@ Loader.add_constructor('!include', Loader.include)
 class IncParser(io.FileIO):
     """ This class handles !include directives to have a more natural 'include this
             yaml file' and merge with keys """
-    def __init__(self,filename,mode='r'):
+    def __init__(self,filename,mode='r',parent=None):
         global incMap
 
         if filename in list(incMap.keys()):
@@ -67,13 +67,17 @@ class IncParser(io.FileIO):
 
         super(IncParser,self).__init__(filename,mode)
         self.incPath = IncPath().getPath()
-
+        self.filename = filename
+        self.parent = parent
+        if parent is None:
+            self.parent = self
 
         # now go the incPath looking for the file
         for p in self.incPath:
             try:
                 with open(os.path.join(p,filename), 'r') as f:
                     self.items = [l for l in f]
+                    # pdb.set_trace()         
                     self.iter = iter(self.items)
                     self.child = None
                     return
@@ -81,22 +85,42 @@ class IncParser(io.FileIO):
                 pass
         raise  Exception("%s not found in: %s" % (filename,str(self.incPath)))
 
+    # We are including files, so we need to go to the current include file, which may be 
+    # several layers deep. Find the correct lines to iterate through
+    def getIter(self):
+        if not self.child:
+           return self.iter
+        else:
+           return self.child.getIter()
+
+    # A singleton is its own parent. We need this function to find one layer up in 
+    # in a tree of includes
+    def getLeafParent(self):
+        if self.child is None:
+           return self.parent
+        else:
+           return self.child.getLeafParent()
+
     def read(self,size):
+        # Called by the YAML parser, it is supposed to return lines of valid YAML or comments
+        # since we have includes, this is more complicated.
         try:
-            if not self.child:
-                line = next(self.iter)
-            else:
-                line = next(self.child.iter)
-            
+            iter = self.getIter()
+            line = iter.next()
+            # we need to NOT return text that says !include to the YAML parser, but only the included
+            # text. In other words, parse the included file, but don't return !include
             if line.startswith("!include"):
                 incName = line.split()[1]
-                self.child = IncParser(incName)
-                line = next(self.child.iter)
+                self.child = IncParser(incName,parent=self)
+                line = self.child.read(size)
             return line 
         except StopIteration:
-            if self.child is not None:
-                self.child = None
-                return self.read(size)
+            # We reached the end of the current file that we were reading. go up one level and read the
+            # the next line of that file 
+            leafParent = self.getLeafParent()
+            if leafParent.child is not None:
+                leafParent.child = None
+                return leafParent.read(size)
             else:
                 return ""
         
@@ -121,7 +145,7 @@ class mkParser(object):
         for name in fnames: 
             try:
                 f = IncParser(name)
-       	        docs = yaml.load_all(f,Loader)
+                docs = yaml.load_all(f,Loader)
                 self.defaults = self.mergeDocs(docs)
                 self.combine()
                 return
@@ -224,7 +248,7 @@ class mkParser(object):
         #pdb.set_trace()
         if type(elems) is list:
             rv = []
-	    for e in elems:
+            for e in elems:
                 expanded = self.replaceVars(e,self.varsdict)
                 if type(expanded) is list:
                      rv.extend(expanded)
