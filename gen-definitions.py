@@ -105,8 +105,7 @@ class IncParser(io.FileIO):
         # Called by the YAML parser, it is supposed to return lines of valid YAML or comments
         # since we have includes, this is more complicated.
         try:
-            iter = self.getIter()
-            line = iter.next()
+            line = next(self.getIter())
             # we need to NOT return text that says !include to the YAML parser, but only the included
             # text. In other words, parse the included file, but don't return !include
             if line.startswith("!include"):
