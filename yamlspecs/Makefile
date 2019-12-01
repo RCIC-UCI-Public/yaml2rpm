@@ -59,7 +59,7 @@ ADDFILTERS = addfilters
 # These are default settings. Can be overwritten in respective yamlspecs/Makefile
 # if placed AFTER the line that includes this default Makefile
 BOOTSTRAP_MODULES_FILE = modules.bootstrap 
-BOOTSTRAP_SYSTEM_FILE = wildcard modules.system
+BOOTSTRAP_SYSTEM_FILE = modules.system
 BUILD_MODULES_FILE =  modules.build
 MANIFEST_FILE =  $(wildcard modules.manifest)
 ifeq ($(MANIFEST_FILE),)
