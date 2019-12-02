@@ -580,6 +580,8 @@ class makeIncludeGenerator(object):
         options.extend([ ("MODULENAME", "module.name","")])
         options.extend([ ("MODULESPATH", "module.path","")])
         options.extend([ ("RPMS.SCRIPTLETS.FILE", "rpm.scriptlets")])
+        options.extend([ ("RPM.OBSOLETES", "obsoletes")])
+        options.extend([ ("RPM.CONFLICTS", "conflicts")])
         
         # The options look the same in the Makefile, some have defaults
         for option in options:
