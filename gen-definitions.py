@@ -59,7 +59,7 @@ Loader.add_constructor('!include', Loader.include)
 class IncParser(io.FileIO):
     """ This class handles !include directives to have a more natural 'include this
             yaml file' and merge with keys """
-    def __init__(self,filename,mode='r',parent=None):
+    def __init__(self,filename,mode='r'):
         global incMap
 
         if filename in list(incMap.keys()):
@@ -68,9 +68,6 @@ class IncParser(io.FileIO):
         super(IncParser,self).__init__(filename,mode)
         self.incPath = IncPath().getPath()
         self.filename = filename
-        self.parent = parent
-        if parent is None:
-            self.parent = self
 
         # now go the incPath looking for the file
         for p in self.incPath:
@@ -79,7 +76,7 @@ class IncParser(io.FileIO):
                     self.items = [l for l in f]
                     # pdb.set_trace()         
                     self.iter = iter(self.items)
-                    self.child = None
+                    self.child = []
                     return
             except:
                 pass
@@ -91,15 +88,7 @@ class IncParser(io.FileIO):
         if not self.child:
            return self.iter
         else:
-           return self.child.getIter()
-
-    # A singleton is its own parent. We need this function to find one layer up in 
-    # in a tree of includes
-    def getLeafParent(self):
-        if self.child is None:
-           return self.parent
-        else:
-           return self.child.getLeafParent()
+           return self.child[0].getIter()
 
     def read(self,size):
         # Called by the YAML parser, it is supposed to return lines of valid YAML or comments
@@ -110,18 +99,17 @@ class IncParser(io.FileIO):
             # text. In other words, parse the included file, but don't return !include
             if line.startswith("!include"):
                 incName = line.split()[1]
-                self.child = IncParser(incName,parent=self)
-                line = self.child.read(size)
+                self.child.insert(0,IncParser(incName))
+                return self.read(size)
             return line 
         except StopIteration:
+            if not self.child:
+                return ""
             # We reached the end of the current file that we were reading. go up one level and read the
             # the next line of that file 
-            leafParent = self.getLeafParent()
-            if leafParent.child is not None:
-                leafParent.child = None
-                return leafParent.read(size)
-            else:
-                return ""
+            self.child.pop(0)
+            return self.read(size)
+
         
 class mkParser(object):
     def __init__(self):
@@ -580,8 +568,6 @@ class makeIncludeGenerator(object):
         options.extend([ ("MODULENAME", "module.name","")])
         options.extend([ ("MODULESPATH", "module.path","")])
         options.extend([ ("RPMS.SCRIPTLETS.FILE", "rpm.scriptlets")])
-        options.extend([ ("RPM.OBSOLETES", "obsoletes")])
-        options.extend([ ("RPM.CONFLICTS", "conflicts")])
         
         # The options look the same in the Makefile, some have defaults
         for option in options:
