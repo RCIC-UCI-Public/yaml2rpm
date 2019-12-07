@@ -65,14 +65,15 @@ class IncParser(io.FileIO):
         if filename in list(incMap.keys()):
             filename = incMap[filename]
 
-        super(IncParser,self).__init__(filename,mode)
         self.incPath = IncPath().getPath()
         self.filename = filename
 
         # now go the incPath looking for the file
         for p in self.incPath:
             try:
-                with open(os.path.join(p,filename), 'r') as f:
+                fullpath = os.path.join(p,filename)
+                super(IncParser,self).__init__(fullpath,mode)
+                with open(fullpath, 'r') as f:
                     self.items = [l for l in f]
                     # pdb.set_trace()         
                     self.iter = iter(self.items)
@@ -568,6 +569,8 @@ class makeIncludeGenerator(object):
         options.extend([ ("MODULENAME", "module.name","")])
         options.extend([ ("MODULESPATH", "module.path","")])
         options.extend([ ("RPMS.SCRIPTLETS.FILE", "rpm.scriptlets")])
+        options.extend([ ("RPM.OBSOLETES", "obsoletes")])
+        options.extend([ ("RPM.CONFLICTS", "conflicts")])
         
         # The options look the same in the Makefile, some have defaults
         for option in options:
