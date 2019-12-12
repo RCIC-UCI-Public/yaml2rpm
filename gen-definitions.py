@@ -41,7 +41,7 @@ class Loader(yaml.SafeLoader):
 
     def include(self, node):
         global incMap
-        filename = os.path.join(self._root, self.construct_scalar(node))
+        filename = self.construct_scalar(node)
         if filename in list(incMap.keys()):
             filename = incMap[filename]
         # look for filename in the incPath
