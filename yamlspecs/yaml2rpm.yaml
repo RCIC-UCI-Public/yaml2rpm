@@ -7,7 +7,7 @@
   root: "{{rocks}}/yaml2rpm"
   srctar: "{{name}}-{{version}}.{{extension}}"
   pkgname: "{{name}}"
-  release: 3
+  release: 4
   sysyaml: pkg-defaults.yaml rpm.extras.yaml rpm.extras.filter.yaml rpm.extras.python.yaml packages.yaml
   description: >
     YAML to RPM {{version}}. This is a prototype to convert a yaml specification
