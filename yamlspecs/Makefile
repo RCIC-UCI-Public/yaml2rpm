@@ -139,8 +139,8 @@ module-requires:
 	( for pkg in $(MODULES) $(BOOTSTRAP_YAMLS); do					\
 		if [ -f $$pkg ]; then				\
 		     needModule=`$(GENERATE) --query=build.modules --listsep="\\n" $$pkg`;	\
-		     if [ "$$needModule" != "None" ]; then                \
-		        echo -e $$needModule;	        \
+		     if [ "$$needModule" != "False" ]; then                \
+		        [ "$$needModule" != "None" ] && echo -e $$needModule;	        \
 		     fi;					\
 		fi;							\
 	  done								\
