@@ -10,6 +10,7 @@
 ## Author: Philip M. Papadopoulos
 ---
 no_src_dir: True
+envmodule: True
 src_tarball: none
 foundation: ""
 category: ""
@@ -29,6 +30,7 @@ rpm:
 module:
   name: "{{version}}"
   path: "{{ pkg_defaults.module.RCICmpath }}/{{ category }}/{{name}}"
+  loadname: "{{name}}/{{module.name}}"
   lib: "lib"
   prepend_path:
     - PATH {{ root }}/bin

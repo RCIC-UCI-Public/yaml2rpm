@@ -81,6 +81,8 @@ MANIFEST          = $(shell grep -s -v '\#' $(MANIFEST_FILE))
 endif
 
 PKGS = $(MODULES:.yaml=.pkg)
+BOOTSTRAP_YAMLS = $(addsuffix .yaml, $(BOOTSTRAP_MODULES))
+
 default: $(SOURCES) $(PKGS)
 
 ## This section takes the yaml file and does various interpretations to create files
@@ -122,6 +124,27 @@ manifest:
 	  done								\
 	)
 
+
+module-provides:
+	( for pkg in $(MANIFEST); do					\
+		if [ -f $$pkg.yaml ]; then				\
+		     isModule=`$(GENERATE) --query=envmodule $$pkg.yaml`;	\
+		     if [ "$$isModule" == "True" ]; then                \
+		        $(GENERATE) --query=module.loadname $$pkg.yaml;	        \
+		     fi;					\
+		fi;							\
+	  done								\
+	)
+module-requires:
+	( for pkg in $(MODULES) $(BOOTSTRAP_YAMLS); do					\
+		if [ -f $$pkg ]; then				\
+		     needModule=`$(GENERATE) --query=build.modules --listsep="\\n" $$pkg`;	\
+		     if [ "$$needModule" != "None" ]; then                \
+		        echo -e $$needModule;	        \
+		     fi;					\
+		fi;							\
+	  done								\
+	)
 	
 bootstrap: 
 	- $(YUM) -y install $(BOOTSTRAP_SYSTEM) 
@@ -188,6 +211,7 @@ FORCE:
 diag:
 	echo "HOME:  $(HOME)"
 	echo "BOOTSTRAP_MODULES: $(BOOTSTRAP_MODULES)"
+	echo "BOOTSTRAP_YAMLS: $(BOOTSTRAP_YAMLS)"
 	echo "MANIFEST: $(MANIFEST)"
 	echo "THISMAKE: $(THISMAKE)"
 	echo "MAKEFILE_LIST: $(MAKEFILE_LIST)"

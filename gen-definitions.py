@@ -560,6 +560,7 @@ class makeIncludeGenerator(object):
         # Format of these tuples
         #           (MAKEFILE VAR, YAML VAR, [default])
         options.extend([ ("RELEASE","release"),("VENDOR", "vendor"), ("SRC_TARBALL","src_tarball") ])
+        options.extend([ ("ARCH", "arch")])
         options.extend([ ("SRC_DIR","src_dir"),("NO_SRC_DIR", "no_src_dir") ])
         options.extend([ ("PRECONFIGURE", "build.preconfigure","echo no preconfigure required")])
         options.extend([ ("BUILDTARGET", "build.target")])
