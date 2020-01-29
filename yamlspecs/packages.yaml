@@ -1,7 +1,6 @@
 ---
 # bootstrap and system packages built/installed when "make bootstrap" is invoked
-
-# All of these should be lists, see the build: example for yaml2rpm
+# All of these should be lists, see the "build:" example for yaml2rpm below
 
 # BOOTSTRAP
 # Pre-reqs for building all packages. These packages are built, in order, and installed as they are built. 
@@ -22,7 +21,6 @@ build:
 # List of packages that would probably be installed on a generic target system
 # This says the manifest is  all built packages. All built and all system packages is 
 # another rational configuration
-
 manifest:  
-   - "{{ build }}"
+   - "{{build}}"
    - environment-modules

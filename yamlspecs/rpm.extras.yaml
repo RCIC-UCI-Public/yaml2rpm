@@ -8,8 +8,8 @@ extras: |
   %define __python `module load {{build.modules}}; which python; module unload {{build.modules}}`\n\
   %define __spec_install_post \
   %{?__debug_package:%{__debug_install_post}}\
-  module load {{ build.modules }};\
+  module load {{build.modules}};\
   %{__arch_install_post}\
   %{__os_install_post}\
-  module unload {{ build.modules }}\
+  module unload {{build.modules}}\
   %{nil} 

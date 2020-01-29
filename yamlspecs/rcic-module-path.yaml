@@ -5,30 +5,30 @@
   release: 3
   extension: tar.gz
   root: "/opt/rcic"
-  srctar: "{{ name }}-{{ version }}.{{ extension }}"
-  pkgname: "{{ name }}"
+  srctar: "{{name}}-{{version}}.{{extension}}"
+  pkgname: "{{name}}"
   description: |
-    RCIC module path {{ version }}. This provides support and common code for 
+    RCIC module path {{version}}. This provides support and common code for 
     updating modules path provided by the system with admix installed modules. 
   addfile:
     - rcic-modules.sh
     - rcic-modules.csh
   pretar: >
-    mkdir {{ name }}-{{ version }};
-    tar cf - Modules | tar xf - -C {{ name }}-{{ version }};
-    tar czf ../sources/{{ srctar }} {{ name }}-{{ version }};
-    rm -rf {{ name }}-{{ version }};
+    mkdir {{name}}-{{version}};
+    tar cf - Modules | tar xf - -C {{name}}-{{version}};
+    tar czf ../sources/{{srctar}} {{name}}-{{version}};
+    rm -rf {{name}}-{{version}};
   build:
     configure: echo
     configure_args: 
     pkgmake: echo
   install:
     makeinstall: >
-      mkdir -p $(ROOT)/{{ root }}; 
+      mkdir -p $(ROOT)/{{root}}; 
       mkdir -p $(ROOT)/etc/profile.d; 
-      $(TAR) cf - * | $(TAR) xf -  -C $(ROOT)/{{ root }};
+      $(TAR) cf - * | $(TAR) xf -  -C $(ROOT)/{{root}};
       $(INSTALL) ../rcic-modules.*sh $(ROOT)/etc/profile.d
-  clean: "{{ name }}-{{ version }}"
+  clean: "{{name}}-{{version}}"
   files: 
-    - "{{ root }}/Modules" 
+    - "{{root}}/Modules" 
     - /etc/profile.d/*

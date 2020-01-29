@@ -4,13 +4,13 @@ pkg_defaults:
   shared_app_path: /data/apps
   foundation: /opt/foundation
   python_base: /usr/lib64/python2.7/ 
-  python_pkgs: "{{ pkg_defaults.python_base }}/site-packages"
+  python_pkgs: "{{pkg_defaults.python_base}}/site-packages"
   module:
     path: /usr/share/Modules/modulefiles
     RCICmpath: /opt/rcic/Modules/modulefiles  
     prepend_path: 
-      - PATH {{ root }}/bin
-      - LD_LIBRARY_PATH {{ root }}/lib
-      - MANPATH {{ root }}/share/man
-      - PKG_CONFIG_PATH  {{ root }}/lib/pkgconfig
-    logger:  exec /bin/logger -p local6.notice - t module-hpc $env(USER) {{ name }}/{{ version }}
+      - PATH {{root}}/bin
+      - LD_LIBRARY_PATH {{root}}/lib
+      - MANPATH {{root}}/share/man
+      - PKG_CONFIG_PATH  {{root}}/lib/pkgconfig
+    logger:  exec /bin/logger -p local6.notice - t module-hpc $env(USER) {{name}}/{{version}}

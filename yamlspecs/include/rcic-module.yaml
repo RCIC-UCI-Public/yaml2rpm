@@ -21,19 +21,19 @@ build:
 install:
    makeinstall: echo 
 files:
-  -  "{{ module.path }}"
+  -  "{{module.path}}"
 requires:
-  - "{{foundation}}{{ name }}_{{version}}"
+  - "{{foundation}}{{name}}_{{version}}"
   - rcic-module-support
 rpm:
   extras: ""
 module:
   name: "{{version}}"
-  path: "{{ pkg_defaults.module.RCICmpath }}/{{ category }}/{{name}}"
+  path: "{{pkg_defaults.module.RCICmpath}}/{{category}}/{{name}}"
   loadname: "{{name}}/{{module.name}}"
   lib: "lib"
   prepend_path:
-    - PATH {{ root }}/bin
-    - MANPATH {{ root }}/share/man
-    - LD_LIBRARY_PATH {{ root }}/{{ module.lib }}
-    - PKG_CONFIG_PATH  {{ root }}/{{ module.lib }}/pkgconfig
+    - PATH {{root}}/bin
+    - MANPATH {{root}}/share/man
+    - LD_LIBRARY_PATH {{root}}/{{module.lib}}
+    - PKG_CONFIG_PATH  {{root}}/{{module.lib}}/pkgconfig
