@@ -1,8 +1,9 @@
 ---
 - package: RCIC module path 
   name: rcic-module-path 
-  version: "1.0"
-  release: 3
+  versions: !include versions.yaml
+  version: "{{versions.rcic_module_path.version}}"
+  release: "{{versions.rcic_module_path.release}}"
   extension: tar.gz
   root: "/opt/rcic"
   srctar: "{{name}}-{{version}}.{{extension}}"

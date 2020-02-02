@@ -1,14 +1,15 @@
 ---
 - package: YAML to RPM  
   name: yaml2rpm 
-  version: "1.8"
-  release: "5"
+  versions: !include versions.yaml
+  version: "{{versions.yaml2rpm.version}}"
+  release: "{{versions.yaml2rpm.release}}"
   extension: tar.gz
   rocks: /opt/rocks
   root: "{{rocks}}/yaml2rpm"
   srctar: "{{name}}-{{version}}.{{extension}}"
   pkgname: "{{name}}"
-  sysyaml: pkg-defaults.yaml rpm.extras.yaml rpm.extras.filter.yaml packages.yaml
+  sysyaml: packages.yaml
   description: >
     YAML to RPM {{version}}. This is a prototype to convert a yaml specification
     into an RPM. It utilizes the tooling from rocks-devel (https://github.com/rocksclusters/core)

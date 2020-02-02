@@ -1,8 +1,9 @@
 ---
 - package: RCIC module support 
   name: rcic-module-support 
-  version: "1.0"
-  release: 3
+  versions: !include versions.yaml
+  version: "{{versions.rcic_module_support.version}}"
+  release: "{{versions.rcic_module_support.release}}"
   extension: tar.gz
   root: "/opt/rcic"
   srctar: "{{name}}-{{version}}.{{extension}}"

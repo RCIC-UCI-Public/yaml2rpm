@@ -58,9 +58,9 @@ tested on the official CentOS 7 Amazon machine image.
 1. Install the development RPMS 
 
    ```bash
-   YAMLRPM_VERSION=1.8-5
+   YAMLRPM_VERSION=1.9-1
    ROCKSDEVEL_VERSION=7.1-12
-   RCICMODULE_VERSION=1.0-3
+   RCICMODULE_VERSION=1.1-1
    RCICMODULEPATH_VERSION=1.0-3
    wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rocks-devel-${ROCKSDEVEL_VERSION}.x86_64.rpm
    wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/yaml2rpm-${YAMLRPM_VERSION}.x86_64.rpm
@@ -97,7 +97,7 @@ which cmake
 The version of cmake is defined in the cmake.yaml file, if you wanted to update the version, you could edit that file, download the new source tarball directly from the source website and then rebuild a new package.
 
 # A Deeper Example
-GCC (the GNU compiler collection) is relatively complex build.  It is often useful to have an updated version of gcc on your system without destroying the system-supplied gcc.  The GCC build has to be done in a certain way, packages need to be named to be non-conflicting and other items.   If you have completed the Quickstart above you can build an updated version of gcc and a set a packages. **WARNING! This process will install RPMS as it builds. You should do this on a 'disposable' build system. It takes hours to compile a gcc. **
+GCC (the GNU compiler collection) is relatively complex build.  It is often useful to have an updated version of gcc on your system without destroying the system-supplied gcc.  The GCC build has to be done in a certain way, packages need to be named to be non-conflicting and other items.   If you have completed the Quickstart above you can build an updated version of gcc and a set a packages. **WARNING! This process will install RPMS as it builds. You should do this on a 'disposable' build system. It takes hours to compile a gcc.**
 
 Here is the full process for building gcc using the gcc-admix repo
 ```bash
