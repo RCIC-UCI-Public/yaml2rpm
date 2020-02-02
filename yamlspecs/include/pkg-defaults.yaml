@@ -1,0 +1,10 @@
+---
+pkg_defaults:
+  app_path: /opt/apps
+  shared_app_path: /data/apps
+  foundation: /opt/foundation
+  python_base: /usr/lib64/python2.7/ 
+  python_pkgs: "{{pkg_defaults.python_base}}/site-packages"
+  python_base_compat: /usr/lib/python2.7/ 
+  python_pkgs_compat: "{{pkg_defaults.python_base_compat}}/site-packages"
+  RCICmpath: /opt/rcic/Modules/modulefiles  

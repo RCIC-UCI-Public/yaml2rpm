@@ -15,25 +15,44 @@ src_tarball: none
 foundation: ""
 category: ""
 pkgname: "{{foundation}}{{name}}_{{version}}-module"
+shortname: "{{name}}"
 build:
   configure: echo 
   pkgmake: echo 
 install:
    makeinstall: echo 
+   installextra:
 files:
-  -  "{{module.path}}"
+  -  "{{mod_defaults.category_path}}"
 requires:
   - "{{foundation}}{{name}}_{{version}}"
   - rcic-module-support
 rpm:
   extras: ""
+
 module:
   name: "{{version}}"
-  path: "{{pkg_defaults.module.RCICmpath}}/{{category}}/{{name}}"
+  path: "{{mod_defaults.path}}"
   loadname: "{{name}}/{{module.name}}"
-  lib: "lib"
+  lib: lib
+  setenv:
+     - "{{mod_defaults.setenv}}"
+  prepend_path:
+     - "{{mod_defaults.prepend_path}}"
+  logger: exec /bin/logger -p local6.notice - t module-hpc $env(USER) {{name}}/{{version}}
+
+mod_defaults:
+  category_path: "{{pkg_defaults.RCICmpath}}/{{category}}"
+  path: "{{pkg_defaults.RCICmpath}}/{{category}}/{{name}}"
+  setenv:  
+    - "{{shortname}}__PREFIX {{root}}"
+    - "{{shortname}}__CPPFLAGS -I{{root}}/include"
+    - "{{shortname}}__LDFLAGS \"-L{{root}}/{{module.lib}} -Wl,-rpath,{{root}}/{{module.lib}}\""
+  flagspath:
+    - -d " " CPPFLAGS $env({{shortname}}__CPPFLAGS)
+    - -d " " LDFLAGS  $env({{shortname}}__LDFLAGS)
   prepend_path:
     - PATH {{root}}/bin
     - MANPATH {{root}}/share/man
     - LD_LIBRARY_PATH {{root}}/{{module.lib}}
-    - PKG_CONFIG_PATH  {{root}}/{{module.lib}}/pkgconfig
+    - PKG_CONFIG_PATH {{root}}/{{module.lib}}/pkgconfig
