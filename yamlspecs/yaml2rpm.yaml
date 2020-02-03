@@ -22,6 +22,7 @@
     install Makefile.tmpl {{name}}-{{version}}/samples/Makefile;
     mkdir {{name}}-{{version}}/sys;
     install Makefile {{sysyaml}} {{name}}-{{version}}/sys;
+    install Makefile.toplevel {{sysyaml}} {{name}}-{{version}}/sys;
     tar czf ../sources/{{srctar}} {{name}}-{{version}} 
   build:
     configure: echo

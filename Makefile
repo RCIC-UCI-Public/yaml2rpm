@@ -1,17 +1,7 @@
-# Google Drive ppapadop@UCI Public Access software sources
-SURL=https://googledrive.com/host/1L-VOgFEvE3OVVQYT3Okfu7Fy9MLUcr8W
-ROCKSSHARE=/opt/rocks/share/devel
-DOWNLOADER=$(ROCKSSHARE)/bin/get_sources.sh
+# Copyright (c) 2000 - 2020 The Regents of the University of California.
+# All rights reserved.	
+# This includes the Generic toplevel Makefile - most admixes should
+# be able to use this.
 
-include  $(ROCKSSHARE)/src/roll/etc/Rules-repo-centos.mk
-download: sources
-	SURL=$(SURL) $(DOWNLOADER)
-sources:
-	mkdir sources
-
-cleansources:
-	- /bin/rm -rf sources
-
-veryclean: clean cleansources
-	make -C yamlspecs veryclean	
+include yamlspecs/Makefile.toplevel
 

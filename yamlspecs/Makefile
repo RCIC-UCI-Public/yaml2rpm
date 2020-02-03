@@ -69,7 +69,8 @@ PACKAGES_FILE = $(wildcard packages.yaml)
 
 # Values are taken from packages.yaml file or from modules.* files
 ifneq ($(PACKAGES_FILE),)
-BOOTSTRAP_MODULES = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=bootstrap  $(PACKAGES_FILE)) 
+BOOTSTRAP_QUERY = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=bootstrap  $(PACKAGES_FILE)) 
+BOOTSTRAP_MODULES = $(subst, None, ,$(BOOTSTRAP_QUERY))
 BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --query=system  $(PACKAGES_FILE)) 
 MODULES = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
 MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --query=manifest  $(PACKAGES_FILE)) 
@@ -83,7 +84,24 @@ endif
 PKGS = $(MODULES:.yaml=.pkg)
 BOOTSTRAP_YAMLS = $(addsuffix .yaml, $(BOOTSTRAP_MODULES))
 
+####  TARGETS ####
+
 default: $(SOURCES) $(PKGS)
+
+## This Target Bootstraps and builds packages.
+## Non-conformant admixes should include this makefile and then
+## define ALL_TARGETS 
+
+.PHONY:  buildall buildstart
+ifndef ALL_TARGETS
+ALL_TARGETS = bootstrap $(SOURCES) $(PKGS)
+endif
+
+buildall: buildstart $(ALL_TARGETS)
+	echo "== Built ALL Targets: $^ =="
+	echo "== Built ALL $(shell date) =="
+buildstart:
+	echo "== BUILDING ALL $(shell date) =="
 
 ## This section takes the yaml file and does various interpretations to create files
 ## 1. Create temp working directory $(TMPBUILD) - install template files from $(TEMPLATEDIR)/builder
@@ -215,3 +233,4 @@ diag:
 	echo "MANIFEST: $(MANIFEST)"
 	echo "THISMAKE: $(THISMAKE)"
 	echo "MAKEFILE_LIST: $(MAKEFILE_LIST)"
+	echo "ALL_TARGETS: $(ALL_TARGETS)"
