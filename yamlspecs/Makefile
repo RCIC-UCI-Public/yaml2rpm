@@ -11,6 +11,10 @@ YUM = $(SUDO) /usr/bin/yum
 # this particular Makefile is usually included
 THISMAKE := $(firstword $(MAKEFILE_LIST))
 
+ifndef ADMIX
+ADMIX = $(shell basename $$(realpath ..))
+endif
+
 ## System template dir should be /opt/rocks/yaml2rpm
 ## if not defined, expect local copy (e.g. as in master Git repo)
 ifndef TEMPLATEDIR
@@ -22,6 +26,7 @@ TEMPLATE_FILES = $(wildcard $(TEMPLATEDIR)/$(BUILDTEMPLATE)/*)
 DEFINITIONS = Definitions.mk
 
 GENERATE = $(TEMPLATEDIR)/gen-definitions.py $(GENEXTRAS)
+MANIFEST2ANSIBLE = $(TEMPLATEDIR)/manifest2ansible.py 
 
 ## Local sources of tarballs
 LOCALREPODIR = ..
@@ -142,9 +147,12 @@ manifest:
 	  done								\
 	)
 
+ansible:
+	make -s manifest | xargs $(MANIFEST2ANSIBLE) --name $(ADMIX) 
+
 
 module-provides:
-	( for pkg in $(MANIFEST); do					\
+	( for pkg in $(MANIFEST) $(MODULEYAML); do			\
 		if [ -f $$pkg.yaml ]; then				\
 		     isModule=`$(GENERATE) --query=envmodule $$pkg.yaml`;	\
 		     if [ "$$isModule" == "True" ]; then                \

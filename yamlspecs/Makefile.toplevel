@@ -15,6 +15,9 @@ sources:
 manifest:
 	make -C yamlspecs -s manifest
 
+ansible:
+	make -C yamlspecs -s ansible
+
 install-admix:
 	make createlocalrepo
 	make -C yamlspecs -s manifest | xargs $(SUDO) yum $(YES) -c yum.conf install 
@@ -28,8 +31,8 @@ buildall:
 
 module-requires-provides:
 	(	                                                   \
-		requires=`make -s -C yamlspecs module-requires | sed 's/^/    - /' | sort | uniq`; \
-		provides=`make -s -C yamlspecs module-provides | sed 's/^/    - /' | sort | uniq`; \
+		requires=`make -s -C yamlspecs module-requires 2>/dev/null | sed 's/^/    - /' | sort | uniq`; \
+		provides=`make -s -C yamlspecs module-provides 2>/dev/null | sed 's/^/    - /' | sort | uniq`; \
 		echo "$(ADMIXNAME):";                                                              \
 		echo "  requires:";                                                                \
                 echo "$$requires";                                                                 \
