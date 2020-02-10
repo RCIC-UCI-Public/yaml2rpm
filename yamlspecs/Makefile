@@ -75,7 +75,7 @@ PACKAGES_FILE = $(wildcard packages.yaml)
 # Values are taken from packages.yaml file or from modules.* files
 ifneq ($(PACKAGES_FILE),)
 BOOTSTRAP_QUERY = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=bootstrap  $(PACKAGES_FILE)) 
-BOOTSTRAP_MODULES = $(subst, None, ,$(BOOTSTRAP_QUERY))
+BOOTSTRAP_MODULES = $(BOOTSTRAP_QUERY:None=)
 BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --query=system  $(PACKAGES_FILE)) 
 MODULES = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
 MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --query=manifest  $(PACKAGES_FILE)) 
