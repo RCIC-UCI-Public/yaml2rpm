@@ -3,7 +3,9 @@ SURL=https://googledrive.com/host/1L-VOgFEvE3OVVQYT3Okfu7Fy9MLUcr8W
 ROCKSSHARE=/opt/rocks/share/devel
 DOWNLOADER=$(ROCKSSHARE)/bin/get_sources.sh
 ADMIXNAME = $(shell basename $$(pwd))
-
+LI0 = "     - "
+LISTINDENT = $(subst ",,$(LI0))
+BUILDREQUIRES = buildrequires
 .PHONY: manifest cleansources 
 
 include  $(ROCKSSHARE)/src/roll/etc/Rules-repo-centos.mk
@@ -31,13 +33,16 @@ buildall:
 
 module-requires-provides:
 	(	                                                   \
-		requires=`make -s -C yamlspecs module-requires 2>/dev/null | sed 's/^/    - /' | sort | uniq`; \
-		provides=`make -s -C yamlspecs module-provides 2>/dev/null | sed 's/^/    - /' | sort | uniq`; \
-		echo "$(ADMIXNAME):";                                                              \
-		echo "  requires:";                                                                \
-                echo "$$requires";                                                                 \
-		echo "  provides:";                                                                \
-                echo "$$provides";                                                                 \
+                [ -f $(BUILDREQUIRES) ] && buildrequires=$$(cat $(BUILDREQUIRES) | grep -v '#' | sed 's/^/$(LISTINDENT)/') ;\
+		requires=`make -s -C yamlspecs module-requires 2>/dev/null | sed 's/^/$(LISTINDENT)/' | sort | uniq`; \
+		provides=`make -s -C yamlspecs module-provides 2>/dev/null | sed 's/^/$(LISTINDENT)/' | sort | uniq`; \
+		requires=$$buildrequires$$requires; \
+		echo "$(ADMIXNAME):";               \
+		echo "  requires:";                 \
+		echo "$$requires";                  \
+		echo "  provides:";                 \
+		echo "$(LISTINDENT)$(ADMIXNAME)";   \
+		echo "$$provides";                  \
 	)
 
 cleansources:

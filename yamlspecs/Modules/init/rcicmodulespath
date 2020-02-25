@@ -12,6 +12,8 @@
 /opt/rcic/Modules/modulefiles/BIOTOOLS
 /opt/rcic/Modules/modulefiles/CHEMISTRY
 /opt/rcic/Modules/modulefiles/COMPILERS
+/opt/rcic/Modules/modulefiles/EARTHSCI
+/opt/rcic/Modules/modulefiles/ENGINEERING
 /opt/rcic/Modules/modulefiles/GENOMICS
 /opt/rcic/Modules/modulefiles/IMAGING
 /opt/rcic/Modules/modulefiles/LANGUAGES
