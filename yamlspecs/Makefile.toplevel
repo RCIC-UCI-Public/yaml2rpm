@@ -36,10 +36,10 @@ module-requires-provides:
                 [ -f $(BUILDREQUIRES) ] && buildrequires=$$(cat $(BUILDREQUIRES) | grep -v '#' | sed 's/^/$(LISTINDENT)/') ;\
 		requires=`make -s -C yamlspecs module-requires 2>/dev/null | sed 's/^/$(LISTINDENT)/' | sort | uniq`; \
 		provides=`make -s -C yamlspecs module-provides 2>/dev/null | sed 's/^/$(LISTINDENT)/' | sort | uniq`; \
-		requires=$$buildrequires$$requires; \
+		requires="$$buildrequires\\n$$requires"; \
 		echo "$(ADMIXNAME):";               \
 		echo "  requires:";                 \
-		echo "$$requires";                  \
+		echo -e "$$requires";               \
 		echo "  provides:";                 \
 		echo "$(LISTINDENT)$(ADMIXNAME)";   \
 		echo "$$provides";                  \
