@@ -22,14 +22,14 @@ ansible:
 
 install-admix:
 	make createlocalrepo
-	make -C yamlspecs -s manifest | xargs $(SUDO) yum $(YES) -c yum.conf install 
+	make -e -C yamlspecs -s manifest | xargs $(SUDO) yum $(YES) -c yum.conf install 
 
 uninstall-admix:
 	make -C yamlspecs -s manifest | xargs $(SUDO) yum $(YES) -c yum.conf erase 
 
 buildall:
-	make download
-	make -C yamlspecs buildall
+	make -e download
+	make -e -C yamlspecs buildall
 
 module-requires-provides:
 	(	                                                   \

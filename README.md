@@ -43,6 +43,7 @@ Yaml2rpm set out to solve part of the problem of building and packaging relative
 If you want to use prebuilt RPMS for testing on a standard CentOS machine, you can follow what is below. The following was
 tested on the official CentOS 7 Amazon machine image.
 
+If you want to build yaml2rpm RPMS and install them from source repo, see Building
 ### Prerequisites
 
 1. Python 2 or 3. Required python modules: yaml and datetime.
@@ -73,6 +74,11 @@ tested on the official CentOS 7 Amazon machine image.
    ```
 
 At this point, you can build your first RPM from source.
+### Building 
+You may want to build the yaml2rpm rpms and install them from the source git repository.
+Do the following in the top-level directory
+1. make default
+1. make YES=-y install
 
 # A simple test build
 For a very simple build of an RPM, create a working directory (`workdir`) in this simple example. And then
