@@ -60,7 +60,7 @@ If you want to build yaml2rpm RPMS and install them from source repo, see Buildi
 
    ```bash
    YAMLRPM_VERSION=1.9-4
-   ROCKSDEVEL_VERSION=7.1-12
+   ROCKSDEVEL_VERSION=7.1-13
    RCICMODULE_VERSION=1.1-1
    RCICMODULEPATH_VERSION=1.0-4
    wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rocks-devel-${ROCKSDEVEL_VERSION}.x86_64.rpm
