@@ -1,0 +1,22 @@
+!include rcic-package.yaml
+---
+- package: RCIC dev repo 
+  name: rcic-dev-repo
+  version: "0.9" 
+  release: 1
+  pkgname: "{{name}}"
+  root: "/etc/yum.repos.d"
+  addfile: rcic-dev.repo
+  no_src_tar: True
+  no_src_dir: True
+  description: |
+    RCIC dev repo 
+  build:
+    configure: echo
+    configure_args: 
+    pkgmake: echo
+  install:
+    makeinstall:  install -m 644 {{addfile}} $(ROOT)/{{root}}
+
+  files:
+    - "{{root}}/*"

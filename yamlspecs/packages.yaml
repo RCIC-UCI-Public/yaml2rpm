@@ -12,15 +12,19 @@ system:
 
 # BUILD
 # Packages that must be built in this admix
-build:
+build0:
    - yaml2rpm
    - rcic-module-support
    - rcic-module-path
+build:
+   - "{{build0}}" 
+   - rciv-dev-repo
+
 
 # MANIFEST
 # List of packages that would probably be installed on a generic target system
-# This says the manifest is  all built packages. All built and all system packages is 
+# This says the manifest is  the {{build0}}. All built and all system packages is 
 # another rational configuration
 manifest:  
-   - "{{build}}"
+   - "{{build0}}"
    - environment-modules

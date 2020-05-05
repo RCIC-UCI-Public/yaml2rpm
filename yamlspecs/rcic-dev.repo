@@ -1,0 +1,6 @@
+[RCIC-dev]
+name=RCIC Created RPMS (dev)
+baseurl=http://repo-dev.rcic.uci.edu/repo
+gpgcheck=0
+enabled=1
+
