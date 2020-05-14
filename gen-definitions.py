@@ -6,7 +6,9 @@
 ##from builtins import str
 #from builtins import object
 
-import yaml
+#import yaml
+import ruamel.yaml 
+from pathlib2 import Path
 import re
 import sys
 import datetime
@@ -20,8 +22,64 @@ if sys.version_info.major == 3:
     from typing import Dict
 incMap = {} # type: Dict[str, str]
 
-class IncPath():
+yaml = ruamel.yaml.YAML(typ='safe', pure=True)
+yaml.default_flow_style = False
 
+def new_compose_document(self):
+    self.parser.get_event()
+    node = self.compose_node(None, None)
+    self.parser.get_event()
+    return node
+
+def new_yaml_include(loader, node):
+    y = loader.loader
+    yaml = ruamel.yaml.YAML(typ=y.typ, pure=y.pure)  # same values as including YAML
+    yaml.composer.anchors = loader.composer.anchors
+    incPath = IncPath().getPath()
+    global incMap
+    filename = loader.construct_scalar(node)
+    if filename in list(incMap.keys()):
+        filename = incMap[filename]
+    for p in incPath:
+        try:
+            with open(os.path.join(p,filename), 'r') as f:
+                # FIXME return last line only
+                data = yaml.load(f)
+                #print ("=== FILE START:", f)
+                #yaml.dump(data, sys.stdout)
+                #print ("=== FILE END")
+                return data
+                #return yaml.load(f)
+        except:
+            pass
+    raise  Exception("%s not found in: %s" % (filename,str(incPath)))
+
+yaml.Composer.compose_document = new_compose_document
+yaml.Constructor.add_constructor("!include", new_yaml_include)
+
+#class Loader(object):
+#    def __init__(self, stream):
+#        self._root = os.path.split(stream.name)[0]
+#        self.incPath = IncPath().getPath()
+#        super(Loader, self).__init__(stream)
+#
+#    def include(self, node):
+#        global incMap
+#        filename = self.construct_scalar(node)
+#        if filename in list(incMap.keys()):
+#            filename = incMap[filename]
+#        # look for filename in the incPath
+#        for p in self.incPath:
+#            try:
+#                with open(os.path.join(p,filename), 'r') as f:
+#                    return yaml.load(f, Loader)
+#            except:
+#                pass 
+#        raise  Exception("%s not found in: %s" % (filename,str(self.incPath)))
+#
+#Loader.add_constructor('!include', Loader.include)
+
+class IncPath():
     def __init__(self):
         self.incPath = ['.']
         try:
@@ -32,28 +90,6 @@ class IncPath():
 
     def getPath(self):
         return self.incPath
-
-class Loader(yaml.SafeLoader):
-    def __init__(self, stream):
-        self._root = os.path.split(stream.name)[0]
-        self.incPath = IncPath().getPath()
-        super(Loader, self).__init__(stream)
-
-    def include(self, node):
-        global incMap
-        filename = self.construct_scalar(node)
-        if filename in list(incMap.keys()):
-            filename = incMap[filename]
-        # look for filename in the incPath
-        for p in self.incPath:
-            try:
-                with open(os.path.join(p,filename), 'r') as f:
-                    return yaml.load(f, Loader)
-            except:
-                pass 
-        raise  Exception("%s not found in: %s" % (filename,str(self.incPath)))
-
-Loader.add_constructor('!include', Loader.include)
 
 
 class IncParser(io.FileIO):
@@ -123,7 +159,7 @@ class mkParser(object):
 
     def readPkgYaml(self,fname):
         f = IncParser(fname)
-        docs = yaml.load_all(f,Loader)
+        docs = yaml.load_all(f)
         self.kvdict = self.mergeDocs(docs) 
         self.combine()
     
@@ -133,7 +169,7 @@ class mkParser(object):
         for name in fnames: 
             try:
                 f = IncParser(name)
-                docs = yaml.load_all(f,Loader)
+                docs = yaml.load_all(f)
                 self.defaults = self.mergeDocs(docs)
                 self.combine()
                 return
@@ -368,7 +404,8 @@ class moduleGenerator(object):
             self.listPrereqs()
             try:
                 self.reqs =  self.mk.lookupAndResolve("requires"," " )
-                self.reqs = self.reqs.split(" ")
+                if type(self.reqs) is str:
+                    self.reqs = self.reqs.split(" ")
             except:
                 self.reqs =  []
         except:
@@ -422,6 +459,7 @@ source /opt/rcic/include/rcic-module-tail.tcl
         if self.prereqModules:
             rstr += self.genMultiLine('module-whatis "Load modules___ %s"\n', self.prereqModules)
         if self.reqs:
+            #print ("DEBUG3", type(self.reqs), self.reqs)
             rstr += self.genMultiLine('module-whatis "Prerequisites__ %s"\n', self.reqs)
         rstr += '\n'
         return rstr
@@ -742,7 +780,13 @@ def main(argv):
         mkP.readDefaultsYaml(args.dflts_file)
     mkP.resolveVars()
 
+    ### DEBUG
+    #a = mkP.__dict__['varsdict']
+    #print ("DEBUG", type(a), a.keys())
+
     mg = moduleGenerator(mkP)
+    #print ("DEBUG2", mg.__dict__['reqs'])
+
     mig = makeIncludeGenerator(mkP)
     qp = queryProcessor(mkP)
 
