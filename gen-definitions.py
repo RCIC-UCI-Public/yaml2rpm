@@ -8,7 +8,7 @@
 
 #import yaml
 import ruamel.yaml 
-from pathlib2 import Path
+#from pathlib2 import Path
 import re
 import sys
 import datetime
