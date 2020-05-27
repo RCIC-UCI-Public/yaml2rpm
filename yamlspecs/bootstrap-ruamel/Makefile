@@ -1,6 +1,6 @@
-# This is a specifc  Makefile that is called to build ruamel python RPM
-# needed for main processing pytohn script
-# IT is based on rocks-devel RPM resence.
+# This is a specifc  Makefile that is called to build python-ruamel-yaml RPM
+# needed by gen-definitions.py for processing of other yaml files 
+# Prerequisite: rocks-devel RPM.
 
 REDHAT.ROOT = $(CURDIR)/../../
 -include $(ROCKSROOT)/etc/Rules.mk
