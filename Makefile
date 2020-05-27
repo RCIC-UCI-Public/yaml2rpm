@@ -11,3 +11,5 @@ install:
 	
 include yamlspecs/Makefile.toplevel
 
+ruamel:
+	make -C yamlspecs/bootstrap-ruamel
