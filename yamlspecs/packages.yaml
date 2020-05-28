@@ -18,7 +18,7 @@ build0:
    - rcic-module-path
 build:
    - "{{build0}}" 
-   - rciv-dev-repo
+   - rcic-dev-repo
 
 
 # MANIFEST
