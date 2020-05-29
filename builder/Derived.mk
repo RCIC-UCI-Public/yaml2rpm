@@ -9,7 +9,7 @@ endif
 ## Files for Package
 CONFIG.DESCRIPTION = $(CONFIGURE) $(CONFIGURE_ARGS)
 RPM.DESCRIPTION = $(DESCRIPTION). Configured with $(CONFIG.DESCRIPTION).
-RPM.DESCRIPTION += Modules loaded for compilation: $(MODULES).
+RPM.DESCRIPTION += Modules loaded for compilation: $(MODULES)
 
 #COMPRESSED CAT
 ifneq (,$(findstring bz2, $(TARBALL-EXTENSION)))
