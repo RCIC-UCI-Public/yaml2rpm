@@ -156,7 +156,7 @@ module-provides:
 		if [ -f $$pkg.yaml ]; then				\
 		     isModule=`$(GENERATE) --query=envmodule $$pkg.yaml`;	\
 		     if [ "$$isModule" == "True" ]; then                \
-		        $(GENERATE) --query=module.loadname $$pkg.yaml;	        \
+		        $(GENERATE) --query=module.logname $$pkg.yaml;	        \
 		     fi;					\
 		fi;							\
 	  done								\
