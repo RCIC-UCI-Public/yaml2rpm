@@ -1,0 +1,101 @@
+## this file is usually integrated in yamlspecs as
+## !include rpm.yaml
+---
+# default setting for jar repack. This is a default in rpm macros:
+# %{!?__jar_repack:/usr/lib/rpm/redhat/brp-java-repack-jars} \
+# and it means repack java jar files when making RPM. Value 1 means repack
+# To disable repacking include in your yaml file the following:
+# rpmJarRepack: 0
+rpmJarRepack: 1
+
+# define local filters empty. Tihs means a system rpm macros 
+# for finding RPM requires and provides will be used
+rpmFilters: ""
+
+# define local rpm requires filter
+filterRequires: &Requires |
+  %define _use_internal_dependency_generator 0\n\
+  %define __find_requires %{_builddir}/%{name}-%{version}/filter-requires-{{name}}.sh\n\
+  %define __find_provides %{_rpmconfigdir}/find-provides
+
+# define local rpm provides filter
+filterProvides: &Provides |
+  %define _use_internal_dependency_generator 0\n\
+  %define __find_provides %{_rpmconfigdir}/find-requires
+  %define __find_provides %{_builddir}/%{name}-%{version}/filter-provides-{{name}}.sh
+
+# define local rpm requires and provides filters
+filterRequiresProvides: &RequiresProvides |
+  %define _use_internal_dependency_generator 0\n\
+  %define __find_requires %{_builddir}/%{name}-%{version}/filter-requires-{{name}}.sh\n\
+  %define __find_provides %{_builddir}/%{name}-%{version}/filter-provides-{{name}}.sh
+
+# define local rpm requires, provides and extra exclude filters.
+# This is used when building perl
+filterPerl: &Perl |
+  %define _use_internal_dependency_generator 0\n\
+  %define __find_requires %{_builddir}/%{name}-%{version}/filter-requires-{{name}}.sh\n\
+  %define __find_provides %{_builddir}/%{name}-%{version}/filter-provides-{{name}}.sh\n\
+  %global __provides_exclude_from %{perl_vendorarch}/auto/.*\\.so$|%{perl_archlib}/.*\\.so$|%{_docdir}\n\
+  %global __requires_exclude_from %{_docdir}
+
+# this is a default definition of rpm.extras suitable for most packages.
+# We redefine the __spec_install_post macro to load the correct modules so that 
+# brp-python-bytecompile can access libraries and correct version of python
+# default rpmFlters are empty and can be overwritten when needed via setting rpmFilters
+rpm: 
+  extras: &RpmExtras | 
+    %define __jar_repack {{rpmJarRepack}}\n\
+    %define _python_bytecompile_errors_terminate_build 0\n\
+    %define __python `module load {{build.modules}}; which python; module unload {{build.modules}}`\n\
+    %define __spec_install_post \
+      %{?__debug_package:%{__debug_install_post}}\
+      module load {{build.modules}};\
+      %{__arch_install_post}\
+      %{__os_install_post}\
+      module unload {{build.modules}}\
+    %{nil}\n\
+    {{rpmFilters}}
+
+# for packages that use conda/anaconda.
+# redefine __os_install_post to bypass brp-python-bytecompile of already compiled
+# python packages. To use, specify in package yaml file
+# rpm:
+#   extras: *RpmConda
+extrasconda: &RpmConda | 
+  %define __os_install_post \
+  /usr/lib/rpm/redhat/brp-compress \
+  %{!?__debug_package:\
+  /usr/lib/rpm/redhat/brp-strip %{__strip} \
+  /usr/lib/rpm/redhat/brp-strip-comment-note %{__strip} %{__objdump} \
+  } \
+  /usr/lib/rpm/redhat/brp-strip-static-archive %{__strip} \
+  /usr/lib/rpm/redhat/brp-python-hardlink \
+  %{!?__jar_repack:/usr/lib/rpm/redhat/brp-java-repack-jars} \
+  %{nil}\n\
+  {{filterRequires}}
+
+# For use with packages that provide 3-party precompiled software.
+# when there is no need for brp-* commands on existing binaries/libraries.
+# we redefine __os_install_post to handle this case.
+# To use, specify in package yaml file
+# rpm:
+#   extras: *RpmNone
+extrasnone: &RpmNone |
+  AutoReqProv:no\n\
+  %define __spec_install_post %{nil}
+
+# For use when building python. Need to redefine macros 
+# to use just build python and its libraries from the current build.
+# To use, specify in package yaml file
+# rpm:
+#   extras: *RpmPython
+extraspython: &RpmPython |
+  {{rpmFilters}}\n\
+  %define _python_bytecompile_errors_terminate_build 0\n\
+  %define __spec_install_post \
+    %{?__debug_package:%{__debug_install_post}}\
+    export LD_LIBRARY_PATH=%{buildroot}/$(PKGROOT)/lib:$$LD_LIBRARY_PATH;\
+    %{__arch_install_post}\
+    %{__os_install_post}\
+  %{nil}
