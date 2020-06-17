@@ -13,26 +13,26 @@ rpmJarRepack: 1
 rpmFilters: ""
 
 # define local rpm requires filter
-filterRequires: &Requires |
+filterRequires: &filterRequires |
   %define _use_internal_dependency_generator 0\n\
   %define __find_requires %{_builddir}/%{name}-%{version}/filter-requires-{{name}}.sh\n\
   %define __find_provides %{_rpmconfigdir}/find-provides
 
 # define local rpm provides filter
-filterProvides: &Provides |
+filterProvides: &filterProvides |
   %define _use_internal_dependency_generator 0\n\
   %define __find_provides %{_rpmconfigdir}/find-requires
   %define __find_provides %{_builddir}/%{name}-%{version}/filter-provides-{{name}}.sh
 
 # define local rpm requires and provides filters
-filterRequiresProvides: &RequiresProvides |
+filterRequiresProvides: &filterRequiresProvides |
   %define _use_internal_dependency_generator 0\n\
   %define __find_requires %{_builddir}/%{name}-%{version}/filter-requires-{{name}}.sh\n\
   %define __find_provides %{_builddir}/%{name}-%{version}/filter-provides-{{name}}.sh
 
 # define local rpm requires, provides and extra exclude filters.
 # This is used when building perl
-filterPerl: &Perl |
+filterPerl: &filterPerl |
   %define _use_internal_dependency_generator 0\n\
   %define __find_requires %{_builddir}/%{name}-%{version}/filter-requires-{{name}}.sh\n\
   %define __find_provides %{_builddir}/%{name}-%{version}/filter-provides-{{name}}.sh\n\
