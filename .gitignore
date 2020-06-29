@@ -8,4 +8,4 @@ sources/
 workdir/
 yamlspecs/tmpbuild/
 yum.*
-
+.rpmmacros

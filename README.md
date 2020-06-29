@@ -58,22 +58,10 @@ If you want to build yaml2rpm RPMS and install them from source repo, see Buildi
 
 1. Install the development RPMS 
 
-   ```bash
-   YAMLRPM_VERSION=1.9-4
-   ROCKSDEVEL_VERSION=7.1-13
-   RCICMODULE_VERSION=1.1-1
-   RCICMODULEPATH_VERSION=1.0-4
-   wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rocks-devel-${ROCKSDEVEL_VERSION}.x86_64.rpm
-   wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/yaml2rpm-${YAMLRPM_VERSION}.x86_64.rpm
-   wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rcic-module-support-${RCICMODULE_VERSION}.x86_64.rpm
-   wget https://github.com/RCIC-UCI-Public/development-RPMS/raw/master/rcic-module-path-${RCICMODULEPATH_VERSION}.x86_64.rpm
-   yum -y install rocks-devel-${ROCKSDEVEL_VERSION}.x86_64.rpm yaml2rpm-${YAMLRPM_VERSION}.x86_64.rpm rcic-module-support-${RCICMODULE_VERSION}.x86_64.rpm rcic-module-path-${RCICMODULEPATH_VERSION}.x86_64.rpm zlib-devel redhat-lsb environment-modules
-   . /etc/profile.d/rocks-devel.sh
-   . /etc/profile.d/yaml2rpm.sh
-   . /etc/profile.d/rcic-modules.sh
-   ```
+Go to the [Development RPMS](https://github.com/RCIC-UCI-Public/development-RPMS#development-rpms) repository for the latest pre-built RPMs and instructions.
 
-At this point, you can build your first RPM from source.
+After following those instructions, you can build your first RPM from source.
+
 ### Building 
 You may want to build the yaml2rpm rpms and install them from the source git repository.
 Do the following in the top-level directory

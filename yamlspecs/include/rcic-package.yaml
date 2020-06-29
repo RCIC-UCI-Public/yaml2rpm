@@ -1,8 +1,15 @@
 ---
   extension: tar.gz
+  baserpm: "{{name}}_{{version}}"
+  pkgname: "{{baserpm}}"
   src_tarball: "{{name}}-{{version}}.{{extension}}"
   src_dir: "{{name}}-{{version}}"
   parent: "{{pkg_defaults.app_path}}/{{name}}"
   root: "{{parent}}/{{version}}"
   files:
     - "{{parent}}"
+  # define empty. needed by rcic-module.yaml to be defined.
+  compiler: ""
+  compiler_version: ""
+  mpi: ""
+  mpi_version: ""

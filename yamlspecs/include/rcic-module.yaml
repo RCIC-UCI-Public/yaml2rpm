@@ -7,14 +7,13 @@
 ##
 ## (C) 2018-2019 UC Regents
 ## Research Cyberinfrastructure Center, UC Irvine
-## Author: Philip M. Papadopoulos
+## Author: Nadya Williams
 ---
 no_src_dir: True
 envmodule: True
 src_tarball: none
-foundation: ""
 category: ""
-pkgname: "{{foundation}}{{name}}_{{version}}-module"
+pkgname: "{{baserpm}}-module"
 shortname: "{{name}}"
 build:
   configure: echo 
@@ -22,37 +21,66 @@ build:
 install:
    makeinstall: echo 
    installextra:
+requires: "{{module.requires}}"
 files:
-  -  "{{mod_defaults.category_path}}"
-requires:
-  - "{{foundation}}{{name}}_{{version}}"
-  - rcic-module-support
+  -  "{{module.category_path}}"
 rpm:
   extras: ""
 
-module:
-  name: "{{version}}"
-  path: "{{mod_defaults.path}}"
-  loadname: "{{name}}/{{module.name}}"
-  lib: lib
-  setenv:
-     - "{{mod_defaults.setenv}}"
-  prepend_path:
-     - "{{mod_defaults.prepend_path}}"
-  logger: exec /bin/logger -p local6.notice - t module-hpc $env(USER) {{name}}/{{version}}
-
-mod_defaults:
+mod_defaults: &Module
   category_path: "{{pkg_defaults.RCICmpath}}/{{category}}"
-  path: "{{pkg_defaults.RCICmpath}}/{{category}}/{{name}}"
-  setenv:  
-    - "{{shortname}}__PREFIX {{root}}"
-    - "{{shortname}}__CPPFLAGS -I{{root}}/include"
-    - "{{shortname}}__LDFLAGS \"-L{{root}}/{{module.lib}} -Wl,-rpath,{{root}}/{{module.lib}}\""
-  flagspath:
+  lib: lib
+  loadname: "{{name}}/{{module.name}}"
+  logname: "{{name}}/{{version}}"
+  logger: exec /bin/logger -p local6.notice - t module-hpc $env(USER) {{mod_defaults.logname}}
+  name: "{{version}}"
+  flagspath: &Flagspath
     - -d " " CPPFLAGS $env({{shortname}}__CPPFLAGS)
     - -d " " LDFLAGS  $env({{shortname}}__LDFLAGS)
-  prepend_path:
+  path: "{{pkg_defaults.RCICmpath}}/{{category}}/{{name}}"
+  prepend_path: &Prepend_path
     - PATH {{root}}/bin
     - MANPATH {{root}}/share/man
     - LD_LIBRARY_PATH {{root}}/{{module.lib}}
     - PKG_CONFIG_PATH {{root}}/{{module.lib}}/pkgconfig
+  setenv: &Setenv
+    - "{{shortname}}__PREFIX {{root}}"
+    - "{{shortname}}__CPPFLAGS -I{{root}}/include"
+    - "{{shortname}}__LDFLAGS \"-L{{root}}/{{module.lib}} -Wl,-rpath,{{root}}/{{module.lib}}\""
+  requires: &Requires
+    - rcic-module-support
+    - "{{baserpm}}"
+
+# basic module
+module:
+  <<: *Module
+
+# module with compiler specs
+moduleCompiler: &ModuleCompiler
+  <<: *Module
+  logname: "{{name}}/{{version}}/{{compiler}}.{{compiler_version}}"
+  name: "{{compiler}}.{{compiler_version}}"
+  path: "{{mod_defaults.path}}/{{version}}"
+  prepend_path:
+    - *Prepend_path
+    - *Flagspath
+  prereq: &ModuleCompiler_prereq
+    - "{{compiler}}/{{compiler_version}}"
+  requires: &ModuleCompiler_requires
+    - *Requires
+    - "{{compiler}}_{{compiler_version}}-module"
+
+# module with compiler and interconnect specs
+moduleCompilerMpi: &ModuleCompilerMpi
+  <<: *Module
+  logname: "{{name}}/{{version}}/{{compiler}}.{{compiler_version}}-{{mpi}}.{{mpi_version}}"
+  name: "{{compiler}}.{{compiler_version}}-{{mpi}}.{{mpi_version}}"
+  path: "{{mod_defaults.path}}/{{version}}"
+  prepend_path:
+    - *Prepend_path
+    - *Flagspath
+  prereq: &ModuleCompilerMpi_prereq
+    - "{{mpi}}/{{mpi_version}}/{{compiler}}.{{compiler_version}}"
+  requires: &ModuleCompilerMpi_requires
+    - *Requires
+    - "{{mpi}}_{{mpi_version}}_{{compiler}}_{{compiler_version}}-module"

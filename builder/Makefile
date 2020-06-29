@@ -72,7 +72,7 @@ install::
 		[ $(DO_CD) == True ] && cd $(SRC_DIR);		\
 		if [ ! -d $(ROOT)/$(PKGROOT) ]; then mkdir -p $(ROOT)/$(PKGROOT); fi; \
 		if [ "$(MAKEINSTALL)" == "" ]; then		\
-			$(MAKE) prefix=$(ROOT)/$(PKGROOT) $(INSTALLTARGET);	\
+			$(MAKE) prefix=$(ROOT)$(PKGROOT) $(INSTALLTARGET);	\
 		else 						\
 			$(CUSTOM_MAKEINSTALL);				\
 		fi;						\
