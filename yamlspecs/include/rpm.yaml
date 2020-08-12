@@ -8,6 +8,15 @@
 # rpmJarRepack: 0
 rpmJarRepack: 1
 
+
+
+# define AutoReqProv: Yes 
+# This is the default for RPM, but in some rare instances, may override. 
+rpmAutoRequires: "AutoReqProv: {{rpmAutoReqProv}}"
+rpmAutoReqProv: "Yes"
+
+
+
 # define local filters empty. Tihs means a system rpm macros 
 # for finding RPM requires and provides will be used
 rpmFilters: ""
@@ -55,7 +64,8 @@ rpm:
       %{__os_install_post}\
       module unload {{build.modules}}\
     %{nil}\n\
-    {{rpmFilters}}
+    {{rpmFilters}}\n\
+    {{rpmAutoRequires}}
 
 # for packages that use conda/anaconda.
 # redefine __os_install_post to bypass brp-python-bytecompile of already compiled
