@@ -22,6 +22,7 @@ install:
    makeinstall: echo 
    installextra:
 requires: "{{module.requires}}"
+provides: "{{module.provides}}"
 files:
   -  "{{module.category_path}}"
 rpm:
@@ -50,6 +51,8 @@ mod_defaults: &Module
   requires: &Requires
     - rcic-module-support
     - "{{baserpm}}"
+  provides:
+    - "{{module.logname}}"
 
 # basic module
 module:
@@ -68,7 +71,7 @@ moduleCompiler: &ModuleCompiler
     - "{{compiler}}/{{compiler_version}}"
   requires: &ModuleCompiler_requires
     - *Requires
-    - "{{compiler}}_{{compiler_version}}-module"
+    - *ModuleCompiler_prereq 
 
 # module with compiler and interconnect specs
 moduleCompilerMpi: &ModuleCompilerMpi
@@ -83,4 +86,4 @@ moduleCompilerMpi: &ModuleCompilerMpi
     - "{{mpi}}/{{mpi_version}}/{{compiler}}.{{compiler_version}}"
   requires: &ModuleCompilerMpi_requires
     - *Requires
-    - "{{mpi}}_{{mpi_version}}_{{compiler}}_{{compiler_version}}-module"
+    - *ModuleCompilerMpi_prereq

@@ -1,0 +1,15 @@
+## This is a template for a "requires-only" RPM 
+---
+  pkgname: "{{name}}"
+  no_src_tarball: True 
+  no_src_dir: True
+  root: "{{pkg_defaults.app_path}}"
+  description: Module requires for building admix
+  build:
+    configure: "echo no configure"
+    configure_args: ""
+  install:
+    makeinstall: "echo no install - requirements only"
+  files: "{{root}}" 
+
+ 

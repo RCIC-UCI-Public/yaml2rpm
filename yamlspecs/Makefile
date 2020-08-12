@@ -162,16 +162,30 @@ module-provides:
 	  done								\
 	)
 module-requires:
-	( for pkg in $(MODULES) $(BOOTSTRAP_YAMLS); do					\
-		if [ -f $$pkg ]; then				\
+	( for pkg in $(MODULES) $(BOOTSTRAP_YAMLS); do						\
+		if [ -f $$pkg ]; then								\
 		     needModule=`$(GENERATE) --query=build.modules --listsep="\\n" $$pkg`;	\
-		     if [ "$$needModule" != "False" ]; then                \
-		        [ "$$needModule" != "None" ] && echo -e $$needModule;	        \
-		     fi;					\
-		fi;							\
-	  done								\
+		     if [ "$$needModule" != "False" ] && [ "$$needModule" != "True" ] 		\
+			&&   [ "$$needModule" != "None" ]; then echo -e $$needModule; 		\
+		     fi; 	\
+		fi;										\
+	  done											\
 	)
 	
+admix-bootstrap-yaml:
+	( NEEDS=$$(make -f $(THISMAKE) -s module-requires | sort | uniq); \
+	PROVIDES=$$(make -f $(THISMAKE) -s module-provides | sort | uniq);\
+	echo "!include rcic-admix-requires.yaml" > $(ADMIX)-bootstrap.yaml;\
+        echo "---" >> $(ADMIX)-bootstrap.yaml; \
+        echo "- package: $(ADMIX)-bootstrap" >> $(ADMIX)-bootstrap.yaml; \
+        echo "  name: $(ADMIX)-bootstrap" >> $(ADMIX)-bootstrap.yaml; \
+        echo "  requires: " >> $(ADMIX)-bootstrap.yaml; \
+ 	for x in $$NEEDS; do echo $$PROVIDES | grep -q $$x; \
+	  if [ $$? != 0 ]; then echo "    - $$x" >> \
+		$(ADMIX)-bootstrap.yaml; \
+	  fi;\
+	done )
+
 bootstrap: 
 	- $(YUM) -y install $(BOOTSTRAP_SYSTEM) 
 	echo $(BOOTSTRAP_MODULES)
