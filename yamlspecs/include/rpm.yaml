@@ -30,7 +30,6 @@ filterRequires: &filterRequires |
 # define local rpm provides filter
 filterProvides: &filterProvides |
   %define _use_internal_dependency_generator 0\n\
-  %define __find_provides %{_rpmconfigdir}/find-requires
   %define __find_provides %{_builddir}/%{name}-%{version}/filter-provides-{{name}}.sh
 
 # define local rpm requires and provides filters
@@ -54,6 +53,7 @@ filterPerl: &filterPerl |
 # default rpmFlters are empty and can be overwritten when needed via setting rpmFilters
 rpm: 
   extras: &RpmExtras | 
+    {{rpmAutoRequires}}\n\
     %define __jar_repack {{rpmJarRepack}}\n\
     %define _python_bytecompile_errors_terminate_build 0\n\
     %define __python `module load {{build.modules}}; which python; module unload {{build.modules}}`\n\
@@ -64,8 +64,7 @@ rpm:
       %{__os_install_post}\
       module unload {{build.modules}}\
     %{nil}\n\
-    {{rpmFilters}}\n\
-    {{rpmAutoRequires}}
+    {{rpmFilters}}
 
 # for packages that use conda/anaconda.
 # redefine __os_install_post to bypass brp-python-bytecompile of already compiled
