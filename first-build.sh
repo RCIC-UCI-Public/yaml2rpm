@@ -21,10 +21,11 @@ pushd $DEVELREPO
 popd
 
 ## Make sure environment-modules are installed
-yum -y install enviroment-modules
+yum -y install environment-modules
+
 ## Source Profiles
-. $DEVELPROFILE
-. $MODULEPROFILE
+source /etc/profile.d/$DEVELPROFILE
+source /etc/profile.d/$MODULEPROFILE
 
 ## Get source tarballs
 make download
