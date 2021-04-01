@@ -27,9 +27,7 @@ make download
 ## Build and Install
 # use bash -l to ensure that any profile.d entries are sourced
 bash -l -c make
-bash -l -c make YES=-y install
-
+bash -l -c "make YES=-y install"
 ## 
 echo "=== First Build completed ==="
 echo "Start a new bash shell or logout/login to make certain all profile.d scripts"
-echo "have been executed"
