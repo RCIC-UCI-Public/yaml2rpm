@@ -11,8 +11,6 @@
 DEVELREPO=core
 ROCKSGIT=https://github.com/rocksclusters/core.git
 DEVEL_BUILD_SCRIPT=build-devel-rpm.sh
-DEVELPROFILE=rocks-devel.sh
-MODULEPROFILE=module.sh
 
 ## Clone, Build, and Install rocks-devel rpm
 git clone $ROCKSGIT
@@ -23,17 +21,15 @@ popd
 ## Make sure environment-modules are installed
 yum -y install environment-modules
 
-## Source Profiles
-source /etc/profile.d/$DEVELPROFILE
-source /etc/profile.d/$MODULEPROFILE
-
 ## Get source tarballs
 make download
 
 ## Build and Install
-make
-make YES=-y install
+# use bash -l to ensure that any profile.d entries are sourced
+bash -l -c make
+bash -l -c make YES=-y install
 
-
-
-
+## 
+echo "=== First Build completed ==="
+echo "Start a new bash shell or logout/login to make certain all profile.d scripts"
+echo "have been executed"
