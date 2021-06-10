@@ -316,7 +316,10 @@ class mkParser(object):
                             else:
                                 newlist.extend([tmp])
                         else:
-                            elem = elem.replace(var, listSep.join(tmp))
+                            if type(tmp) is list:
+                                elem = elem.replace(var, listSep.join(tmp))
+                            else:
+                                elem = elem.replace(var, tmp)
                 if len(newlist) == 0:
                     rwork.append(elem)
                 else:    
@@ -343,6 +346,7 @@ class mkParser(object):
             if self.hasVars(rhs):
                 for v in self.extractVars(rhs):
                     self.setVar(self.varsdict,v,rhs)
+
 
         # Do an initial pass of setting key-value pairs
         # Do NOT Stringify at this point
