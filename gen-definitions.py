@@ -575,6 +575,10 @@ class makeIncludeGenerator(object):
         """ mkp is an mkParser, already initialized """
         self.mk = mkp
 
+    def dump(self):
+        """ Dump the merged dictionary in yaml format """
+        yaml.dump(self.mk.kvdict,sys.stdout)
+
     def generate(self):
         rstr = ""
         # The following are "Required" keys - meaning packaging should fail without them
@@ -671,16 +675,16 @@ class makeIncludeGenerator(object):
             rstr += "RPM.PROVIDES\t = \n" 
 
 
+        # fileslist takes precedence over files
         try:
-            files =  self.mk.lookupAndResolve("files","\\n\\\n")
-            rstr += "RPM.FILES\t = %s\n" % files 
+            files =  self.mk.lookupAndResolve("fileslist","\\n\\\n")
+            rstr += "RPM.FILESLIST\t = %s\n" % files
         except:
             try:
-                files =  self.mk.lookupAndResolve("fileslist","\\n\\\n")
-                rstr += "RPM.FILESLIST\t = %s\n" % files 
+                files =  self.mk.lookupAndResolve("files","\\n\\\n")
+                rstr += "RPM.FILES\t = %s\n" % files
             except:
-                rstr += "RPM.FILES\t = $(PKGROOT)\n" 
-
+                rstr += "RPM.FILES\t = $(PKGROOT)\n"
 
         try:
             extras =  self.mk.lookupAndResolve("rpm.extras","\\n\\\n",listSep=" ")
@@ -772,6 +776,7 @@ def main(argv):
     parser.add_argument("-M", "--map",      dest="mapf",       default=False, help=helpmap)
     # required positional argument
     parser.add_argument("yamlfile",  action="store", help="main YAML file with packaging definitions") 
+    parser.add_argument("-G", "--merge",   dest="doMerge",   default=False, action='store_true', help="Merge included files, dump merged yaml file to stdout")
     args = parser.parse_args()
     
     if args.mapf: 
@@ -798,6 +803,8 @@ def main(argv):
         print(mg.generate() )
     elif args.doQuery:
         qp.processQuery(args.doQuery,args.quiet,args.listSep)
+    elif args.doMerge:
+        mig.dump()
     else:
         print(mig.generate())
 
