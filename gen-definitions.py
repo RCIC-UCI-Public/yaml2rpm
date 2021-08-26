@@ -701,7 +701,7 @@ class queryProcessor(object):
         """ mkp is an mkParser, already initialized """
         self.mk = mkp
 
-    def processQuery(self,query,quiet=False,listSep=None):
+    def processQuery(self,query,quiet=False,listSep=None,qx=None):
         rq = query.strip().lower()
         if rq == "patch":
             rq = "build.patchfile"
@@ -726,6 +726,20 @@ class queryProcessor(object):
             sys.exit(0)
         try:
             rval = self.mk.lookupAndResolve(rq,listSep,listSep=listSep)
+            # handle requested exclusions
+            if qx is not None:
+                try:
+                    exclude = self.mk.lookupAndResolve(qx,listSep,listSep=listSep)
+                    vlist = rval.split(listSep)
+                    for xv in exclude.split(listSep): 
+                        try:
+                           vlist.remove(xv)
+                        except Exception as err:
+                           print ("Error excluding elements %s" % str(err))
+                           sys.exit(-1)
+                    rval=listSep.join(vlist)
+                except:
+                    pass 
         except:
             if not quiet:
                 print('False')
@@ -750,8 +764,9 @@ def main(argv):
     description += "and creates include and module files needed for generating of RPM package"
 
     helpquery = "query if value exists in the yaml file and  print  the result on stdout. Valid types are the keywords in the\n"
-    helpquery += "the yaml file: patch, module, source, pkgname, etc. Example: --query=source. If nout found, prints 'False'\n"
+    helpquery += "the yaml file: patch, module, source, pkgname, etc. Example: --query=source. If not found, prints 'False'\n"
 
+    helpex = "Used only in conjunction with query. After the query is complete, queryExclude arg is queried, then any of those results are removed from the query results"
     helpdefaults = "specify packaging defaults yaml file to use. If none is provided, use:\n"
     helpdefaults += "(1) specific ./%s in the current yamlspecs/ directory; if exists \n" % dflts_file
     helpdefaults += "(2) default /opt/rocks/yaml2rpm/sys/%s otherwise \n" % dflts_file 
@@ -771,6 +786,7 @@ def main(argv):
     parser.add_argument("-D", "--no-defaults", dest="skipDefaults", default=False, action='store_true', help=helpskipdefaults)
     parser.add_argument("-m", "--module",   dest="doModule",   default=False, action='store_true', help="generate environment modules file")
     parser.add_argument("-q", "--query",    dest="doQuery",    default=False, help=helpquery)
+    parser.add_argument("-x", "--queryExclude",    dest="queryExclude",    default=None, help=helpex)
     parser.add_argument("-l", "--listsep",  dest="listSep",    default=None,  help=helplsep)
     parser.add_argument("-Q", "--quiet",    dest="quiet",      default=False, action='store_true', help="supress output of query processing")
     parser.add_argument("-M", "--map",      dest="mapf",       default=False, help=helpmap)
@@ -802,7 +818,7 @@ def main(argv):
     if args.doModule: 
         print(mg.generate() )
     elif args.doQuery:
-        qp.processQuery(args.doQuery,args.quiet,args.listSep)
+        qp.processQuery(args.doQuery,args.quiet,args.listSep,args.queryExclude)
     elif args.doMerge:
         mig.dump()
     else:
