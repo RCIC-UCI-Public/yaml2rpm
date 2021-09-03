@@ -1,3 +1,5 @@
+## This file defines defaults for the
+## variables used in the yaml files. 
 ---
   extension: tar.gz
   baserpm: "{{name}}_{{version}}"
@@ -8,8 +10,15 @@
   root: "{{parent}}/{{version}}"
   files:
     - "{{parent}}"
-  # define empty. needed by rcic-module.yaml to be defined.
-  compiler: ""
-  compiler_version: ""
-  mpi: ""
-  mpi_version: ""
+  # the following are needed by rcic-module.yaml
+  compiler:
+  compiler_version:
+  mpi:
+  mpi_version:
+  extras:
+  build:
+    configure: echo
+    configure_args:
+    modules:
+    pkgmake:
+    target:

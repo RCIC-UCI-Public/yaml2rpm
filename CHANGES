@@ -1,0 +1,127 @@
+CHANGES For 
+rcic_module_support: version 2, release 1
+           yaml2rpm: version 2, release 1
+
+===============
+rcic-module.yaml  
+================
+In mod_defaults add definitions
+1 prereq:
+    - "{{build.modules}}"
+
+  use it to define (4)
+  The prereq allows to inherit modules from the <pkgname>.yaml 
+  that are loaded for building the package. Most of the
+  time the same ones are needed for using the software.
+  This automates tracking that does not need to be repeated in <pkgname-module>.yaml
+
+2 base_requires: &Requires
+    - rcic-module-support
+    - "{{baserpm}}"
+
+  this is needed when the buyild modules are ddifferent from the modules that
+  needed to be loaded for running. 
+
+3 requires:
+    - *Requires
+    - "{{module.prereq}}"
+
+  this fixes forgetting to add  *Requires in modules yaml files.
+  Since module.prereq are always defined and *Requires includes baserpm and rcic-module-support
+  this default allows to reuse the above definition for almost all the modules files and therefore
+  there is ho longer need to spefify it in the modules files.  Where needed can overwrite. 
+  
+At top level add 
+4 prereq: "{{module.prereq}}"
+  this allows to query for prereq
+
+5 no need to specify empty string ""
+ 
+In moduleCompiler
+6 rename prereq as prereq_c
+  prereq_c: &ModuleCompiler_prereq
+7 remove obsoleted requires:
+ 
+In  moduleCompilerMpi
+8 rename prereq as prereq_mpi
+  prereq_mpi: &ModuleCompilerMpi_prereq
+9 remove obsoleted requires:
+
+=================
+rcic-package.yaml
+=================
+add the following that are needed by updates in rcic-module.yaml
+  compiler:
+  compiler_version:
+  mpi:
+  mpi_version:
+  extras:
+  build:
+    configure: echo
+    configure_args:
+    modules:
+    pkgmake:
+    target:
+
+This provides defaults for packages yaml files 
+
+=================
+gen-partitions.py
+=================
+1 Per outcome of running futurize  and moveing from pytohn2 to pytohn 3 add
+  from __future__ import print_function
+  from builtins import next 
+  from builtins import object
+
+  Note: the "from builtins import str"  does not work with python2, breaks recursion
+
+  class IncPath(object): added object to class definition. Outcome of running futurize
+
+2 new_yaml_include(): force us of LibYAML parser and emmiter via pure=False
+
+3 class mkParser
+  __init__(): clean out unneeded variables, init self.combo as empty dict
+  readPkgYaml() use dict native method to update dictionary 
+  rm combine(), use dict native update method
+  rm readDefaultsYaml(), use readPkgYaml()
+  rm vLookup(), use lookup()
+  rm rLookup(), use lookup()
+  rm resolveStr(), use lookup()
+  lookup(): add filtering of '' and None from the list
+  lookupAndResolve(): rm calling replaceVars(), dict is already resolved
+  replaceVars() rewrite completely to handle string, list and dict. 
+  add replaceStr(): replace {{var}} by its value in the string
+  add replaceNoneInt(): replace all None and int values as '' 
+  resolveVars () rewrite to completely resolve combo dict
+  flatten(): return  type list
+
+  TODO: see TODO coment ib lookup()
+
+4 class moduleGenerator
+  __init__(): for solving "requires" use lookup()
+            rm filtering, it is handled by lookup()
+            rm cast list() in list comprehension
+  gen_header() use socket.gethostname() in place of socket.getfqdn() which is must faster.
+  listPrereqs(): add filtering of '' from the list. This can happen when definition is empty.
+                 rm cast list() in list comprehension
+  gen_prereqs(): ajust creste str from found prereqs, no need to do resolving
+  generateModFile(): cal gen_lines() in place of gen_setenv(),gen_alais(), prepend_path()
+  rename generate() as generateModFile()
+  rm prepend_path(), use gen_lines()
+  rm gen_setenv(), use gen_lines()
+  rm gen_alias, use gen_lines()
+
+5 class makeIncludeGenerator 
+  rename generate() as generateDefs(): simplify handling of reqs,provs,rpm.extras
+                       rm cast list() in list comprehension
+  processQuery(): simplify query lookup, rm cast list() in list comprehension
+  main(): move makeIncludeGenerator() and queryProcessor() 
+          inside "if" statement that checks arguments. 
+
+==========================================================================
+Remove obsoleted files
+==========================================================================
+1. In all admixes resolve all include rpm.extras.* to be handled by include rpm.yaml
+   rm rpm.extras.filter.provreq.yaml  rpm.extras.filter.yaml  rpm.extras.yaml
+2. rm obsolete rcic-module-spec.yaml, all handled by rcic-module.yaml
+

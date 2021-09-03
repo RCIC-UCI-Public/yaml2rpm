@@ -1,14 +1,12 @@
 #!/bin/env python
 # Generate a Definitions.mk file - write to standard output 
 
-#from __future__ import print_function
-#from builtins import next
-##from builtins import str
-#from builtins import object
+from __future__ import print_function
+from builtins import next 
+from builtins import object
+#from builtins import str  # does not work with python2, breaks recursion
 
-#import yaml
 import ruamel.yaml 
-#from pathlib2 import Path
 import re
 import sys
 import datetime
@@ -17,6 +15,7 @@ import os
 import io
 import argparse
 import pdb
+import time
 
 if sys.version_info.major == 3:
     from typing import Dict
@@ -33,7 +32,7 @@ def new_compose_document(self):
 
 def new_yaml_include(loader, node):
     y = loader.loader
-    yaml = ruamel.yaml.YAML(typ=y.typ, pure=y.pure)  # same values as including YAML
+    yaml = ruamel.yaml.YAML(typ=y.typ, pure=False)  # use LibYAML based parser and emitter
     yaml.composer.anchors = loader.composer.anchors
     incPath = IncPath().getPath()
     global incMap
@@ -79,7 +78,7 @@ yaml.Constructor.add_constructor("!include", new_yaml_include)
 #
 #Loader.add_constructor('!include', Loader.include)
 
-class IncPath():
+class IncPath(object):
     def __init__(self):
         self.incPath = ['.']
         try:
@@ -102,7 +101,6 @@ class IncParser(io.FileIO):
             filename = incMap[filename]
 
         self.incPath = IncPath().getPath()
-        self.filename = filename
 
         # now go the incPath looking for the file
         for p in self.incPath:
@@ -152,31 +150,16 @@ class mkParser(object):
     def __init__(self):
         self.varsdict = {}
         self.varpat = re.compile('{{[A-Za-z0-9_\. ]+}}')
-        self.kvdict = None   
-        self.defaults = None 
-        self.combo = None 
-        self.incPath = IncPath().getPath()
+        self.combo = {} 
 
     def readPkgYaml(self,fname):
+        """ read yaml file, proesss loading of all included yamls,
+            merge all into one dictionary and update self.combo with the result """
         f = IncParser(fname)
-        docs = yaml.load_all(f)
-        self.kvdict = self.mergeDocs(docs) 
-        self.combine()
+        docs = list(yaml.load_all(f))
+        kvdict = self.mergeDocs(docs) 
+        self.combo.update(kvdict)
     
-    def readDefaultsYaml(self,fname):
-        fnames = [fname]
-        fnames.extend( [os.path.join(p,fname) for p in self.incPath])
-        for name in fnames: 
-            try:
-                f = IncParser(name)
-                docs = yaml.load_all(f)
-                self.defaults = self.mergeDocs(docs)
-                self.combine()
-                return
-            except Exception as ex: 
-                pass
-        raise Exception("Could not find defaults file in %s" % str(fnames))
-
     def mergeDocs(self,docs):
         """ Merge parsed YAML docs into a single dictionary. Keys are overwritten if 
             multiple docs have the same key. If a key is a dictionary old and new are merged
@@ -202,27 +185,14 @@ class mkParser(object):
 
         return fullDict
 
-    def combine(self):
-        """ Combine pkg and defaults """
-        # logic: if either defaults or kvdict is None, combo is whatever we have
-        # if both are available combine
-        if self.defaults is None or self.kvdict is None:
-            if self.defaults is not None:
-                self.combo = self.defaults.copy() 
-            elif self.kvdict is not None:
-                self.combo = self.kvdict.copy() 
-        if self.defaults is not None and self.kvdict is not None:
-            self.combo = self.defaults.copy()
-            self.combo.update(self.kvdict)
-
     def lookup(self,e,ldict=None,stringify=True,listSep=None):
         """Looks up x.y.z references in multilevel dictionary
            stringify: True - return a string representation of contents
-                              False - return the contents (could be any python type)
-           listSep:  for String representations of lists use listSep as separator
-                             if L=[a,b,c] will return 'a' listSep 'b' listSep 'c'
-                   if the returned value is a list, this will flatten the list for
-                   simplicity """
+                      False - return the contents (could be any python type)
+           listSep:   for String representations of lists use listSep as separator
+                      if L=[a,b,c] will return 'a' listSep 'b' listSep 'c'
+                      if the returned value is a list, this will flatten the list for
+                      simplicity """
 
         if ldict is None:
             ldict = self.combo
@@ -233,7 +203,12 @@ class mkParser(object):
         except:
             val = ldict[e]
         if type(val) is list: 
+            # filter '' and 'None
+            val = [_f for _f in val if _f] 
+            val = [word for word in val if word != 'None']
             val = self.flatten(val)
+        if val is None: # definition in yaml was empty TODO remove this check
+            return ''
         if stringify:
             if listSep is not None:
                 return listSep.join(val)
@@ -242,44 +217,15 @@ class mkParser(object):
         else:
             return val
 
-    def vLookup(self, v,vdict, stringify=True):
-        """Takes a string of the form {{ ... }} and looks up the variable name """
-        return self.lookup(v.replace('{{','').replace('}}','').strip(),vdict,stringify)
-
-
-    def rLookup(self,e,stringify=True,listSep=None):
-        """resolve lookups"""
-        rhs = self.lookup(e,self.combo,stringify,listSep=listSep)
-        if stringify:
-            resolved = self.replaceVars(rhs,self.varsdict)
-        else:
-            resolved = rhs
-        if resolved == "None":
-            return ''
-        return resolved
-        
-    def resolveStr(self,str,listSep=None):
-        """ Resolve a string with vars """
-        return self.replaceVars(str,self.varsdict,listSep)
-
     def lookupAndResolve(self,keyword,joinString,listSep=None):
-        """ Lookup a keyword/keyval pair. 
-            if keval is a list, join the elements
-            via the joinString, then resolve elements 
-                    Note: throws an exception if keyword does not exist """
+        """ Lookup a value for key.  if val is a list, join the elements
+            via the joinString. 
+            Note: throws an exception if keyword does not exist """
 
-        elems =  self.rLookup(keyword,stringify=False,listSep=listSep )
-        #pdb.set_trace()
+        elems = self.lookup(keyword,stringify=False,listSep=listSep )
         if type(elems) is list:
-            rv = []
-            for e in elems:
-                expanded = self.replaceVars(e,self.varsdict)
-                if type(expanded) is list:
-                     rv.extend(expanded)
-                else: 
-                     rv.extend([expanded])
-            elems = joinString.join(rv) 
-        return self.resolveStr(elems,listSep)
+            elems = joinString.join(elems) 
+        return elems
 
     def hasVars(self,s):
         """ determine if a string has vars {{ }} """
@@ -292,129 +238,160 @@ class mkParser(object):
     def extractVars(self,s):
         """ return a list of 'stripped' var names """
         lvars = [x.replace('{{','').replace('}}','').strip() for x in re.findall(self.varpat,str(s))]
+        # remove duplicates
+        res = []
+        [res.append(x) for x in lvars if x not in res]
+        lvars = res
         return lvars
 
-    def replaceVars(self, src, vdict, listSep=None):
-        """ replace the vars in src with variables in a variables dict  """
-        work = src
-        if type(src) is not list:
-            work = [ str(src) ]
-        rwork=[]
-        for elem in work:
-            if type(elem) is type("string"):
-                newlist = []
-                for var in self.varsInString(elem):
-                    expand = self.vLookup(var,vdict,stringify=False)
-                    if type(expand) is type("string"):
-                        elem = elem.replace(var,expand)
-                    else:
-                        # Variable expanded to another list, recurse
-                        tmp = self.replaceVars(expand,vdict,listSep)
-                        if listSep is None:
-                            if type(tmp) is list:
-                                newlist.extend(tmp)
-                            else:
-                                newlist.extend([tmp])
-                        else:
-                            if type(tmp) is list:
-                                elem = elem.replace(var, listSep.join(tmp))
-                            else:
-                                elem = elem.replace(var, tmp)
-                if len(newlist) == 0:
-                    rwork.append(elem)
-                else:    
-                    rwork.extend(newlist)
-            else:
-                tmp = self.replaceVars(elem,vdict,listSep)
-                rwork.append(tmp)
-        if len(rwork) == 1:
-            return rwork[0]
-        else:
-            return rwork
+    def replaceStr(self, elem, vdict):
+        if not self.hasVars(elem):
+            return elem
+        for var in self.varsInString(elem):
+            subvar = var.replace('{{','').replace('}}','').strip()
+            expand = self.lookup(subvar,vdict,stringify=False)
+            if type(expand) is type("string"):
+                 elem = elem.replace(var,expand)
+            if type(expand) is list:
+                 check = elem.replace('{{','').replace('}}','').strip()
+                 if len(check) > len(subvar):
+                     # variable was inside a string, join list with ' '
+                     elem = elem.replace(var, " ".join(expand))
+                 else:
+                     elem = expand
+        return elem
+            
+    def replaceVars(self, src, vdict):
+        """ replace the vars in src with variables from vdict
+            recursively call if src is type list or type dictionary
+        """
+        if type(src) is type("string"):
+            work = self.replaceStr(src, vdict)
+        if type(src) is list:
+            work = []
+            for elem in src:
+                work.append(self.replaceVars(elem, vdict))
+        if type(src) is dict:
+            work = {}
+            for key in src.keys():
+                work[key] = self.replaceVars(src[key], vdict)
+        return work
 
     def setVar(self,vdict,v,value=''):
         vdict[v] = value
 
+    def replaceNoneInt(self):
+        """ replace all None and int values as '' """
+        for key in self.combo.keys():
+            rhs = self.combo[key]
+            if rhs is None: 
+                self.combo[key] = ''
+            elif type(rhs) is int:
+                self.combo[key] = str(rhs)
+            elif type(rhs) is type({}):
+                d = self.combo[key]
+                for k,v in d.items():
+                    if type(v) is int:
+                        d[k] = str(v)
+                    elif v is None:
+                        d[k] = ''
+                    else:
+                        pass
+                self.combo[key] = d
 
     def resolveVars(self):
         """ Resolve all variables in the combo dictionary. As variables are 
-                    are resolved, the object varsdict will hold the resolved versions """
+            are resolved, the object varsdict will hold the resolved versions """
 
-        # This loop finds all the vars that need to be replaced  in any definition
+        # replace int values with strings
+        self.replaceNoneInt()
+
+        # find all the vars that need to be replaced in any definition
         for key in list(self.combo.keys()):
             rhs = self.combo[key]
             if self.hasVars(rhs):
                 for v in self.extractVars(rhs):
-                    self.setVar(self.varsdict,v,rhs)
+                    self.setVar(self.varsdict,v,'')
 
+        # initial setting of key-value pairs from combo dict, no strignigy
+        for v in self.varsdict.keys():
+            self.setVar(self.varsdict,v,self.lookup(v,self.combo,stringify=False))
 
-        # Do an initial pass of setting key-value pairs
-        # Do NOT Stringify at this point
-        for v in list(self.varsdict.keys()):
-            self.setVar(self.varsdict,v,self.lookup(v,self.combo,False))
-
+        # resolve all variables in varsdict
         while True:
             changed = 0
-            for v in list(self.varsdict.keys()):
+            for v in self.varsdict.keys():
                 if self.hasVars(self.varsdict[v]):
-                    rhs = self.replaceVars(self.varsdict[v],self.combo)
+                    rhs = self.replaceVars(self.varsdict[v],self.varsdict) 
                     self.varsdict[v] = rhs
                     changed = 1
             if changed == 0:
                 break
 
+        # update combo values with resolved from varsdict
+        for key, val in self.varsdict.items():
+            self.combo[key] = val
+
+        # resolve all variables in combo dict
+        while True:
+            changed = 0
+            for v in self.combo.keys():
+                if self.hasVars(self.combo[v]):
+                    rhs = self.replaceVars(self.combo[v],self.combo) 
+                    self.combo[v] = rhs
+                    changed = 1
+            if changed == 0:
+                break
 
     def flatten(self, mllist):
         """ recursive method to flatten list of elements where each element
-            might itself be a list """
-        if type(mllist) is not list:
-            return None
-        sublists = list([x for x in mllist if type(x) is list])
-        literals = list([x for x in mllist if type(x) is not list])
+            might itself be a list. Returns a list """
+        sublists = [x for x in mllist if type(x) is list] 
+        literals = [x for x in mllist if type(x) is not list] 
         if len(sublists) == 0:
             return literals
         else:
             literals.extend(self.flatten([val for sub in sublists for val in sub]))
             return literals
 
+
 class moduleGenerator(object):
     def __init__(self,mkp):
         """ mkp is an mkParser, already initialized """
         self.mk = mkp
         try:
-            self.category = self.mk.rLookup("category") 
+            self.category = self.mk.lookup("category") 
         except:
             self.category = ""
 
         try:
-            self.description = self.mk.rLookup("description") 
+            self.description = self.mk.lookup("description") 
         except:
             self.description = ""
 
         try:
-            self.logname = self.mk.rLookup("module.logname") 
+            self.logname = self.mk.lookup("module.logname") 
         except:
             self.logname = ""
 
         try:
-            self.version = self.mk.rLookup("version") 
+            self.version = self.mk.lookup("version") 
         except:
             self.version = ""
 
         try:
-            self.name = self.mk.rLookup("name")
+            self.name = self.mk.lookup("name")
             self.descriptionList = self.description.split("\n")[:-1] # description as list of lines
             self.logger = "\nif { [ module-info mode load ] } {\n  %s\n}"
             self.listPrereqs()
             try:
-                self.reqs =  self.mk.lookupAndResolve("requires"," " )
+                self.reqs = self.mk.lookup("requires",stringify=False)
                 if type(self.reqs) is str:
                     self.reqs = self.reqs.split(" ")
             except:
                 self.reqs =  []
         except:
             pass
-
 
     def gen_header(self):
         profile = """#%%Module1.0
@@ -425,7 +402,7 @@ class moduleGenerator(object):
 ##
 source /opt/rcic/include/rcic-module-head.tcl
 """ 
-        rstr = profile % (str(datetime.date.today()),socket.getfqdn())    
+        rstr = profile % (str(datetime.date.today()),socket.gethostname()) # faster thatn socket.getfqdn()
         return rstr
 
 
@@ -463,7 +440,6 @@ source /opt/rcic/include/rcic-module-tail.tcl
         if self.prereqModules:
             rstr += self.genMultiLine('module-whatis "Load modules___ %s"\n', self.prereqModules)
         if self.reqs:
-            #print ("DEBUG3", type(self.reqs), self.reqs)
             rstr += self.genMultiLine('module-whatis "Prerequisites__ %s"\n', self.reqs)
         rstr += '\n'
         return rstr
@@ -478,69 +454,37 @@ source /opt/rcic/include/rcic-module-tail.tcl
             rstr += template % txtline
         return rstr
 
-    def prepend_path(self):
-        """ create the prepend-path elements """
+    def gen_lines(self, keyword, word):
+        """ Create elements based on keyword and word for tempalte """
         rstr = ""
         try:
-            entries = self.mk.rLookup("module.prepend_path", stringify=False)
+            entries = self.mk.lookup(keyword, stringify=False)
         except:
             return rstr
-        paths = [ self.mk.resolveStr(p) for p in entries ]
-        paths = self.mk.flatten(paths)
-        template = "prepend-path\t%s\t%s\n"
-        for path in paths:
-            pName,pPath = re.split('[ \t]+', path, 1) 
-            rstr += template % ( self.mk.resolveStr(pName), self.mk.resolveStr(pPath))
-        return rstr
-
-
-    def gen_setenv(self):
-        """ Create Environment Variables from module.setenv list """
-        rstr = ""
-        try:
-            entries = self.mk.rLookup("module.setenv", stringify=False)
-        except:
-            return rstr
-        envVars = [ self.mk.resolveStr(p) for p in entries ]
-        envVars = self.mk.flatten(envVars)
-        template = "setenv\t%s\t%s\n"
-        for envVar in envVars:
-            eName,eVal = re.split('[ \t]+', envVar, 1)
-            rstr += template % ( self.mk.resolveStr(eName), self.mk.resolveStr(eVal))
-        return rstr
-
-
-    def gen_alias(self):
-        """ Create Aliases from module.alias list """
-        rstr = ""
-        try:
-            entries = self.mk.rLookup("module.alias", stringify=False)
-        except:
-            return rstr
-        aliasVars = [ self.mk.resolveStr(p) for p in entries ]
-        aliasVars = self.mk.flatten(aliasVars)
-        template = "set-alias\t%s\t%s\n"
-        for aliasVar in aliasVars:
-            aName,aVal = re.split('[ \t]+', aliasVar, 1)
-            rstr += template % ( self.mk.resolveStr(aName), self.mk.resolveStr(aVal))
+        Vars = self.mk.flatten(entries)
+        template = word + "\t%s\t%s\n"
+        for Var in Vars:
+            eName,eVal = re.split('[ \t]+', Var, 1)
+            rstr += template % (eName, eVal)
         return rstr
 
     def listPrereqs(self):
         """ find prerequisite modules """
         self.prereqModules = []
         try:
-            entries = self.mk.rLookup("module.prereq", stringify=False)
+            prereqs = self.mk.lookup("module.prereq", stringify=False)
+            if type(prereqs) is str:
+                    prereqs = prereqs.split(" ")
+                    prereqs = [_f for _f in prereqs if _f]  # filter ''
+            self.prereqModules = prereqs
         except:
             return 
-        prereqs = [ self.mk.resolveStr(p) for p in entries ]
-        self.prereqModules = self.mk.flatten(prereqs)
 
     def gen_prereqs(self):
         """ load other modules as prereqs """
         rstr = ""
         template = 'if { [module-info mode load] } { LoadPrereq "%s" }\nprereq\t%s\n'
-        for prereq in self.prereqModules:
-            mod = self.mk.resolveStr(prereq)
+        for mod in self.prereqModules:
             rstr += template % (mod,mod)
         return rstr
 
@@ -555,16 +499,16 @@ source /opt/rcic/include/rcic-module-tail.tcl
         rstr =  self.logger % logstr
         return rstr
 
-    def generate(self):
+    def generateModFile(self):
         """ return a string that can written as  module file """
         rstr = ""
         rstr += self.gen_header()
         rstr += self.gen_help()
         rstr += self.gen_whatis()
         rstr += self.gen_prereqs()
-        rstr += self.gen_setenv()
-        rstr += self.gen_alias()
-        rstr += self.prepend_path() 
+        rstr += self.gen_lines("module.setenv", "setenv")
+        rstr += self.gen_lines("module.alias", "set-alias")
+        rstr += self.gen_lines("module.prepend_path", "prepend-path")
         rstr += self.gen_tail() 
         rstr += self.gen_logger() 
         return rstr
@@ -575,7 +519,7 @@ class makeIncludeGenerator(object):
         """ mkp is an mkParser, already initialized """
         self.mk = mkp
 
-    def generate(self):
+    def generateDefs(self):
         rstr = ""
         # The following are "Required" keys - meaning packaging should fail without them
         # However, if we use this parsing for other reasons, having these be missing might be OK 
@@ -587,7 +531,7 @@ class makeIncludeGenerator(object):
 
         rstr += "DESCRIPTION \t = " 
         try:
-            self.description = self.mk.rLookup("description") 
+            self.description = self.mk.lookup("description") 
             self.descriptionList = self.description.split("\n")[:-1] # description as list of lines
             if len(self.descriptionList) == 0:
                 rstr += self.description + "\n"
@@ -620,7 +564,7 @@ class makeIncludeGenerator(object):
             mfVar = option[0]
             yamlVar = option[1]
             try:
-                rVar = self.mk.rLookup(yamlVar)
+                rVar = self.mk.lookup(yamlVar)
                 rstr += "%s\t = %s\n" % (mfVar,rVar)
             except:
                 # if it has a default value, print it. 
@@ -630,46 +574,39 @@ class makeIncludeGenerator(object):
         # Handle configure separately
         stdconfigure = "+=" 
         try:
-            rstr +=  "CONFIGURE \t = %s\n" % self.mk.rLookup("build.configure")
+            rstr +=  "CONFIGURE \t = %s\n" % self.mk.lookup("build.configure")
             stdconfigure = "="
         except:
             pass
 
         try:
             rstr += "CONFIGURE_ARGS \t %s %s\n" %  \
-                (stdconfigure, self.mk.rLookup("build.configure_args"))
+                (stdconfigure, self.mk.lookup("build.configure_args"))
         except:
             pass
         try:
             mods =  self.mk.lookupAndResolve("build.modules"," ")
-            if mods == "None":
-                mods = ""
             rstr += "MODULES \t = %s\n" % mods 
         except:
             pass
 
         try:
-            rstr += "PATCH_FILE \t = %s\n" % self.mk.rLookup("build.patchfile")
+            rstr += "PATCH_FILE \t = %s\n" % self.mk.lookup("build.patchfile")
             rstr += "PATCH_METHOD \t = $(PATCH_CMD)\n" 
         except:
             rstr += "PATCH_METHOD \t = $(PATCH_NONE)\n" 
 
         try:
             reqs =  self.mk.lookupAndResolve("requires"," ")
-            if type(reqs) is list:
-                reqs = " ".join(reqs)
             rstr += "RPM.REQUIRES\t = %s\n" % reqs
         except:
             pass
 
         try:
             provs =  self.mk.lookupAndResolve("provides"," ")
-            if type(provs) is list:
-                provs = " ".join(provs)
             rstr += "RPM.PROVIDES\t = %s\n" % provs
         except:
             rstr += "RPM.PROVIDES\t = \n" 
-
 
         try:
             files =  self.mk.lookupAndResolve("files","\\n\\\n")
@@ -681,11 +618,9 @@ class makeIncludeGenerator(object):
             except:
                 rstr += "RPM.FILES\t = $(PKGROOT)\n" 
 
-
         try:
-            extras =  self.mk.lookupAndResolve("rpm.extras","\\n\\\n",listSep=" ")
+            extras = self.mk.lookup("rpm.extras",stringify=False)
             rstr += "RPM.EXTRAS\t = %s\n" % extras 
-
         except:
             pass
             
@@ -706,22 +641,22 @@ class queryProcessor(object):
 
         if rq == "tarball":
             try: 
-               rstr = self.mk.rLookup("src_tarball")
+               rstr = self.mk.lookup("src_tarball")
             except:
-               rstr = self.mk.rLookup("name")
-               rstr += "-%s" % str(self.mk.rLookup("version"))
-               rstr += ".%s" % self.mk.rLookup("extension")
+               rstr = self.mk.lookup("name")
+               rstr += "-%s" % str(self.mk.lookup("version"))
+               rstr += ".%s" % self.mk.lookup("extension")
             print(rstr)
             sys.exit(0)
         if rq == "pkgname":
             try:
-                rstr = self.mk.rLookup("pkgname")
+                rstr = self.mk.lookup("pkgname")
             except:
-                rstr = "%s_%s" % (self.mk.rLookup("name"), self.mk.rLookup("version")) 
+                rstr = "%s_%s" % (self.mk.lookup("name"), self.mk.lookup("version")) 
             print(rstr)
             sys.exit(0)
         try:
-            rval = self.mk.lookupAndResolve(rq,listSep,listSep=listSep)
+            rval = self.mk.lookupAndResolve(rq,' ',listSep=listSep)
         except:
             if not quiet:
                 print('False')
@@ -781,25 +716,22 @@ def main(argv):
     mkP = mkParser()
     mkP.readPkgYaml(args.yamlfile)
     if not args.skipDefaults:
-        mkP.readDefaultsYaml(args.dflts_file)
+        mkP.readPkgYaml(args.dflts_file)
     mkP.resolveVars()
 
     ### DEBUG
     #a = mkP.__dict__['varsdict']
-    #print ("DEBUG", type(a), a.keys())
-
-    mg = moduleGenerator(mkP)
-    #print ("DEBUG2", mg.__dict__['reqs'])
-
-    mig = makeIncludeGenerator(mkP)
-    qp = queryProcessor(mkP)
+    #print ("DEBUG varsdict", type(a), a.keys())
 
     if args.doModule: 
-        print(mg.generate() )
+        mg = moduleGenerator(mkP)
+        print(mg.generateModFile() )
     elif args.doQuery:
+        qp = queryProcessor(mkP)
         qp.processQuery(args.doQuery,args.quiet,args.listSep)
     else:
-        print(mig.generate())
+        mig = makeIncludeGenerator(mkP)
+        print(mig.generateDefs())
 
 if __name__ == "__main__":
     main(sys.argv[1:])
