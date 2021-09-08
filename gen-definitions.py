@@ -2,8 +2,6 @@
 # Generate a Definitions.mk file - write to standard output 
 
 from __future__ import print_function
-from builtins import next 
-from builtins import object
 #from builtins import str  # does not work with python2, breaks recursion
 
 import ruamel.yaml 
@@ -19,6 +17,8 @@ import time
 
 if sys.version_info.major == 3:
     from typing import Dict
+    from builtins import next 
+    from builtins import object
 incMap = {} # type: Dict[str, str]
 
 yaml = ruamel.yaml.YAML(typ='safe', pure=True)
@@ -32,8 +32,8 @@ def new_compose_document(self):
 
 def new_yaml_include(loader, node):
     y = loader.loader
-    yaml = ruamel.yaml.YAML(typ=y.typ, pure=False)  # use LibYAML based parser and emitter
-    yaml.composer.anchors = loader.composer.anchors
+    #yaml = ruamel.yaml.YAML(typ=y.typ, pure=False)  # use LibYAML based parser and emitter
+    #yaml.composer.anchors = loader.composer.anchors
     incPath = IncPath().getPath()
     global incMap
     filename = loader.construct_scalar(node)
@@ -43,14 +43,17 @@ def new_yaml_include(loader, node):
         try:
             with open(os.path.join(p,filename), 'r') as f:
                 # FIXME return last line only
-                data = yaml.load(f)
+                tparser=mkParser()
+                tparser.readPkgYaml(os.path.join(p,filename))
+                data = tparser.combo
+                #data = yaml.load(f)
                 #print ("=== FILE START:", f)
                 #yaml.dump(data, sys.stdout)
                 #print ("=== FILE END")
                 return data
                 #return yaml.load(f)
-        except:
-            pass
+        except Exception as err:
+           print("Exception: %s", str(err)) 
     raise  Exception("%s not found in: %s" % (filename,str(incPath)))
 
 yaml.Composer.compose_document = new_compose_document
@@ -151,12 +154,16 @@ class mkParser(object):
         self.varsdict = {}
         self.varpat = re.compile('{{[A-Za-z0-9_\. ]+}}')
         self.combo = {} 
+        self.yaml = ruamel.yaml.YAML(typ='safe', pure=True)
+        self.yaml.default_flow_style = False
+        self.yaml = ruamel.yaml.YAML(typ='safe', pure=True)
+        self.yaml.default_flow_style = False
 
     def readPkgYaml(self,fname):
         """ read yaml file, proesss loading of all included yamls,
             merge all into one dictionary and update self.combo with the result """
         f = IncParser(fname)
-        docs = list(yaml.load_all(f))
+        docs = list(filter(lambda x: x is not None,list(self.yaml.load_all(f))))
         kvdict = self.mergeDocs(docs) 
         self.combo.update(kvdict)
     
@@ -280,18 +287,20 @@ class mkParser(object):
     def setVar(self,vdict,v,value=''):
         vdict[v] = value
 
-    def replaceNoneInt(self):
+    def replaceNoneIntFloat(self):
         """ replace all None and int values as '' """
+        tvect = [ type(1),type(1.1)]
         for key in self.combo.keys():
             rhs = self.combo[key]
             if rhs is None: 
                 self.combo[key] = ''
-            elif type(rhs) is int:
+            elif type(rhs) in tvect:
                 self.combo[key] = str(rhs)
             elif type(rhs) is type({}):
                 d = self.combo[key]
+                #pdb.set_trace()
                 for k,v in d.items():
-                    if type(v) is int:
+                    if type(v) in tvect:
                         d[k] = str(v)
                     elif v is None:
                         d[k] = ''
@@ -303,8 +312,8 @@ class mkParser(object):
         """ Resolve all variables in the combo dictionary. As variables are 
             are resolved, the object varsdict will hold the resolved versions """
 
-        # replace int values with strings
-        self.replaceNoneInt()
+        # replace None,float,int values with strings
+        self.replaceNoneIntFloat()
 
         # find all the vars that need to be replaced in any definition
         for key in list(self.combo.keys()):
@@ -696,6 +705,8 @@ def main(argv):
     helpmap += "package. Mapping is  python dictionary, ke is the original file, and the value is the substitute file. For \n"
     helpmap += "example, -map=\"{'gcc-versions.yaml':'gcc-versions-8.yaml'}\" replaces default yaml file with a specific version"
 
+    helpver = "replace versions.yaml in any !includes with new file. E.g. --versions=versions8.yaml \n"
+    helpver += "will replace versions.yaml with versions8.yaml. Use either --map or --versions"
     parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter)
     # optional arguments
     parser.add_argument("-d", "--defaults", dest="dflts_file", default=dflts_file, help=helpdefaults)
@@ -705,12 +716,15 @@ def main(argv):
     parser.add_argument("-l", "--listsep",  dest="listSep",    default=None,  help=helplsep)
     parser.add_argument("-Q", "--quiet",    dest="quiet",      default=False, action='store_true', help="supress output of query processing")
     parser.add_argument("-M", "--map",      dest="mapf",       default=False, help=helpmap)
+    parser.add_argument("-V", "--versions", dest="versions",       default=False, help=helpver)
     # required positional argument
     parser.add_argument("yamlfile",  action="store", help="main YAML file with packaging definitions") 
     args = parser.parse_args()
     
     if args.mapf: 
         incMap.update(eval(args.mapf))
+    if args.versions:
+        incMap.update({'versions.yaml':args.versions})
 
     # Open input yaml files, parse, generate
     mkP = mkParser()
