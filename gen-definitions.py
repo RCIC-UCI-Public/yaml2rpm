@@ -19,7 +19,11 @@ if sys.version_info.major == 3:
     from typing import Dict
     from builtins import next 
     from builtins import object
+
+
 incMap = {} # type: Dict[str, str]
+# keep track of ACTIVE !include maps
+incStack = [] # type: [str]
 
 yaml = ruamel.yaml.YAML(typ='safe', pure=True)
 yaml.default_flow_style = False
@@ -35,21 +39,27 @@ def new_yaml_include(loader, node):
     #yaml = ruamel.yaml.YAML(typ=y.typ, pure=False)  # use LibYAML based parser and emitter
     #yaml.composer.anchors = loader.composer.anchors
     incPath = IncPath().getPath()
-    global incMap
+    global incMap,incStack
     filename = loader.construct_scalar(node)
+    mapped= False
     if filename in list(incMap.keys()):
+        incStack.append(filename)   # Track that we are currently remapping a filename
+        mapped = True
         filename = incMap[filename]
     for p in incPath:
         try:
-            with open(os.path.join(p,filename), 'r') as f:
+            fname = os.path.join(p,filename)
+            with open(fname, 'r') as f:
                 # FIXME return last line only
                 tparser=mkParser()
-                tparser.readPkgYaml(os.path.join(p,filename))
+                tparser.readPkgYaml(fname)
                 data = tparser.combo
                 #data = yaml.load(f)
                 #print ("=== FILE START:", f)
                 #yaml.dump(data, sys.stdout)
                 #print ("=== FILE END")
+                if mapped: 
+                    incStack.pop() 
                 return data
                 #return yaml.load(f)
         except Exception as err:
@@ -98,9 +108,8 @@ class IncParser(io.FileIO):
     """ This class handles !include directives to have a more natural 'include this
             yaml file' and merge with keys """
     def __init__(self,filename,mode='r'):
-        global incMap
-
-        if filename in list(incMap.keys()):
+        global incMap,incStack
+        if filename in list(incMap.keys()) and filename not in incStack:
             filename = incMap[filename]
 
         self.incPath = IncPath().getPath()
@@ -156,8 +165,8 @@ class mkParser(object):
         self.combo = {} 
         self.yaml = ruamel.yaml.YAML(typ='safe', pure=True)
         self.yaml.default_flow_style = False
-        self.yaml = ruamel.yaml.YAML(typ='safe', pure=True)
-        self.yaml.default_flow_style = False
+        self.yaml.Composer.compose_document = new_compose_document
+        self.yaml.Constructor.add_constructor("!include", new_yaml_include)
 
     def readPkgYaml(self,fname):
         """ read yaml file, proesss loading of all included yamls,
@@ -298,7 +307,6 @@ class mkParser(object):
                 self.combo[key] = str(rhs)
             elif type(rhs) is type({}):
                 d = self.combo[key]
-                #pdb.set_trace()
                 for k,v in d.items():
                     if type(v) in tvect:
                         d[k] = str(v)
