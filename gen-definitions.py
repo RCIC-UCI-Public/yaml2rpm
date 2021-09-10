@@ -63,7 +63,8 @@ def new_yaml_include(loader, node):
                 return data
                 #return yaml.load(f)
         except Exception as err:
-           print("Exception: %s", str(err)) 
+           pass
+           #DEBUG print("Exception: %s", str(err)) 
     raise  Exception("%s not found in: %s" % (filename,str(incPath)))
 
 yaml.Composer.compose_document = new_compose_document
@@ -720,6 +721,10 @@ def main(argv):
     parser.add_argument("yamlfile",  action="store", help="main YAML file with packaging definitions") 
     args = parser.parse_args()
     
+    # Check for existence of args.yamlfile
+    if not os.path.isfile(args.yamlfile):
+       sys.stderr.write("yaml file %s does not exist\n" % args.yamlfile)
+       sys.exit(-1)
     if args.mapf: 
         incMap.update(eval(args.mapf))
     if args.versions:

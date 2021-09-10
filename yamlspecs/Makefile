@@ -25,7 +25,7 @@ BUILDTEMPLATE = builder
 TEMPLATE_FILES = $(wildcard $(TEMPLATEDIR)/$(BUILDTEMPLATE)/*)
 DEFINITIONS = Definitions.mk
 
-GENERATE = $(TEMPLATEDIR)/gen-definitions.py $(GENEXTRAS)
+BASEGENERATE = $(TEMPLATEDIR)/gen-definitions.py $(GENEXTRAS)
 MANIFEST2ANSIBLE = $(TEMPLATEDIR)/manifest2ansible.py 
 
 ## Local sources of tarballs
@@ -72,9 +72,33 @@ MANIFEST_FILE = $(BUILD_MODULES_FILE)
 endif
 PACKAGES_FILE = $(wildcard packages.yaml)
 
+## Handling a version set. 
+## A set file MUST have an entry 
+## versions: <name of versions file>
+## The set file set-$(SET).yaml is then used as the packages.yaml file.
+## if SET is not empty, then we want to look in the 
+## set file for versions: tag and use that file for versions going forward
+## PACKAGES_FILE is then the set-$(SET) file
+VMAP = 
+ALLSETS := $(shell $(BASEGENERATE) -Q --query=sets $(PACKAGES_FILE))
+
+ifdef SET 
+PACKAGES_FILE = set-$(SET).yaml
+VERSIONSFILE = $(shell $(BASEGENERATE) --query=versions $(PACKAGES_FILE))
+VMAP = --versions=$(VERSIONSFILE)
+
+ifeq ("$(VERSIONSFILE)","")
+$(error set file $(PACKAGES_FILE) has no versions: tag)
+endif
+
+endif
+
+GENERATE=$(BASEGENERATE) $(VMAP)
+
+
 # Values are taken from packages.yaml file or from modules.* files
 ifneq ($(PACKAGES_FILE),)
-BOOTSTRAP_QUERY = $(shell  $(GENERATE) --no-defaults --quiet --query=bootstrap  $(PACKAGES_FILE)) 
+BOOTSTRAP_QUERY = $(shell  $(GENERATE)  --no-defaults --quiet --query=bootstrap  $(PACKAGES_FILE)) 
 BOOTSTRAP_MODULES = $(BOOTSTRAP_QUERY:None=)
 BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --query=system  $(PACKAGES_FILE)) 
 MODULES = $(shell  $(GENERATE) --no-defaults --quiet --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
@@ -102,9 +126,10 @@ ifndef ALL_TARGETS
 ALL_TARGETS = bootstrap $(SOURCES) $(PKGS)
 endif
 
-buildall: buildstart $(ALL_TARGETS)
+buildall:: buildstart $(ALL_TARGETS)
 	echo "== Built ALL Targets: $^ =="
 	echo "== Built ALL $(shell date) =="
+
 buildstart:
 	echo "== BUILDING ALL $(shell date) =="
 
@@ -137,7 +162,7 @@ buildstart:
 	touch $@
 	echo "===== Completed $@ ( $$(date) )========" 
 
-manifest:
+manifest::
 	( for pkg in $(MANIFEST); do					\
 		if [ -f $$pkg.yaml ]; then				\
 		     $(GENERATE) --query=pkgname $$pkg.yaml;		\
@@ -146,12 +171,12 @@ manifest:
 		fi;							\
 	  done								\
 	)
-
+	
 ansible:
-	make -s manifest | xargs $(MANIFEST2ANSIBLE) --name $(ADMIX) 
+	make -f $(THISMAKE) -s manifest | xargs $(MANIFEST2ANSIBLE) --name $(ADMIX) 
 
 
-module-provides:
+module-provides::
 	( for pkg in $(MANIFEST) $(MODULEYAML); do			\
 		if [ -f $$pkg.yaml ]; then				\
 		     isModule=`$(GENERATE) --query=envmodule $$pkg.yaml`;	\
@@ -161,7 +186,7 @@ module-provides:
 		fi;							\
 	  done								\
 	)
-module-requires:
+module-requires::
 	( for pkg in $(MODULES) $(BOOTSTRAP_YAMLS); do						\
 		if [ -f $$pkg ]; then								\
 		     needModule=`$(GENERATE) --query=build.modules $$pkg`;	\
@@ -197,7 +222,7 @@ bootstrap:
 	  done									\
 	)
 
-unbootstrap:
+unbootstrap::
 	( ALLRPMS='';								\
 	  for mod in $(BOOTSTRAP_MODULES); do					\
 		rpmname=$$($(GENERATE) --query=pkgname $$mod.yaml);		\
@@ -244,9 +269,25 @@ cleanyaml:
 	
 clean: cleanpkg cleantmp cleanyaml
 
-veryclean: clean
+veryclean:: clean
 
 FORCE:
+
+## Targets that should iterate through sets after the BASE set action is completed
+## IF BASEONLY is defined, then ALLSETS is not iterated
+## IF SET=<string>  is defined, then ALLSETS is not iterated
+buildall manifest module-requires module-provides veryclean unbootstrap ::
+ifndef BASEONLY
+	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
+	    for set in $(ALLSETS); do \
+		if [ "$@" == "buildall" ]; then   \
+			make -e SET=$$PSET -f $(THISMAKE) clean; \
+		fi; \
+		make -s -e -f $(THISMAKE) SET=$$set $@; \
+		PSET=$$set;\
+	    done; \
+	fi 
+endif 
 
 diag:
 	echo "HOME:  $(HOME)"
@@ -256,3 +297,5 @@ diag:
 	echo "THISMAKE: $(THISMAKE)"
 	echo "MAKEFILE_LIST: $(MAKEFILE_LIST)"
 	echo "ALL_TARGETS: $(ALL_TARGETS)"
+	echo "ALLSETS: $(ALLSETS)"
+	echo "SET: $(SET)"
