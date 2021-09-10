@@ -2,9 +2,9 @@ CHANGES For
 rcic_module_support: version 2, release 1
            yaml2rpm: version 2, release 1
 
-===============
-rcic-module.yaml  
-================
+==================================
+yamlspecs/include/rcic-module.yaml  
+==================================
 In mod_defaults add definitions
 1 prereq:
     - "{{build.modules}}"
@@ -47,9 +47,9 @@ In  moduleCompilerMpi
   prereq_mpi: &ModuleCompilerMpi_prereq
 9 remove obsoleted requires:
 
-=================
-rcic-package.yaml
-=================
+===================================
+yamlspecs/include/rcic-package.yaml
+===================================
 add the following that are needed by updates in rcic-module.yaml
   compiler:
   compiler_version:
@@ -65,9 +65,9 @@ add the following that are needed by updates in rcic-module.yaml
 
 This provides defaults for packages yaml files 
 
-=================
-gen-partitions.py
-=================
+==================
+gen-definitions.py
+==================
 1 Per outcome of running futurize  and moveing from pytohn2 to pytohn 3 add
   from __future__ import print_function
   from builtins import next 
@@ -88,7 +88,10 @@ gen-partitions.py
   rm rLookup(), use lookup()
   rm resolveStr(), use lookup()
   lookup(): add filtering of '' and None from the list
-  lookupAndResolve(): rm calling replaceVars(), dict is already resolved
+  lookupAndResolve(): 
+    - rm calling replaceVars(), dict is already resolved
+    - add check for boolean and return a string value for it
+      this fixes running "make module-provides" target
   replaceVars() rewrite completely to handle string, list and dict. 
   add replaceStr(): replace {{var}} by its value in the string
   add replaceNoneInt(): replace all None and int values as '' 
@@ -118,6 +121,17 @@ gen-partitions.py
   main(): move makeIncludeGenerator() and queryProcessor() 
           inside "if" statement that checks arguments. 
 
+6 remove listSep argument from all classes and functions. No longer needed
+  after the changes to lookup().
+
+==================
+yamlspecs/makefile
+==================
+
+1. remove all --listsep form the query commands in all targets. 
+   
+2. update "module-required" target with "tr" to process a string 
+   that contains multiple modules.
 ==========================================================================
 Remove obsoleted files
 ==========================================================================

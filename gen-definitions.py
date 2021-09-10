@@ -201,14 +201,10 @@ class mkParser(object):
 
         return fullDict
 
-    def lookup(self,e,ldict=None,stringify=True,listSep=None):
+    def lookup(self,e,ldict=None,stringify=True):
         """Looks up x.y.z references in multilevel dictionary
            stringify: True - return a string representation of contents
-                      False - return the contents (could be any python type)
-           listSep:   for String representations of lists use listSep as separator
-                      if L=[a,b,c] will return 'a' listSep 'b' listSep 'c'
-                      if the returned value is a list, this will flatten the list for
-                      simplicity """
+                      False - return the contents (could be any python type)"""
 
         if ldict is None:
             ldict = self.combo
@@ -226,21 +222,20 @@ class mkParser(object):
         if val is None: # definition in yaml was empty TODO remove this check
             return ''
         if stringify:
-            if listSep is not None:
-                return listSep.join(val)
-            else:
                 return str(val)
         else:
             return val
 
-    def lookupAndResolve(self,keyword,joinString,listSep=None):
+    def lookupAndResolve(self,keyword,joinString):
         """ Lookup a value for key.  if val is a list, join the elements
             via the joinString. 
             Note: throws an exception if keyword does not exist """
 
-        elems = self.lookup(keyword,stringify=False,listSep=listSep )
+        elems = self.lookup(keyword,stringify=False)
         if type(elems) is list:
             elems = joinString.join(elems) 
+        elif type(elems) is bool: # convert boolean to string
+            elems = str(elems)
         return elems
 
     def hasVars(self,s):
@@ -649,7 +644,7 @@ class queryProcessor(object):
         """ mkp is an mkParser, already initialized """
         self.mk = mkp
 
-    def processQuery(self,query,quiet=False,listSep=None):
+    def processQuery(self,query,quiet=False):
         rq = query.strip().lower()
         if rq == "patch":
             rq = "build.patchfile"
@@ -673,7 +668,7 @@ class queryProcessor(object):
             print(rstr)
             sys.exit(0)
         try:
-            rval = self.mk.lookupAndResolve(rq,' ',listSep=listSep)
+            rval = self.mk.lookupAndResolve(rq,' ')
         except:
             if not quiet:
                 print('False')
@@ -706,9 +701,6 @@ def main(argv):
 
     helpskipdefaults = "To skips all defaults reading" 
 
-    helplsep = "use a list separator for printing a query result as a string in the case when multiple items are returned.\n"
-    helplsep += "Valid when -q option is present. Default output is a single element (str) or an array of elements [str,str]."
-
     helpmap = "use mapping to substitute a default file with a replacement. Can use when building multiple versions of the\n"
     helpmap += "package. Mapping is  python dictionary, ke is the original file, and the value is the substitute file. For \n"
     helpmap += "example, -map=\"{'gcc-versions.yaml':'gcc-versions-8.yaml'}\" replaces default yaml file with a specific version"
@@ -721,7 +713,6 @@ def main(argv):
     parser.add_argument("-D", "--no-defaults", dest="skipDefaults", default=False, action='store_true', help=helpskipdefaults)
     parser.add_argument("-m", "--module",   dest="doModule",   default=False, action='store_true', help="generate environment modules file")
     parser.add_argument("-q", "--query",    dest="doQuery",    default=False, help=helpquery)
-    parser.add_argument("-l", "--listsep",  dest="listSep",    default=None,  help=helplsep)
     parser.add_argument("-Q", "--quiet",    dest="quiet",      default=False, action='store_true', help="supress output of query processing")
     parser.add_argument("-M", "--map",      dest="mapf",       default=False, help=helpmap)
     parser.add_argument("-V", "--versions", dest="versions",       default=False, help=helpver)
@@ -750,7 +741,7 @@ def main(argv):
         print(mg.generateModFile() )
     elif args.doQuery:
         qp = queryProcessor(mkP)
-        qp.processQuery(args.doQuery,args.quiet,args.listSep)
+        qp.processQuery(args.doQuery,args.quiet)
     else:
         mig = makeIncludeGenerator(mkP)
         print(mig.generateDefs())

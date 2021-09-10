@@ -74,11 +74,11 @@ PACKAGES_FILE = $(wildcard packages.yaml)
 
 # Values are taken from packages.yaml file or from modules.* files
 ifneq ($(PACKAGES_FILE),)
-BOOTSTRAP_QUERY = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=bootstrap  $(PACKAGES_FILE)) 
+BOOTSTRAP_QUERY = $(shell  $(GENERATE) --no-defaults --quiet --query=bootstrap  $(PACKAGES_FILE)) 
 BOOTSTRAP_MODULES = $(BOOTSTRAP_QUERY:None=)
-BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --query=system  $(PACKAGES_FILE)) 
-MODULES = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
-MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --query=manifest  $(PACKAGES_FILE)) 
+BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --query=system  $(PACKAGES_FILE)) 
+MODULES = $(shell  $(GENERATE) --no-defaults --quiet --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
+MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet --query=manifest  $(PACKAGES_FILE)) 
 else
 BOOTSTRAP_MODULES = $(shell grep -s -v '\#' $(BOOTSTRAP_MODULES_FILE)) 
 BOOTSTRAP_SYSTEM  = $(shell grep -s -v '\#' $(BOOTSTRAP_SYSTEM_FILE)) 
@@ -130,8 +130,8 @@ buildstart:
 	- $(GENERATE) --query=pretar $< | /bin/sh
 	- install $$($(GENERATE) --query=patch $<) $(TMPBUILD)
 	- install  $(SOURCES)/$$($(GENERATE) --query=tarball $<) $(TMPBUILD)
-	- install $$($(GENERATE) --listsep=" " --query=addfile $<) $(TMPBUILD)
-	- (for src in $$($(GENERATE) --listsep=" " --query=addsource $<); do  \
+	- install $$($(GENERATE) --query=addfile $<) $(TMPBUILD)
+	- (for src in $$($(GENERATE) --query=addsource $<); do  \
 		install $(SOURCES)/$$src $(TMPBUILD); done)
 	make -e -C $(TMPBUILD) pkg 
 	touch $@
@@ -164,9 +164,9 @@ module-provides:
 module-requires:
 	( for pkg in $(MODULES) $(BOOTSTRAP_YAMLS); do						\
 		if [ -f $$pkg ]; then								\
-		     needModule=`$(GENERATE) --query=build.modules --listsep="\\n" $$pkg`;	\
+		     needModule=`$(GENERATE) --query=build.modules $$pkg`;	\
 		     if [ "$$needModule" != "False" ] && [ "$$needModule" != "True" ] 		\
-			&&   [ "$$needModule" != "None" ]; then echo -e $$needModule; 		\
+		       && [ "$$needModule" != "None" ]; then echo -e $$needModule | tr ' ' '\n';\
 		     fi; 	\
 		fi;										\
 	  done											\
