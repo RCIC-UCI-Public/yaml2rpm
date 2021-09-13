@@ -20,10 +20,8 @@ if sys.version_info.major == 3:
     from builtins import next 
     from builtins import object
 
-
-incMap = {} # type: Dict[str, str]
-# keep track of ACTIVE !include maps
-incStack = [] # type: [str]
+incMap = {}   # type: dictionary, represents mapping of included filenames
+incStack = [] # type: list of strings keep track of ACTIVE !include maps
 
 yaml = ruamel.yaml.YAML(typ='safe', pure=True)
 yaml.default_flow_style = False
@@ -36,8 +34,6 @@ def new_compose_document(self):
 
 def new_yaml_include(loader, node):
     y = loader.loader
-    #yaml = ruamel.yaml.YAML(typ=y.typ, pure=False)  # use LibYAML based parser and emitter
-    #yaml.composer.anchors = loader.composer.anchors
     incPath = IncPath().getPath()
     global incMap,incStack
     filename = loader.construct_scalar(node)
@@ -50,18 +46,12 @@ def new_yaml_include(loader, node):
         try:
             fname = os.path.join(p,filename)
             with open(fname, 'r') as f:
-                # FIXME return last line only
                 tparser=mkParser()
                 tparser.readPkgYaml(fname)
                 data = tparser.combo
-                #data = yaml.load(f)
-                #print ("=== FILE START:", f)
-                #yaml.dump(data, sys.stdout)
-                #print ("=== FILE END")
                 if mapped: 
                     incStack.pop() 
                 return data
-                #return yaml.load(f)
         except Exception as err:
            pass
            #DEBUG print("Exception: %s", str(err)) 
@@ -69,28 +59,6 @@ def new_yaml_include(loader, node):
 
 yaml.Composer.compose_document = new_compose_document
 yaml.Constructor.add_constructor("!include", new_yaml_include)
-
-#class Loader(object):
-#    def __init__(self, stream):
-#        self._root = os.path.split(stream.name)[0]
-#        self.incPath = IncPath().getPath()
-#        super(Loader, self).__init__(stream)
-#
-#    def include(self, node):
-#        global incMap
-#        filename = self.construct_scalar(node)
-#        if filename in list(incMap.keys()):
-#            filename = incMap[filename]
-#        # look for filename in the incPath
-#        for p in self.incPath:
-#            try:
-#                with open(os.path.join(p,filename), 'r') as f:
-#                    return yaml.load(f, Loader)
-#            except:
-#                pass 
-#        raise  Exception("%s not found in: %s" % (filename,str(self.incPath)))
-#
-#Loader.add_constructor('!include', Loader.include)
 
 class IncPath(object):
     def __init__(self):
@@ -113,9 +81,8 @@ class IncParser(io.FileIO):
         if filename in list(incMap.keys()) and filename not in incStack:
             filename = incMap[filename]
 
-        self.incPath = IncPath().getPath()
-
         # now go the incPath looking for the file
+        self.incPath = IncPath().getPath()
         for p in self.incPath:
             try:
                 fullpath = os.path.join(p,filename)
@@ -216,11 +183,10 @@ class mkParser(object):
         except:
             val = ldict[e]
         if type(val) is list: 
-            # filter '' and 'None
-            val = [_f for _f in val if _f] 
-            val = [word for word in val if word != 'None']
+            val = [_f for _f in val if _f]                  # filter out  empty string
+            val = [word for word in val if word != 'None']  # filter out  None
             val = self.flatten(val)
-        if val is None: # definition in yaml was empty TODO remove this check
+        if val is None: # definition in yaml was empty. TODO remove this check
             return ''
         if stringify:
                 return str(val)
@@ -250,9 +216,8 @@ class mkParser(object):
     def extractVars(self,s):
         """ return a list of 'stripped' var names """
         lvars = [x.replace('{{','').replace('}}','').strip() for x in re.findall(self.varpat,str(s))]
-        # remove duplicates
         res = []
-        [res.append(x) for x in lvars if x not in res]
+        [res.append(x) for x in lvars if x not in res] # remove duplicates
         lvars = res
         return lvars
 
@@ -267,8 +232,7 @@ class mkParser(object):
             if type(expand) is list:
                  check = elem.replace('{{','').replace('}}','').strip()
                  if len(check) > len(subvar):
-                     # variable was inside a string, join list with ' '
-                     elem = elem.replace(var, " ".join(expand))
+                     elem = elem.replace(var, " ".join(expand)) # variable was inside a string, join list with ' '
                  else:
                      elem = expand
         return elem
@@ -415,7 +379,7 @@ class moduleGenerator(object):
 ##
 source /opt/rcic/include/rcic-module-head.tcl
 """ 
-        rstr = profile % (str(datetime.date.today()),socket.gethostname()) # faster thatn socket.getfqdn()
+        rstr = profile % (str(datetime.date.today()),socket.gethostname()) # faster than socket.getfqdn()
         return rstr
 
 
@@ -536,7 +500,6 @@ class makeIncludeGenerator(object):
         rstr = ""
         # The following are "Required" keys - meaning packaging should fail without them
         # However, if we use this parsing for other reasons, having these be missing might be OK 
-        # The following are required keys -- throw an error if they don't exist
         options=[ ("TARNAME","name"),("VERSION", "version")]
         options.extend([ ("NAME","pkgname","$(TARNAME)_$(VERSION)") ])
         options.extend([ ("TARBALL-EXTENSION","extension") ])
@@ -556,8 +519,7 @@ class makeIncludeGenerator(object):
             rstr += "\n"
 
         # Standard options and defaults, if defined
-        # Format of these tuples
-        #           (MAKEFILE VAR, YAML VAR, [default])
+        # Format of these tuples (MAKEFILE VAR, YAML VAR, [default])
         options.extend([ ("RELEASE","release"),("VENDOR", "vendor"), ("SRC_TARBALL","src_tarball") ])
         options.extend([ ("RPM.ARCH", "arch")])
         options.extend([ ("SRC_DIR","src_dir"),("NO_SRC_DIR", "no_src_dir") ])
@@ -597,6 +559,7 @@ class makeIncludeGenerator(object):
                 (stdconfigure, self.mk.lookup("build.configure_args"))
         except:
             pass
+
         try:
             mods =  self.mk.lookupAndResolve("build.modules"," ")
             rstr += "MODULES \t = %s\n" % mods 
@@ -753,4 +716,3 @@ def main(argv):
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-        
