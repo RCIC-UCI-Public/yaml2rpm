@@ -16,26 +16,14 @@ buildall:
 	$(SUDO) yum -y install redhat-lsb-core
 	make setuptools-install
 	make future-install
-	make ruamel-install
-	make ruamel-clib-install
+	make ruamel-yaml-install
+	make ruamel-yaml-clib-install
 	make -e download
 	make -e -C yamlspecs buildall
 
-setuptools future ruamel ruamel-clib:
+setuptools future ruamel-yaml ruamel-yaml-clib:
 	make -C yamlspecs/bootstrap-$@
 
-ruamel-install: ruamel
+%-install: %
 	make createlocalrepo
-	$(SUDO) yum -y -c yum.conf install python-ruamel-yaml 
-
-ruamel-clib-install: ruamel-clib
-	make createlocalrepo
-	$(SUDO) yum -y -c yum.conf install python-ruamel-yaml-clib
-
-setuptools-install: setuptools
-	make createlocalrepo
-	$(SUDO) yum -y -c yum.conf install python-setuptools
-
-future-install: future
-	make createlocalrepo
-	$(SUDO) yum -y -c yum.conf install python-future
+	$(SUDO) yum -y -c yum.conf install python-$?
