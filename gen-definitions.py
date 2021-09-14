@@ -548,17 +548,14 @@ class makeIncludeGenerator(object):
                 
         # Handle configure separately
         stdconfigure = "+=" 
-        try:
-            rstr +=  "CONFIGURE \t = %s\n" % self.mk.lookup("build.configure")
+        cprog = self.mk.lookup("build.configure")
+        if len(cprog) > 0:
+            rstr +=  "CONFIGURE \t = %s\n" % cprog
             stdconfigure = "="
-        except:
-            pass
 
-        try:
-            rstr += "CONFIGURE_ARGS \t %s %s\n" %  \
-                (stdconfigure, self.mk.lookup("build.configure_args"))
-        except:
-            pass
+        cargs = self.mk.lookup("build.configure_args")
+        if len(cargs) > 0:
+           rstr += "CONFIGURE_ARGS \t %s %s\n" % (stdconfigure, cargs)
 
         try:
             mods =  self.mk.lookupAndResolve("build.modules"," ")
