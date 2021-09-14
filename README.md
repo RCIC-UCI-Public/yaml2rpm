@@ -46,7 +46,12 @@ tested on the official CentOS 7 Amazon machine image.
 If you want to build yaml2rpm RPMS and install them from source repo, see Building
 ### Prerequisites
 
-1. Python 2 or 3. Required python modules: yaml and datetime.
+1. Python 2 or 3. Required python modules: argparse, socket, datetime. There are 4 python modules that will be automatically
+   built and installed during the "Building" step:
+   
+   - future: for compatibility of python 2/3 code
+   - ruamel-yaml & ruamle-ycml-clib: used by the  main script gen-definitions.py
+   - setuptools: for build python dependent packages.
    
 1. If you are using a very stripped-down CentOS image (similar to the official CentOS 7 image in Amazon, you will 
    want to make certain you have the following packages and package groups installed
@@ -58,15 +63,35 @@ If you want to build yaml2rpm RPMS and install them from source repo, see Buildi
 
 1. Install the development RPMS 
 
-Go to the [Development RPMS](https://github.com/RCIC-UCI-Public/development-RPMS#development-rpms) repository for the latest pre-built RPMs and instructions.
-
-After following those instructions, you can build your first RPM from source.
+   Go to the [Development RPMS](https://github.com/RCIC-UCI-Public/development-RPMS#development-rpms) repository 
+   for the latest pre-built RPMs and instructions. After following those instructions, you can build your first RPM from source.
 
 ### Building 
 You may want to build the yaml2rpm rpms and install them from the source git repository.
 Do the following in the top-level directory
-1. make default
-1. make YES=-y install
+```bash
+make default
+make YES=-y install
+```
+
+After this step is complete the followign RPMs are built and installed:
+
+- python-future
+- python-setuptools
+- python-ruamel-yaml 
+- python-ruamel-yaml-clib 
+- rcic-module-support 
+- rcic-module-path
+- yaml2rpm
+
+The **python-** RPMs provide 4 needed python modules for your default  system python install.
+The **rcic-module-support**, **rcic-module-path**, and **yaml2rpm** provide all the building structure and support files for
+the packages builds. They include a couple of profiles files that are added to the **/etc/profile.d**.
+In order to proceed with next steps simply execute them (for future logins they will be automatically sourced by the login shell):
+```bash
+. /etc/profile.d/rcic-modules.sh 
+. /etc/profile.d/yaml2rpm.sh
+```
 
 # A simple test build
 For a very simple build of an RPM, create a working directory (`workdir`) in this simple example. And then
@@ -74,21 +99,26 @@ download the source tarball into the workdir/sources directory.  Then create the
 workdir/RPMS/x86_64
 ```bash
 mkdir -p workdir/yamlspecs
-mkdir -p workdir/sources
 cd workdir/yamlspecs; cp /opt/rocks/yaml2rpm/samples/* .
-NAME=cmake
-WEBSRC=$(/opt/rocks/yaml2rpm/gen-definitions.py --query=vendor_source ${NAME}.yaml)
-(cd ../sources; wget ${WEBSRC})
-make ${NAME}.pkg
+make download PKG=cmake
+make download PKG=scons
+make 
 ```
-At the end of the process, you should have an RPM in workdir/RPMS/x86_64/.  You could install it on the local machine
-and have an updated version of cmake, with a environment so that you could load it with
+At the end of the process, you should have 4 RPMs in workdir/RPMS/x86_64/.  You could install them on the local machine
+and have an updated version of cmake and scons, and corresponding environment modules. For example. the module for cmake 
+can be loaded in order to use cmake:
 ```bash
 module load cmake
 which cmake
 ```
 
-The version of cmake is defined in the cmake.yaml file, if you wanted to update the version, you could edit that file, download the new source tarball directly from the source website and then rebuild a new package.
+The version of cmake is defined in the versions.yaml file, if you wanted to update the version, you could edit that file, 
+download the new source tarball directly from the source website and then rebuild a new package via
+```bash
+make download PKG=cmake
+make cmake.pkg
+make cmake-module.pkg
+```
 
 # A Deeper Example
 GCC (the GNU compiler collection) is relatively complex build.  It is often useful to have an updated version of gcc on your system without destroying the system-supplied gcc.  The GCC build has to be done in a certain way, packages need to be named to be non-conflicting and other items.   If you have completed the Quickstart above you can build an updated version of gcc and a set a packages. **WARNING! This process will install RPMS as it builds. You should do this on a 'disposable' build system. It takes hours to compile a gcc.**
