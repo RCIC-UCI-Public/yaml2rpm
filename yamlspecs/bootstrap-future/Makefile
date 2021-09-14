@@ -18,7 +18,7 @@ sources:
 	mkdir sources
 
 build: sources
-	xzcat sources/$(DISTRO) | tar -xf -
+	zcat sources/$(DISTRO) | tar -xf -
 	(cd $(ARCHIVENAME)-$(VERSION); python ./setup.py build;)
 
 install::
