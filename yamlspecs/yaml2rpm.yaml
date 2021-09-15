@@ -5,24 +5,20 @@
   version: "{{versions.yaml2rpm.version}}"
   release: "{{versions.yaml2rpm.release}}"
   extension: tar.gz
-  rocks: /opt/rocks
-  root: "{{rocks}}/yaml2rpm"
+  root: /opt/rcic
   srctar: "{{name}}-{{version}}.{{extension}}"
   pkgname: "{{name}}"
-  sysyaml: packages.yaml
+  sysmake: Makefile Makefile.tmpl Makefile.toplevel
   description: >
     YAML to RPM {{version}}. This is a prototype to convert a yaml specification
     into an RPM. It utilizes the tooling from rocks-devel (https://github.com/rocksclusters/core)
     to generate SPEC files and build the RPM. The goal is to reduce the package-specific configuration/build
     to the essentials into a yaml file that goes through some automated steps to create an RPM.
   pretar: >
-    mkdir {{name}}-{{version}};
-    tar cf - ../Makefile ../gen-definitions.py ../manifest2ansible.py ../README.md ../builder 
-    yaml2rpm.sh samples | tar xf - -C {{name}}-{{version}};
+    mkdir -p {{name}}-{{version}}/sys;
+    tar cf - bin ../README.md builder samples yaml2rpm.sh | tar xf - -C {{name}}-{{version}};
+    install {{sysmake}} {{name}}-{{version}}/sys;
     install Makefile.tmpl {{name}}-{{version}}/samples/Makefile;
-    mkdir {{name}}-{{version}}/sys;
-    install Makefile {{sysyaml}} {{name}}-{{version}}/sys;
-    install Makefile.toplevel {{sysyaml}} {{name}}-{{version}}/sys;
     tar czf ../sources/{{srctar}} {{name}}-{{version}} 
   build:
     configure: echo
@@ -30,13 +26,14 @@
     pkgmake: echo
   install:
     makeinstall: >
+      mkdir -p $(ROOT)/{{root}}/bin; 
       mkdir -p $(ROOT)/{{root}}/site; 
-      mkdir -p $(ROOT)/etc/profile.d; 
-      $(TAR) cf - * | $(TAR) xf -  -C $(ROOT)/{{root}};
+      mkdir -p $(ROOT)/etc/profile.d;
+      $(TAR) cf - builder samples sys README.md | $(TAR) xf -  -C $(ROOT)/{{root}};
+      $(INSTALL) bin/*py $(ROOT)/{{root}}/bin;
       $(INSTALL) yaml2rpm.sh $(ROOT)/etc/profile.d
-      
   requires:  
-    - rocks-devel >= 7.1
+    - rocks-devel >= {{versions.rocks_devel}}
     - PyYAML 
   clean: "{{name}}-{{version}}"
   files:

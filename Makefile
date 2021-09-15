@@ -7,18 +7,18 @@ SHELL = /bin/bash
 CWD := $(shell pwd)
 default: 
 	module avail
-	YAML2RPM_INC=$(CWD)/yamlspecs/include YAML2RPM_HOME=$(CWD) TEMPLATEDIR=$(CWD) make --environment-overrides buildall
+	YAML2RPM_INC=$(CWD)/yamlspecs/include YAML2RPM_HOME=$(CWD)/yamlspecs TEMPLATEDIR=$(CWD)/yamlspecs make --environment-overrides buildthis
 install:
-	YAML2RPM_INC=$(CWD)/yamlspecs/include YAML2RPM_HOME=$(CWD) TEMPLATEDIR=$(CWD) make --environment-overrides install-admix 
+	YAML2RPM_INC=$(CWD)/yamlspecs/include YAML2RPM_HOME=$(CWD)/yamlspecs TEMPLATEDIR=$(CWD)/yamlspecs make --environment-overrides install-admix 
 	
 include yamlspecs/Makefile.toplevel
-buildall:
+buildthis:
 	$(SUDO) yum -y install redhat-lsb-core
-	make setuptools-install
-	make future-install
-	make ruamel-yaml-install
-	make ruamel-yaml-clib-install
-	make -e download
+	#make setuptools-install
+	#make future-install
+	#make ruamel-yaml-install
+	#make ruamel-yaml-clib-install
+	#make -e download
 	make -e -C yamlspecs buildall
 
 setuptools future ruamel-yaml ruamel-yaml-clib:

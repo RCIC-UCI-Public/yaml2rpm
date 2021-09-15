@@ -1,7 +1,7 @@
 ## This a Makefile to drive the bootstrapping/building of RPMS
 # Uncomment this line if using the yaml2rpm files
 SHELL=/bin/bash
-TEMPLATEDIR=/opt/rocks/yaml2rpm
+TEMPLATEDIR=$(YAML2RPM_HOME)
 HOME=$(shell pwd)
 
 SUDO = sudo
@@ -15,18 +15,18 @@ ifndef ADMIX
 ADMIX = $(shell basename $$(realpath ..))
 endif
 
-## System template dir should be /opt/rocks/yaml2rpm
+## System template dir should be $YAML2RPM_HOME
 ## if not defined, expect local copy (e.g. as in master Git repo)
 ifndef TEMPLATEDIR
-TEMPLATEDIR = ..
+TEMPLATEDIR = .
 endif
 
 BUILDTEMPLATE = builder
 TEMPLATE_FILES = $(wildcard $(TEMPLATEDIR)/$(BUILDTEMPLATE)/*)
 DEFINITIONS = Definitions.mk
 
-BASEGENERATE = $(TEMPLATEDIR)/gen-definitions.py $(GENEXTRAS)
-MANIFEST2ANSIBLE = $(TEMPLATEDIR)/manifest2ansible.py 
+BASEGENERATE = $(TEMPLATEDIR)/bin/gen-definitions.py $(GENEXTRAS)
+MANIFEST2ANSIBLE = $(TEMPLATEDIR)/bin/manifest2ansible.py 
 
 ## Local sources of tarballs
 LOCALREPODIR = ..
