@@ -290,12 +290,10 @@ endif
 ## Same as above, except make clean between each stage. 
 buildall bootstrap ::
 ifndef BASEONLY
-	PSET=''; \
 	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
 	    for set in $(ALLSETS); do \
-		make -e SET=$$PSET -f $(THISMAKE) clean; \
+		make -e SET=$$set -f $(THISMAKE) clean; \
 		make -e -f $(THISMAKE) SET=$$set $@; \
-		PSET=$$set;\
 	    done; \
 	fi 
 endif 
