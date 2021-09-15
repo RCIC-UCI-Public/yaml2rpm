@@ -211,7 +211,7 @@ admix-bootstrap-yaml:
 	  fi;\
 	done )
 
-bootstrap: 
+bootstrap:: 
 	- $(YUM) -y install $(BOOTSTRAP_SYSTEM) 
 	echo $(BOOTSTRAP_MODULES)
 	( for mod in $(BOOTSTRAP_MODULES); do					\
