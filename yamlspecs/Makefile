@@ -273,17 +273,28 @@ veryclean:: clean
 
 FORCE:
 
-## Targets that should iterate through sets after the BASE set action is completed
-## IF BASEONLY is defined, then ALLSETS is not iterated
-## IF SET=<string>  is defined, then ALLSETS is not iterated
-buildall manifest module-requires module-provides veryclean unbootstrap ::
+
+## Targets that should iterate through sets after the BASE set 
+## action is completed
+##  --> IF BASEONLY is defined, then ALLSETS is not iterated
+##  --> IF SET=<string>  is defined, then ALLSETS is not iterated
+manifest module-requires module-provides veryclean unbootstrap ::
 ifndef BASEONLY
 	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
 	    for set in $(ALLSETS); do \
-		if [ "$@" == "buildall" ]; then   \
-			make -e SET=$$PSET -f $(THISMAKE) clean; \
-		fi; \
 		make -s -e -f $(THISMAKE) SET=$$set $@; \
+	    done; \
+	fi 
+endif 
+
+## Same as above, except make clean between each stage. 
+buildall bootstrap ::
+ifndef BASEONLY
+	PSET=''; \
+	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
+	    for set in $(ALLSETS); do \
+		make -e SET=$$PSET -f $(THISMAKE) clean; \
+		make -e -f $(THISMAKE) SET=$$set $@; \
 		PSET=$$set;\
 	    done; \
 	fi 

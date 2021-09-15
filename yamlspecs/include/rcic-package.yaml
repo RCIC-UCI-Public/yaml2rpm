@@ -18,7 +18,7 @@
   extras:
   build:
     configure: echo
-    configure_args:
+    configure_args: --prefix={{root}}
     modules:
     pkgmake:
     target:
