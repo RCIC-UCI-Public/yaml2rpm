@@ -452,7 +452,7 @@ source /opt/rcic/include/rcic-module-tail.tcl
             prereqs = self.mk.lookup("module.prereq", stringify=False)
             if type(prereqs) is str:
                     prereqs = prereqs.split(" ")
-                    prereqs = [_f for _f in prereqs if _f]  # filter ''
+            prereqs = [_f for _f in prereqs if _f]  # filter ''
             self.prereqModules = prereqs
         except:
             return 
