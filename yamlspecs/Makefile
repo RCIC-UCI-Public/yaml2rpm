@@ -288,7 +288,7 @@ ifndef BASEONLY
 endif 
 
 ## Same as above, except make clean between each stage. 
-buildall bootstrap ::
+buildall ::
 ifndef BASEONLY
 	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
 	    for set in $(ALLSETS); do \
