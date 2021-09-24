@@ -189,9 +189,10 @@ class mkParser(object):
         if val is None: # definition in yaml was empty. TODO remove this check
             return ''
         if stringify:
-                return str(val)
-        else:
-            return val
+            return str(val)
+        if type(val) in [type(1),type(1.1),type(True)]:
+            return str(val)
+        return val
 
     def lookupAndResolve(self,keyword,joinString):
         """ Lookup a value for key.  if val is a list, join the elements
@@ -228,13 +229,13 @@ class mkParser(object):
             subvar = var.replace('{{','').replace('}}','').strip()
             expand = self.lookup(subvar,vdict,stringify=False)
             if type(expand) is type("string"):
-                 elem = elem.replace(var,expand)
+                elem = elem.replace(var,expand)
             if type(expand) is list:
-                 check = elem.replace('{{','').replace('}}','').strip()
-                 if len(check) > len(subvar):
-                     elem = elem.replace(var, " ".join(expand)) # variable was inside a string, join list with ' '
-                 else:
-                     elem = expand
+                check = elem.replace('{{','').replace('}}','').strip()
+                if len(check) > len(subvar):
+                    elem = elem.replace(var, " ".join(expand)) # variable was inside a string, join list with ' '
+                else:
+                    elem = expand
         return elem
             
     def replaceVars(self, src, vdict):
@@ -258,7 +259,7 @@ class mkParser(object):
 
     def replaceNoneIntFloat(self):
         """ replace all None and int values as '' """
-        tvect = [ type(1),type(1.1)]
+        tvect = [type(1),type(1.1),type(True)]
         for key in self.combo.keys():
             rhs = self.combo[key]
             if rhs is None: 
