@@ -80,7 +80,11 @@ PACKAGES_FILE = $(wildcard packages.yaml)
 ## set file for versions: tag and use that file for versions going forward
 ## PACKAGES_FILE is then the set-$(SET) file
 VMAP = 
+ifneq ($(PACKAGES_FILE),)
 ALLSETS := $(shell $(BASEGENERATE) -Q --query=sets $(PACKAGES_FILE))
+else
+ALLSETS = 
+endif
 
 ifdef SET 
 PACKAGES_FILE = set-$(SET).yaml
@@ -127,11 +131,11 @@ ALL_TARGETS = bootstrap $(SOURCES) $(PKGS)
 endif
 
 buildall:: buildstart $(ALL_TARGETS)
-	echo "== Built ALL Targets: $^ =="
-	echo "== Built ALL $(shell date) =="
+	echo "== Built ALL Targets ($(SET)): $^ =="
+	echo "== Built ALL ($(SET)) $(shell date) =="
 
 buildstart:
-	echo "== BUILDING ALL $(shell date) =="
+	echo "== BUILDING ALL ($(SET)) $(shell date) =="
 
 ## This section takes the yaml file and does various interpretations to create files
 ## 1. Create temp working directory $(TMPBUILD) - install template files from $(TEMPLATEDIR)/builder
