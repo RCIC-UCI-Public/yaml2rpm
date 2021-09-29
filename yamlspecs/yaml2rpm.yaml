@@ -16,7 +16,7 @@
     to the essentials into a yaml file that goes through some automated steps to create an RPM.
   pretar: >
     mkdir -p {{name}}-{{version}}/sys;
-    tar cf - bin ../README.md builder samples yaml2rpm.sh | tar xf - -C {{name}}-{{version}};
+    tar cf - bin site ../README.md builder samples yaml2rpm.sh | tar xf - -C {{name}}-{{version}};
     install {{sysmake}} {{name}}-{{version}}/sys;
     install Makefile.tmpl {{name}}-{{version}}/samples/Makefile;
     tar czf ../sources/{{srctar}} {{name}}-{{version}} 
@@ -31,6 +31,7 @@
       mkdir -p $(ROOT)/etc/profile.d;
       $(TAR) cf - builder samples sys README.md | $(TAR) xf -  -C $(ROOT)/{{root}};
       $(INSTALL) bin/*py $(ROOT)/{{root}}/bin;
+      $(INSTALL) -m 644 site/*yaml $(ROOT)/{{root}}/site;
       $(INSTALL) yaml2rpm.sh $(ROOT)/etc/profile.d
   requires:  
     - rocks-devel >= {{versions.rocks_devel}}
