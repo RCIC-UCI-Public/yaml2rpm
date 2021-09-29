@@ -242,6 +242,8 @@ class mkParser(object):
         """ replace the vars in src with variables from vdict
             recursively call if src is type list or type dictionary
         """
+        if type(src) is type(None):
+            work = ''
         if type(src) is type("string"):
             work = self.replaceStr(src, vdict)
         if type(src) is list:
