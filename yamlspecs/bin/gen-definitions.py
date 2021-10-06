@@ -57,9 +57,73 @@ def new_yaml_include(loader, node):
            #DEBUG print("Exception: %s", str(err)) 
     raise  Exception("%s not found in: %s" % (filename,str(incPath)))
 
+
 yaml.Composer.compose_document = new_compose_document
 yaml.Constructor.add_constructor("!include", new_yaml_include)
 
+## This section of code enables yaml declarations of
+##      var: !eval "<python code>"
+## once all {{vars}} have been replaced, the statement itself can be evaluated. 
+## The evaluation should return a single string. 
+## A simple example
+##     foo: !eval "'{{bar}}' if {{testval}}==5 else '{{baz}}'"
+
+class evalStmt(object):
+    def __init__(self,rhs='',evaluated=False):
+        self._stmt = str(rhs)
+        self._evaluated = evaluated
+        self._value = '' 
+    
+    @property
+    def stmt(self):
+        return self._value if self._evaluated else self._stmt
+
+    @property 
+    def evaluated(self):
+        return self._evaluated
+    @stmt.setter
+    def stmt(self,value):
+        self._stmt=value 
+
+    def __str__(self):
+        return self.stmt 
+
+    def __len__(self):
+        return len(self.stmt)
+
+    ## Evaluate the stmt
+    def eval(self):
+        if  not self._evaluated:
+            self._value = eval(self.stmt)
+            self._evaluated = True
+        return self._value
+
+## This is subclass of eval that execs more complicated python code. The code MUST
+## set the variable __rval as the value "returned" from the exec
+## eg. get that PATH variable from the environment
+##    foo: !exec "import os; __rval=os.environ['PATH']"
+
+class execStmt(evalStmt):
+    def __init__(self, rhs=''):
+        super(execStmt,self).__init__(rhs)
+
+    def eval(self):
+        # Create a dictionary of "globals", code should set __rval
+        gdict={'__rval':''}
+        if not self._evaluated:
+            exec(self.stmt,gdict)
+            self._value = gdict['__rval']
+            self._evaluated = True
+        return self._value 
+      
+def yaml_python_eval(loader, node):
+    stmt = loader.construct_scalar(node)
+    return evalStmt(stmt)
+   
+def yaml_python_exec(loader, node):
+    stmt = loader.construct_scalar(node)
+    return execStmt(stmt)
+   
 class IncPath(object):
     def __init__(self):
         self.incPath = ['.']
@@ -135,6 +199,8 @@ class mkParser(object):
         self.yaml.default_flow_style = False
         self.yaml.Composer.compose_document = new_compose_document
         self.yaml.Constructor.add_constructor("!include", new_yaml_include)
+        self.yaml.Constructor.add_constructor("!eval", yaml_python_eval)
+        self.yaml.Constructor.add_constructor("!exec", yaml_python_exec)
 
     def readPkgYaml(self,fname):
         """ read yaml file, proesss loading of all included yamls,
@@ -206,17 +272,28 @@ class mkParser(object):
             elems = str(elems)
         return elems
 
+    def stringRep(self, obj):
+        """recursively expand object to provide a string representation"""
+        basetypes = [type(""), type(1.0), type(1), type(True)]
+        if isinstance(obj,evalStmt) or type(obj) in basetypes:
+           return str(obj)
+        try:
+            return " ".join([self.stringRep(x) for x in obj.values()])
+        except:
+            return " ".join([self.stringRep(x) for x in obj])
+
+
     def hasVars(self,s):
-        """ determine if a string has vars {{ }} """
-        return len(re.findall(self.varpat,str(s))) > 0
+        """ determine if an object has vars {{ }} """
+        return len(re.findall(self.varpat,self.stringRep(s))) > 0
 
     def varsInString(self,s):
         """ Return all the variable patterns in the supplied string """
-        return re.findall(self.varpat,str(s))
+        return re.findall(self.varpat,self.stringRep(s))
 
     def extractVars(self,s):
         """ return a list of 'stripped' var names """
-        lvars = [x.replace('{{','').replace('}}','').strip() for x in re.findall(self.varpat,str(s))]
+        lvars = [x.replace('{{','').replace('}}','').strip() for x in re.findall(self.varpat,self.stringRep(s))]
         res = []
         [res.append(x) for x in lvars if x not in res] # remove duplicates
         lvars = res
@@ -246,6 +323,11 @@ class mkParser(object):
             work = ''
         if type(src) is type("string"):
             work = self.replaceStr(src, vdict)
+        if isinstance(src,evalStmt):
+            src.stmt = self.replaceStr(src.stmt, vdict) 
+            if not self.hasVars(src.stmt):
+               src.eval()   # evaluate the statement as soon as possible
+            work = src.stmt
         if type(src) is list:
             work = []
             for elem in src:
@@ -303,13 +385,21 @@ class mkParser(object):
             for v in self.varsdict.keys():
                 if self.hasVars(self.varsdict[v]):
                     rhs = self.replaceVars(self.varsdict[v],self.varsdict) 
+                    # special handling of eval statements
+                    var = self.varsdict[v]
+                    if isinstance(var,evalStmt):
+                        rhs = type(var)(rhs,var.evaluated)
                     self.varsdict[v] = rhs
                     changed = 1
             if changed == 0:
                 break
 
-        # update combo values with resolved from varsdict
+        # update combo/varsdict values with resolved from varsdict
         for key, val in self.varsdict.items():
+            if isinstance(val,evalStmt):
+               resolved = val.eval()
+               self.varsdict[key] = resolved
+               val = resolved
             self.combo[key] = val
 
         # resolve all variables in combo dict
@@ -318,8 +408,13 @@ class mkParser(object):
             for v in self.combo.keys():
                 if self.hasVars(self.combo[v]):
                     rhs = self.replaceVars(self.combo[v],self.combo) 
+                    var = self.combo[v]
+                    if isinstance(var,evalStmt):
+                        rhs = type(var)(rhs,var.evaluated)
                     self.combo[v] = rhs
                     changed = 1
+                elif isinstance(self.combo[v],evalStmt):
+                    self.combo[v] = self.combo[v].eval()
             if changed == 0:
                 break
 
