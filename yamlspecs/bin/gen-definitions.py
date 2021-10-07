@@ -23,8 +23,8 @@ if sys.version_info.major == 3:
 incMap = {}   # type: dictionary, represents mapping of included filenames
 incStack = [] # type: list of strings keep track of ACTIVE !include maps
 
-yaml = ruamel.yaml.YAML(typ='safe', pure=True)
-yaml.default_flow_style = False
+#yaml = ruamel.yaml.YAML(typ='safe', pure=True)
+#yaml.default_flow_style = False
 
 def new_compose_document(self):
     self.parser.get_event()
@@ -58,8 +58,8 @@ def new_yaml_include(loader, node):
     raise  Exception("%s not found in: %s" % (filename,str(incPath)))
 
 
-yaml.Composer.compose_document = new_compose_document
-yaml.Constructor.add_constructor("!include", new_yaml_include)
+#yaml.Composer.compose_document = new_compose_document
+#yaml.Constructor.add_constructor("!include", new_yaml_include)
 
 ## This section of code enables yaml declarations of
 ##      var: !eval "<python code>"
@@ -72,18 +72,19 @@ class evalStmt(object):
     def __init__(self,rhs='',evaluated=False):
         self._stmt = str(rhs)
         self._evaluated = evaluated
-        self._value = '' 
+        self._value = str(rhs) 
     
     @property
     def stmt(self):
         return self._value if self._evaluated else self._stmt
 
-    @property 
-    def evaluated(self):
-        return self._evaluated
     @stmt.setter
     def stmt(self,value):
         self._stmt=value 
+
+    @property 
+    def evaluated(self):
+        return self._evaluated
 
     def __str__(self):
         return self.stmt 
@@ -104,9 +105,6 @@ class evalStmt(object):
 ##    foo: !exec "import os; __rval=os.environ['PATH']"
 
 class execStmt(evalStmt):
-    def __init__(self, rhs=''):
-        super(execStmt,self).__init__(rhs)
-
     def eval(self):
         # Create a dictionary of "globals", code should set __rval
         gdict={'__rval':''}
@@ -124,6 +122,26 @@ def yaml_python_exec(loader, node):
     stmt = loader.construct_scalar(node)
     return execStmt(stmt)
    
+def yaml_python_ifeq(loader, node):
+    ### !ifeq "x,y,<true result>[,<false result>]
+    template= "'%s' if '%s' == '%s' else '%s'"
+    return parseIfstmt(loader, node, template)
+
+def yaml_python_ifneq(loader, node):
+    ### !ifneq "x,y,<true result>[,<false result>]
+    template= "'%s' if '%s' != '%s' else '%s'"
+    return parseIfstmt(loader, node, template)
+
+def parseIfstmt(loader,node,template):
+    raw = loader.construct_scalar(node)
+    parsed = [ x.strip() for x in raw.split(",")]
+    try:
+         (what,compare,truestmt,elsestmt) = parsed
+    except:
+         elsestmt = ''
+         (what,compare,truestmt)= parsed
+    return evalStmt(template % (truestmt,what,compare,elsestmt))
+    
 class IncPath(object):
     def __init__(self):
         self.incPath = ['.']
@@ -201,6 +219,8 @@ class mkParser(object):
         self.yaml.Constructor.add_constructor("!include", new_yaml_include)
         self.yaml.Constructor.add_constructor("!eval", yaml_python_eval)
         self.yaml.Constructor.add_constructor("!exec", yaml_python_exec)
+        self.yaml.Constructor.add_constructor("!ifeq", yaml_python_ifeq)
+        self.yaml.Constructor.add_constructor("!ifneq", yaml_python_ifneq)
 
     def readPkgYaml(self,fname):
         """ read yaml file, proesss loading of all included yamls,
@@ -385,10 +405,10 @@ class mkParser(object):
             for v in self.varsdict.keys():
                 if self.hasVars(self.varsdict[v]):
                     rhs = self.replaceVars(self.varsdict[v],self.varsdict) 
-                    # special handling of eval statements
+                    # special handling of evalStmt objects 
                     var = self.varsdict[v]
                     if isinstance(var,evalStmt):
-                        rhs = type(var)(rhs,var.evaluated)
+                        rhs = type(var)(rhs,var.evaluated)  # new instance with some/all vars replaced
                     self.varsdict[v] = rhs
                     changed = 1
             if changed == 0:
