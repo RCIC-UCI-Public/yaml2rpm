@@ -1,4 +1,5 @@
 ---
+os_release: "7"
 compiler_sys:
   name: gcc
   version: "4.8.5"

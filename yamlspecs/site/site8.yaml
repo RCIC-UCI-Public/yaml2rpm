@@ -1,0 +1,35 @@
+---
+os_release: "8"
+compiler_sys:
+  name: gcc
+  version: "8.4.1"
+compiler_intel: 
+  name: "intel"
+  version: "2020u1"
+compiler:
+  name: gcc
+  version: "8.4.0"
+mpi_sys:
+  name: openmpi
+  version: "4.0.5"
+mpi:
+  name: openmpi
+  version: "4.0.3"
+cuda:
+  name: cuda
+  version:  "10.1.243"
+python: "2.7.17"
+python_major: "2.7"
+python3: "3.8.0"
+python3_major: "3.8"
+python3_family: "3"
+cmake: "3.12.3"
+java: "1.8.0"
+perl: "5.30.0"
+R: "4.0.4"
+hdf5: "1.10.5" 
+boost: "1.66.0"
+protobuf: "3.11.4"
+mkl: "2019.5.281"
+eigen: "3.3.7"
+intel_tbb: "20190605"

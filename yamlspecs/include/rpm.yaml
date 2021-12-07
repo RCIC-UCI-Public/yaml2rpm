@@ -52,9 +52,11 @@ filterPerl: &filterPerl |
 # brp-python-bytecompile can access libraries and correct version of python
 # default rpmFlters are empty and can be overwritten when needed via setting rpmFilters
 rpm: 
+  mangle_shebangs: "%define __brp_mangle_shebangs /bin/echo turn off shebang mangling"
   extras: &RpmExtras | 
     {{rpmAutoRequires}}\n\
     %define __jar_repack {{rpmJarRepack}}\n\
+    {{rpm.mangle_shebangs}}\n\
     %define _python_bytecompile_errors_terminate_build 0\n\
     %define __python `module load {{build.modules}}; which python; module unload {{build.modules}}`\n\
     %define __spec_install_post \
@@ -82,6 +84,7 @@ extrasconda: &RpmConda |
   /usr/lib/rpm/redhat/brp-python-hardlink \
   %{!?__jar_repack:/usr/lib/rpm/redhat/brp-java-repack-jars} \
   %{nil}\n\
+  {{rpm.mangle_shebangs}}\n\
   {{filterRequires}}
 
 # For use with packages that provide 3-party precompiled software.
@@ -101,6 +104,7 @@ extrasnone: &RpmNone |
 #   extras: *RpmPython
 extraspython: &RpmPython |
   {{rpmFilters}}\n\
+  {{rpm.mangle_shebangs}}\n\
   %define _python_bytecompile_errors_terminate_build 0\n\
   %define __spec_install_post \
     %{?__debug_package:%{__debug_install_post}}\
