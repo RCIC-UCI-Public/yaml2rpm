@@ -58,13 +58,13 @@ rpm:
     %define __jar_repack {{rpmJarRepack}}\n\
     {{rpm.mangle_shebangs}}\n\
     %define _python_bytecompile_errors_terminate_build 0\n\
-    %define __python `module load {{build.modules}}; which python; module unload {{build.modules}}`\n\
+    %define __python $$(if [ 'x{{build.modules}}' != 'x' ]; then module load {{build.modules}};fi; which python; if [ 'x{{build.modules}}' != 'x' ]; then module unload {{build.modules}}; fi)\n\
     %define __spec_install_post \
       %{?__debug_package:%{__debug_install_post}}\
-      module load {{build.modules}};\
+      if [ 'x{{build.modules}}' != 'x' ]; then module load {{build.modules}}; fi;\
       %{__arch_install_post}\
       %{__os_install_post}\
-      module unload {{build.modules}}\
+      if [ 'x{{build.modules}}' != 'x' ]; then module unload {{build.modules}};fi\
     %{nil}\n\
     {{rpmFilters}}
 
