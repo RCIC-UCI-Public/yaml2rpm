@@ -5,4 +5,4 @@ RELEASE 	= 1
 TARBALL_POSTFIX	= tar.gz
 DISTRO          = $(ARCHIVENAME)-$(VERSION).$(TARBALL_POSTFIX)
 RPM.EXTRAS      = "AutoReq: no"
-RPM.FILES       = /usr/lib/python2.7/site-packages/*
+RPM.FILES       = /usr/lib/python$(PY.VERSION)/site-packages/*

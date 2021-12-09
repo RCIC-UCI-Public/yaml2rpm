@@ -32,7 +32,7 @@
       $(TAR) cf - builder samples sys README.md | $(TAR) xf -  -C $(ROOT)/{{root}};
       $(INSTALL) bin/*py $(ROOT)/{{root}}/bin;
       $(INSTALL) -m 644 site/*yaml $(ROOT)/{{root}}/site;
-      OSMAJOR=$$(lsb_release -s -r | cut -f 1 -d .); echo \"OSMAJOR: $${OSMAJOR}, ROOT $(ROOT)\"; (cd $(ROOT)/{{root}}/site; ln -s site$${OSMAJOR}.yaml site.yaml); 
+      OSMAJOR=$$(lsb_release -s -r | cut -f 1 -d .); (cd $(ROOT)/{{root}}/site; ln -s site$${OSMAJOR}.yaml site.yaml); 
       $(INSTALL) yaml2rpm.sh $(ROOT)/etc/profile.d
   requires:  
     - rocks-devel >= {{versions.rocks_devel}}
