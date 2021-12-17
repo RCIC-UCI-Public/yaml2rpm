@@ -274,6 +274,8 @@ class mkParser(object):
             val = self.flatten(val)
         if val is None: # definition in yaml was empty. TODO remove this check
             return ''
+        if isinstance(val,evalStmt) and val.evaluated:  # replace evalStmt with string version ASAP
+            val = str(val)
         if stringify:
             return str(val)
         if type(val) in [type(1),type(1.1),type(True)]:
@@ -368,6 +370,8 @@ class mkParser(object):
             rhs = self.combo[key]
             if rhs is None: 
                 self.combo[key] = ''
+            elif rhs is type(""): 
+                self.combo[key] = rhs.rstrip("\n") 
             elif type(rhs) in tvect:
                 self.combo[key] = str(rhs)
             elif type(rhs) is type({}):
@@ -377,6 +381,8 @@ class mkParser(object):
                         d[k] = str(v)
                     elif v is None:
                         d[k] = ''
+                    elif type(v) is type(""):
+                        d[k] = v.rstrip("\n")
                     else:
                         pass
                 self.combo[key] = d
