@@ -4,9 +4,9 @@ rcic_module_path:
   release: "5"
 rcic_module_support:
   version: "2"
-  release: "1"
+  release: "2"
 yaml2rpm:
   version: "2"
-  release: "5"
+  release: "6"
 rocks_devel: "7.1"
 
