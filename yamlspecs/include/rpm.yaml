@@ -16,6 +16,12 @@ rpmAutoRequires: "AutoReqProv: {{rpmAutoReqProv}}"
 rpmAutoReqProv: "Yes"
 
 
+# Defines how and if build_id links are generated for ELF files. 
+# See 
+# https://github.com/rpm-software-management/rpm/blob/4a9440006398646583f0d9ae1837dad2875013aa/macros.in#L506
+# for details 
+# to turn off build id links, set rpmBuildIdLinks to "none"
+rpmBuildIdLinks: "compat"
 
 # define local filters empty. Tihs means a system rpm macros 
 # for finding RPM requires and provides will be used
@@ -53,15 +59,17 @@ filterPerl: &filterPerl |
 # default rpmFlters are empty and can be overwritten when needed via setting rpmFilters
 rpm: 
   mangle_shebangs: "%define __brp_mangle_shebangs /bin/echo turn off shebang mangling"
+  build_id_links: "%define _build_id_links {{rpmBuildIdLinks}}"
   extras: &RpmExtras | 
     {{rpmAutoRequires}}\n\
     %define __jar_repack {{rpmJarRepack}}\n\
+    {{rpm.build_id_links}}\n\
     {{rpm.mangle_shebangs}}\n\
     %define _python_bytecompile_errors_terminate_build 0\n\
-    %define __python $$(if [ 'x{{build.modules}}' != 'x' ]; then module load {{build.modules}};fi; which python; if [ 'x{{build.modules}}' != 'x' ]; then module unload {{build.modules}}; fi)\n\
+    %define __python $$(if [ 'x{{build.modules}}' != 'x' ]; then module load -s {{build.modules}};fi; which python; if [ 'x{{build.modules}}' != 'x' ]; then module unload {{build.modules}}; fi)\n\
     %define __spec_install_post \
       %{?__debug_package:%{__debug_install_post}}\
-      if [ 'x{{build.modules}}' != 'x' ]; then module load {{build.modules}}; fi;\
+      if [ 'x{{build.modules}}' != 'x' ]; then module load -s {{build.modules}}; fi;\
       %{__arch_install_post}\
       %{__os_install_post}\
       if [ 'x{{build.modules}}' != 'x' ]; then module unload {{build.modules}};fi\
@@ -84,6 +92,7 @@ extrasconda: &RpmConda |
   /usr/lib/rpm/redhat/brp-python-hardlink \
   %{!?__jar_repack:/usr/lib/rpm/redhat/brp-java-repack-jars} \
   %{nil}\n\
+  {{rpm.build_id_links}}\n\
   {{rpm.mangle_shebangs}}\n\
   {{filterRequires}}
 
@@ -104,6 +113,7 @@ extrasnone: &RpmNone |
 #   extras: *RpmPython
 extraspython: &RpmPython |
   {{rpmFilters}}\n\
+  {{rpm.build_id_links}}\n\
   {{rpm.mangle_shebangs}}\n\
   %define _python_bytecompile_errors_terminate_build 0\n\
   %define __spec_install_post \
