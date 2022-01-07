@@ -1,7 +1,7 @@
 ifeq ($(VERSION.MAJOR),8)
 PYPKG = platform-python
 PYSETUP = python3-setuptools
-RPM.OBSOLETES = platform-python-setuptools
+RPM.OBSOLETES = python3-setuptools
 ADDPROVIDES = platform-python-setuptools
 else
 PYPKG = python
