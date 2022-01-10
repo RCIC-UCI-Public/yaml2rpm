@@ -60,19 +60,21 @@ filterPerl: &filterPerl |
 rpm: 
   mangle_shebangs: "%define __brp_mangle_shebangs /bin/echo turn off shebang mangling"
   build_id_links: "%define _build_id_links {{rpmBuildIdLinks}}"
+  site: !include site.yaml
+  automodule: !ifeq "{{rpm.site.os_release}},8,--auto,"
   extras: &RpmExtras | 
     {{rpmAutoRequires}}\n\
     %define __jar_repack {{rpmJarRepack}}\n\
     {{rpm.build_id_links}}\n\
     {{rpm.mangle_shebangs}}\n\
     %define _python_bytecompile_errors_terminate_build 0\n\
-    %define __python $$(if [ 'x{{build.modules}}' != 'x' ]; then module load -s {{build.modules}};fi; which python; if [ 'x{{build.modules}}' != 'x' ]; then module unload {{build.modules}}; fi)\n\
+    %define __python $$(if [ 'x{{build.modules}}' != 'x' ]; then module {{rpm.automodule}} load -s {{build.modules}};fi; which python; if [ 'x{{build.modules}}' != 'x' ]; then module {{rpm.automodule}} unload -s {{build.modules}}; fi)\n\
     %define __spec_install_post \
       %{?__debug_package:%{__debug_install_post}}\
-      if [ 'x{{build.modules}}' != 'x' ]; then module load -s {{build.modules}}; fi;\
+      if [ 'x{{build.modules}}' != 'x' ]; then module {{rpm.automodule}} load -s {{build.modules}}; fi;\
       %{__arch_install_post}\
       %{__os_install_post}\
-      if [ 'x{{build.modules}}' != 'x' ]; then module unload {{build.modules}};fi\
+      if [ 'x{{build.modules}}' != 'x' ]; then module {{rpm.automodule}} unload -s {{build.modules}};fi\
     %{nil}\n\
     {{rpmFilters}}
 
