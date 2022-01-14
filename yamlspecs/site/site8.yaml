@@ -2,7 +2,7 @@
 os_release: "8"
 compiler_sys:
   name: gcc
-  version: "8.4.1"
+  version: "system"
 compiler_intel: 
   name: "intel"
   version: "2020u1"
@@ -11,7 +11,7 @@ compiler:
   version: "8.4.0"
 mpi_sys:
   name: openmpi
-  version: "4.0.5"
+  version: "4.1.1"
 mpi:
   name: openmpi
   version: "4.0.3"
@@ -33,4 +33,4 @@ boost: "1.66.0"
 protobuf: "3.11.4"
 mkl: "2019.5.281"
 eigen: "3.3.7"
-intel_tbb: "20190605"
+intel_tbb: "2021.5.0"
