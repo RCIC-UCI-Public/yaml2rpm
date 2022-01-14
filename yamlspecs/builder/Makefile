@@ -8,6 +8,7 @@
 include Rules.mk
 include Override.mk
 
+
 # use "make" unless PKGMAKE has been specified
 ifndef  PKGMAKE
 PKGMAKE = $(MAKE) 
@@ -35,6 +36,18 @@ else
 MODFILE_DIR = .
 DO_CD = False
 endif 
+
+### Any OS-release specific things should go here
+# Defaults:
+AUTOMODULE=""
+
+__OS_MAJOR_RELEASE=$(shell lsb_release -rs | cut -d . -f 1)
+
+# RHEL8 (and rebuilds) 
+ifeq ($(__OS_MAJOR_RELEASE),8) 
+AUTOMODULE="--auto"
+endif
+
 #################################################################
 
 %: %.in
@@ -56,7 +69,7 @@ build:
 	- $(CAT-COMPRESS) $(SRC_TARBALL) |  $(UNTAR)
 	(							\
 		module purge; 					\
-		if [ "$(MODULES)" !=  "" ]; then module load $(MODULES); fi;	\
+		if [ "$(MODULES)" !=  "" ]; then module $(AUTOMODULE) load $(MODULES); fi;	\
 		[ $(DO_CD) == True ] && cd $(SRC_DIR);    	\
 		$(PATCH_METHOD) $(PATCH_ARGS) < ../$(PATCH_FILE);  		\
 		$(PRECONFIGURE);				\
@@ -68,7 +81,7 @@ build:
 install:: 
 	(							\
 		module purge; 					\
-		if [ "$(MODULES)" !=  "" ]; then module load $(MODULES); fi;	\
+		if [ "$(MODULES)" !=  "" ]; then module $(AUTOMODULE) load $(MODULES); fi;	\
 		[ $(DO_CD) == True ] && cd $(SRC_DIR);		\
 		if [ ! -d $(ROOT)/$(PKGROOT) ]; then mkdir -p $(ROOT)/$(PKGROOT); fi; \
 		if [ "$(MAKEINSTALL)" == "" ]; then		\
