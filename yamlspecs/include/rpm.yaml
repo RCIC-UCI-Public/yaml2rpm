@@ -106,6 +106,7 @@ extrasconda: &RpmConda |
 #   extras: *RpmNone
 extrasnone: &RpmNone |
   AutoReqProv:no\n\
+  {{rpm.build_id_links}}\n\
   %define __spec_install_post %{nil}
 
 # For use when building python. Need to redefine macros 
