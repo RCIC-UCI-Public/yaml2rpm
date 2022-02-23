@@ -1,0 +1,18 @@
+---
+foundation: "v8"
+compiler:
+  name: gcc
+  version: "11.2.0"
+mpi:
+  name: openmpi
+  version: "4.1.2"
+cmake: "3.22.1"
+java: "17"
+hdf5: "1.10.5" 
+boost: "1.78.0"
+protobuf: "3.19.4"
+intel_tbb: "2021.5.0"
+OpenBLAS: "0.3.19"
+eigen: "3.4.0"
+gsl: "2.7.1"
+go: "1.17.7"
