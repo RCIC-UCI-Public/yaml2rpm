@@ -6,9 +6,12 @@ compiler:
 mpi:
   name: openmpi
   version: "4.1.2"
+cuda:
+  name: cuda
+  version:  "11.4.0"
 cmake: "3.22.1"
 java: "17"
-hdf5: "1.10.5" 
+hdf5: "1.13.1"
 boost: "1.78.0"
 protobuf: "3.19.4"
 intel_tbb: "2021.5.0"
@@ -16,3 +19,12 @@ OpenBLAS: "0.3.19"
 eigen: "3.4.0"
 gsl: "2.7.1"
 go: "1.17.7"
+python3: "3.10.2"
+python3_major: "3.10"
+python3_family: "3"
+perl: "5.34.1"
+R: "4.1.2"
+fftw: "3.3.10"
+netcdfc: "4.8.1"
+netcdff: "4.5.4"
+udunits: "2.2.28"
