@@ -21,6 +21,11 @@ popd
 ## Make sure environment-modules are installed
 yum -y install environment-modules
 
+## INTERACTIVE
+## Need to get tokens for authenticated download of tarballs
+if [ ! -f $TOKENFILE ]; then
+   /opt/rocks/share/devel/bin/get-token.sh
+fi
 ## Get source tarballs
 make download
 
