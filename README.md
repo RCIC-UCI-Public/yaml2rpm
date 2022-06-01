@@ -69,6 +69,7 @@ If you want to build yaml2rpm RPMS and install them from source repo, see Buildi
 ### Building 
 You may want to build the yaml2rpm rpms and install them from the source git repository.
 Do the following in the top-level directory
+You will need to set DISPLAY prior to doing this so that firefox can ask for your permission to read public data
 ```bash
 ./first-build.sh
 ```

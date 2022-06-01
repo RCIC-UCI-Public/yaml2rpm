@@ -32,7 +32,7 @@ make download
 
 ## Build and Install
 # use bash -l to ensure that any profile.d entries are sourced
-bash -l -c make bootstrap download build
+bash -l -c "make bootstrap download build"
 bash -l -c "make -s YES=-y install"
 ## 
 echo "=== First Build completed ==="
