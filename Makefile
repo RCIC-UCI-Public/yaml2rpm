@@ -19,20 +19,30 @@ BOOTSTRAP_PKGS_INST = $(TMP1_BOOTSRAP_PKGS)
 endif
 
 default: 
+	echo "Targets for building/installing on Pristine environment"
+	echo "      bootstrap - build/install RPMS needed before building yaml2rpm"
+	echo "      download  - download TARBALLS from vault" 
+	echo "      build     - build yaml2rpm RPMS" 
+	echo "      install   - install yaml2rpm RPMS" 
+
+bootstrap download build: 
 	module avail
-	YAML2RPM_INC=$(CWD)/yamlspecs/include YAML2RPM_HOME=$(CWD)/yamlspecs TEMPLATEDIR=$(CWD)/yamlspecs make --environment-overrides buildthis
+	YAML2RPM_INC=$(CWD)/yamlspecs/include YAML2RPM_HOME=$(CWD)/yamlspecs TEMPLATEDIR=$(CWD)/yamlspecs make --environment-overrides $@_pristine 
+
 install:
-	YAML2RPM_INC=$(CWD)/yamlspecs/include YAML2RPM_HOME=$(CWD)/yamlspecs TEMPLATEDIR=$(CWD)/yamlspecs make --environment-overrides install-admix 
+	YAML2RPM_INC=$(CWD)/yamlspecs/include YAML2RPM_HOME=$(CWD)/yamlspecs TEMPLATEDIR=$(CWD)/yamlspecs make --environment-overrides YES=-y install-admix 
 	
 include yamlspecs/Makefile.toplevel
-buildthis:
+
+bootstrap_pristine:
 	$(SUDO) yum -y install redhat-lsb-core
-	make bin-python-install
-	make setuptools-install
-	make future-install
-	make ruamel-yaml-install
-	make ruamel-yaml-clib-install
+	make bootstrap_install  
+
+download_pristine:
 	make -e download
+
+build_pristine:
+	make -e -C yamlspecs -f Makefile.site 
 	make -e -C yamlspecs buildall
 
 $(BOOTSTRAP_PKGS):

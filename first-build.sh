@@ -21,13 +21,19 @@ popd
 ## Make sure environment-modules are installed
 yum -y install environment-modules
 
+## Set up TOKENs for authenticated google drive download
+. /etc/profile.d/rocks-devel.sh
+if [ ! -f $TOKENFILE ]; then
+   /opt/rocks/share/devel/bin/get-token.sh
+fi
+ 
 ## Get source tarballs
 make download
 
 ## Build and Install
 # use bash -l to ensure that any profile.d entries are sourced
-bash -l -c make
-bash -l -c "make YES=-y install"
+bash -l -c make bootstrap download build
+bash -l -c "make -s YES=-y install"
 ## 
 echo "=== First Build completed ==="
 echo "Start a new bash shell or logout/login to make certain all profile.d scripts"

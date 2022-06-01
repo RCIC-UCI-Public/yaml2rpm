@@ -70,8 +70,7 @@ If you want to build yaml2rpm RPMS and install them from source repo, see Buildi
 You may want to build the yaml2rpm rpms and install them from the source git repository.
 Do the following in the top-level directory
 ```bash
-make default
-make YES=-y install
+./first-build.sh
 ```
 
 After this step is complete the followign RPMs are built and installed:
