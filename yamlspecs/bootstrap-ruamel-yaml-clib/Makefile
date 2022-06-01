@@ -1,4 +1,4 @@
-# This is a specifc  Makefile that is called to build python-ruamel-yaml RPM
+# This is a specific  Makefile that is called to build python-ruamel-yaml RPM
 # needed by gen-definitions.py for processing of other yaml files 
 # Prerequisite: rocks-devel RPM.
 
@@ -10,7 +10,13 @@ SURL=https://googledrive.com/host/1L-VOgFEvE3OVVQYT3Okfu7Fy9MLUcr8W
 ROCKSSHARE=/opt/rocks/share/devel
 DOWNLOADER=$(ROCKSSHARE)/bin/get_sources.sh
 
-default: download rpm
+PYTHON_DEV_RPM = platform-python-devel 
+
+default: prereqs download rpm
+
+prereqs:
+	- yum -y install $(PYTHON_DEV_RPM)
+	
 
 download: sources
 	SURL=$(SURL) $(DOWNLOADER)
