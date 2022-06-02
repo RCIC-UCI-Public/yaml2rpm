@@ -1,2 +1,18 @@
 %post
-if [ ! -f /usr/bin/python ]; then /usr/sbin/alternatives --set python /usr/bin/python3; fi
+PYVER=$(/usr/bin/python3 -c "import sys; print('%d.%d' % (sys.version_info.major, sys.version_info.minor))")
+/usr/sbin/alternatives --install /usr/bin/unversioned-python \
+                          python \
+                          /usr/bin/python3 \
+                          300 \
+                --slave   /usr/bin/python \
+                          unversioned-python \
+                          /usr/bin/python3 \
+                --slave   /usr/share/man/man1/python.1.gz \
+                          unversioned-python-man \
+                          /usr/share/man/man1/python3.1.gz \
+                --slave   /usr/include/python${PYVER} \
+                          pyinc${PYVER} \
+                          /usr/include/python${PYVER}m
+
+/usr/sbin/update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+
