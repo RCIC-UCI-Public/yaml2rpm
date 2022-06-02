@@ -1,30 +1,16 @@
+!include common.yaml
 ---
 - package: cmake 
   name: cmake
-  version: 3.12.3
-  extension: tar.gz
-  vendor_source: https://cmake.org/files/v3.12/cmake-{{ version }}.tar.gz
-  description: >
-    Cmake version {{ version }}. CMake is an open-source, cross-platform family of tools designed to build, 
+  release: 3
+  version: "{{versions.cmake.reg}}"
+  vendor_source: https://cmake.org/files/{{versions.cmake.major}}/{{name}}-{{version}}.{{extension}}
+  description: |
+    Cmake version {{version}}. CMake is an open-source, cross-platform family of tools designed to build, 
     test and package software. CMake is used to control the software compilation process using simple 
     platform and compiler independent configuration files, and generate native makefiles and workspaces 
     that can be used in the compiler environment of your choice. The suite of CMake tools were created 
     by Kitware in response to the need for a powerful, cross-platform build environment for open-source 
     projects such as ITK and VTK.
-  pkgname: foundation-{{ name }}
-  root: "{{ pkg_defaults.foundation }}/{{ name }}/{{ version }}"
   build:
-    configure: ./bootstrap 
-    modules: 
-    target: 
-  module:
-    name: "{{ version }}"
-    path: "{{ pkg_defaults.module.path }}/{{ package }}"
-    prepend_path:
-      - "{{ pkg_defaults.module.prepend_path }}"
-  install:
-    makeinstall: $(MAKE) DESTDIR=$(ROOT) install
-    installextra: $(INSTALL) -m 644  README* LICENSE $(ROOT)/{{ root }}
-  files:
-    -  "{{ root }}"
-    -  "{{ module.path }}/{{ module.name }}" 
+    configure: ./bootstrap --prefix={{root}}

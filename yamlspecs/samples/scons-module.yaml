@@ -1,0 +1,10 @@
+!include scons.yaml
+!include rcic-module.yaml
+---
+- package: scons module
+  category: TOOLS
+  release: 2
+  module:
+    prepend_path:
+      - *Prepend_path
+      - PYTHONPATH {{root}}/lib/python2.7/site-packages

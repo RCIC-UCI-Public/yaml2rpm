@@ -1,0 +1,20 @@
+!include common.yaml
+---
+- package: scons 
+  name: scons 
+  version: "{{versions.scons}}"
+  vendor_source: http://prdownloads.sourceforge.net/scons/{{name}}-{{version}}.{{extension}}
+  description: |
+    SCcons version {{version}}. This is SCons, a tool for building software (and other files).
+    SCons is implemented in Python, and its configuration files are actually Python scripts,
+    allowing you to use the full power of a real scripting language to solve build problems. 
+    You do not, however, need to know Python to use SCons effectively
+  build:
+    configure: echo No configure required
+    pkgmake: >
+      sed -i -e "s%('man', 'man1')%('share', 'man', 'man1')%" -e "s%man/man1%share/man/man1%"  setup.py;
+      python ./setup.py
+    target: build
+  install:
+    makeinstall: >
+      python ./setup.py install --standard-lib --prefix={{root}} --root=$(ROOT)

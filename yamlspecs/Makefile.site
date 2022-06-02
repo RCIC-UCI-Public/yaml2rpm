@@ -1,0 +1,9 @@
+# This Makefile creates a symlink to local appropriate site8.yaml file 
+# This is used only to build yaml2rpm the first time (e.g. on a pristine system)
+OS.MAJOR = $(shell lsb_release -rs | cut -d . -f 1)
+SITEDIR = site
+SITE.OS = $(SITEDIR)/site$(OS.MAJOR).yaml
+site.yaml: $(SITE.OS)
+	if [ -L $@ ]; then unlink $@; fi
+	ln -s $(SITE.OS) $@
+ 

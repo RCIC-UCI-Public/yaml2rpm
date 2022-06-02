@@ -1,0 +1,16 @@
+---
+system:
+   - gcc 
+   - gcc-c++ 
+   - gcc-gfortran
+   - pcre-devel
+   - zlib-devel
+bootstrap:
+build:
+   - cmake
+   - cmake-module
+   - scons
+   - scons-module
+manifest:
+   - "{{bootstrap}}"
+   - "{{build}}"

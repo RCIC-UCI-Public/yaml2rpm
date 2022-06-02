@@ -1,7 +1,7 @@
 ## This a Makefile to drive the bootstrapping/building of RPMS
 # Uncomment this line if using the yaml2rpm files
 SHELL=/bin/bash
-TEMPLATEDIR=/opt/rocks/yaml2rpm
+TEMPLATEDIR=$(YAML2RPM_HOME)
 HOME=$(shell pwd)
 
 SUDO = sudo
@@ -15,18 +15,18 @@ ifndef ADMIX
 ADMIX = $(shell basename $$(realpath ..))
 endif
 
-## System template dir should be /opt/rocks/yaml2rpm
+## System template dir should be $YAML2RPM_HOME
 ## if not defined, expect local copy (e.g. as in master Git repo)
 ifndef TEMPLATEDIR
-TEMPLATEDIR = ..
+TEMPLATEDIR = .
 endif
 
 BUILDTEMPLATE = builder
 TEMPLATE_FILES = $(wildcard $(TEMPLATEDIR)/$(BUILDTEMPLATE)/*)
 DEFINITIONS = Definitions.mk
 
-GENERATE = $(TEMPLATEDIR)/gen-definitions.py $(GENEXTRAS)
-MANIFEST2ANSIBLE = $(TEMPLATEDIR)/manifest2ansible.py 
+BASEGENERATE = $(TEMPLATEDIR)/bin/gen-definitions.py $(GENEXTRAS)
+MANIFEST2ANSIBLE = $(TEMPLATEDIR)/bin/manifest2ansible.py 
 
 ## Local sources of tarballs
 LOCALREPODIR = ..
@@ -72,13 +72,41 @@ MANIFEST_FILE = $(BUILD_MODULES_FILE)
 endif
 PACKAGES_FILE = $(wildcard packages.yaml)
 
+## Handling a version set. 
+## A set file MUST have an entry 
+## versions: <name of versions file>
+## The set file set-$(SET).yaml is then used as the packages.yaml file.
+## if SET is not empty, then we want to look in the 
+## set file for versions: tag and use that file for versions going forward
+## PACKAGES_FILE is then the set-$(SET) file
+VMAP = 
+ifneq ($(PACKAGES_FILE),)
+ALLSETS := $(shell $(BASEGENERATE) -Q --query=sets $(PACKAGES_FILE))
+else
+ALLSETS = 
+endif
+
+ifdef SET 
+PACKAGES_FILE = set-$(SET).yaml
+VERSIONSFILE = $(shell $(BASEGENERATE) --query=versions $(PACKAGES_FILE))
+VMAP = --versions=$(VERSIONSFILE)
+
+ifeq ("$(VERSIONSFILE)","")
+$(error set file $(PACKAGES_FILE) has no versions: tag)
+endif
+
+endif
+
+GENERATE=$(BASEGENERATE) $(VMAP)
+
+
 # Values are taken from packages.yaml file or from modules.* files
 ifneq ($(PACKAGES_FILE),)
-BOOTSTRAP_QUERY = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=bootstrap  $(PACKAGES_FILE)) 
+BOOTSTRAP_QUERY = $(shell  $(GENERATE)  --no-defaults --quiet --query=bootstrap  $(PACKAGES_FILE)) 
 BOOTSTRAP_MODULES = $(BOOTSTRAP_QUERY:None=)
-BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --query=system  $(PACKAGES_FILE)) 
-MODULES = $(shell  $(GENERATE) --no-defaults --quiet --listsep=' ' --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
-MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet  --listsep=' ' --query=manifest  $(PACKAGES_FILE)) 
+BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --query=system  $(PACKAGES_FILE)) 
+MODULES = $(shell  $(GENERATE) --no-defaults --quiet --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
+MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet --query=manifest  $(PACKAGES_FILE)) 
 else
 BOOTSTRAP_MODULES = $(shell grep -s -v '\#' $(BOOTSTRAP_MODULES_FILE)) 
 BOOTSTRAP_SYSTEM  = $(shell grep -s -v '\#' $(BOOTSTRAP_SYSTEM_FILE)) 
@@ -102,11 +130,12 @@ ifndef ALL_TARGETS
 ALL_TARGETS = bootstrap $(SOURCES) $(PKGS)
 endif
 
-buildall: buildstart $(ALL_TARGETS)
-	echo "== Built ALL Targets: $^ =="
-	echo "== Built ALL $(shell date) =="
+buildall:: buildstart $(ALL_TARGETS)
+	echo "== Built ALL Targets ($(SET)): $^ =="
+	echo "== Built ALL ($(SET)) $(shell date) =="
+
 buildstart:
-	echo "== BUILDING ALL $(shell date) =="
+	echo "== BUILDING ALL ($(SET)) $(shell date) =="
 
 ## This section takes the yaml file and does various interpretations to create files
 ## 1. Create temp working directory $(TMPBUILD) - install template files from $(TEMPLATEDIR)/builder
@@ -130,14 +159,14 @@ buildstart:
 	- $(GENERATE) --query=pretar $< | /bin/sh
 	- install $$($(GENERATE) --query=patch $<) $(TMPBUILD)
 	- install  $(SOURCES)/$$($(GENERATE) --query=tarball $<) $(TMPBUILD)
-	- install $$($(GENERATE) --listsep=" " --query=addfile $<) $(TMPBUILD)
-	- (for src in $$($(GENERATE) --listsep=" " --query=addsource $<); do  \
+	- install $$($(GENERATE) --query=addfile $<) $(TMPBUILD)
+	- (for src in $$($(GENERATE) --query=addsource $<); do  \
 		install $(SOURCES)/$$src $(TMPBUILD); done)
 	make -e -C $(TMPBUILD) pkg 
 	touch $@
 	echo "===== Completed $@ ( $$(date) )========" 
 
-manifest:
+manifest::
 	( for pkg in $(MANIFEST); do					\
 		if [ -f $$pkg.yaml ]; then				\
 		     $(GENERATE) --query=pkgname $$pkg.yaml;		\
@@ -146,12 +175,12 @@ manifest:
 		fi;							\
 	  done								\
 	)
-
+	
 ansible:
-	make -s manifest | xargs $(MANIFEST2ANSIBLE) --name $(ADMIX) 
+	make -f $(THISMAKE) -s manifest | xargs $(MANIFEST2ANSIBLE) --name $(ADMIX) 
 
 
-module-provides:
+module-provides::
 	( for pkg in $(MANIFEST) $(MODULEYAML); do			\
 		if [ -f $$pkg.yaml ]; then				\
 		     isModule=`$(GENERATE) --query=envmodule $$pkg.yaml`;	\
@@ -161,12 +190,12 @@ module-provides:
 		fi;							\
 	  done								\
 	)
-module-requires:
+module-requires::
 	( for pkg in $(MODULES) $(BOOTSTRAP_YAMLS); do						\
 		if [ -f $$pkg ]; then								\
-		     needModule=`$(GENERATE) --query=build.modules --listsep="\\n" $$pkg`;	\
+		     needModule=`$(GENERATE) --query=build.modules $$pkg`;	\
 		     if [ "$$needModule" != "False" ] && [ "$$needModule" != "True" ] 		\
-			&&   [ "$$needModule" != "None" ]; then echo -e $$needModule; 		\
+		       && [ "$$needModule" != "None" ]; then echo -e $$needModule | tr ' ' '\n';\
 		     fi; 	\
 		fi;										\
 	  done											\
@@ -186,7 +215,7 @@ admix-bootstrap-yaml:
 	  fi;\
 	done )
 
-bootstrap: 
+bootstrap:: 
 	- $(YUM) -y install $(BOOTSTRAP_SYSTEM) 
 	echo $(BOOTSTRAP_MODULES)
 	( for mod in $(BOOTSTRAP_MODULES); do					\
@@ -197,7 +226,7 @@ bootstrap:
 	  done									\
 	)
 
-unbootstrap:
+unbootstrap::
 	( ALLRPMS='';								\
 	  for mod in $(BOOTSTRAP_MODULES); do					\
 		rpmname=$$($(GENERATE) --query=pkgname $$mod.yaml);		\
@@ -244,9 +273,34 @@ cleanyaml:
 	
 clean: cleanpkg cleantmp cleanyaml
 
-veryclean: clean
+veryclean:: clean
 
 FORCE:
+
+
+## Targets that should iterate through sets after the BASE set 
+## action is completed
+##  --> IF BASEONLY is defined, then ALLSETS is not iterated
+##  --> IF SET=<string>  is defined, then ALLSETS is not iterated
+manifest module-requires module-provides veryclean unbootstrap ::
+ifndef BASEONLY
+	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
+	    for set in $(ALLSETS); do \
+		make -s -e -f $(THISMAKE) SET=$$set $@; \
+	    done; \
+	fi 
+endif 
+
+## Same as above, except make clean between each stage. 
+buildall ::
+ifndef BASEONLY
+	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
+	    for set in $(ALLSETS); do \
+		make -e SET=$$set -f $(THISMAKE) clean; \
+		make -e -f $(THISMAKE) SET=$$set $@; \
+	    done; \
+	fi 
+endif 
 
 diag:
 	echo "HOME:  $(HOME)"
@@ -256,3 +310,5 @@ diag:
 	echo "THISMAKE: $(THISMAKE)"
 	echo "MAKEFILE_LIST: $(MAKEFILE_LIST)"
 	echo "ALL_TARGETS: $(ALL_TARGETS)"
+	echo "ALLSETS: $(ALLSETS)"
+	echo "SET: $(SET)"

@@ -1,0 +1,5 @@
+!include cmake.yaml
+!include rcic-module.yaml
+---
+- package: cmake module
+  category: TOOLS

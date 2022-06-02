@@ -1,10 +1,12 @@
 ---
 rcic_module_path: 
   version: "1.0"
-  release: "5"
+  release: "6"
 rcic_module_support:
-  version: "1.2"
-  release: "1"
+  version: "2"
+  release: "4"
 yaml2rpm:
-  version: "1.10"
-  release: "2"
+  version: "2"
+  release: "9"
+rocks_devel: "7.1"
+

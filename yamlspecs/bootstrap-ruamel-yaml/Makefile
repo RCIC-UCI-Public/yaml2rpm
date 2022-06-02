@@ -26,3 +26,6 @@ install::
 
 clean::
 	rm -rf $(ARCHIVENAME)-$(VERSION) 
+
+diag:
+	echo $(VERSION.MAJOR) "'$(PY.VERSION)'"

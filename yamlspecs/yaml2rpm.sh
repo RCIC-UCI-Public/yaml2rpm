@@ -52,8 +52,8 @@
 #
 #
 if [ "x$YAML2RPM_HOME" == "x" ]; then
-	export YAML2RPM_HOME=/opt/rocks/yaml2rpm
-	export YAML2RPM_INC=/opt/rcic/include:${YAML2RPM_HOME}/site:${YAML2RPM_HOME}/sys
-        export PATH=$YAML2RPM_HOME:$PATH
+	export YAML2RPM_HOME=/opt/rcic
+	export YAML2RPM_INC=$YAML2RPM_HOME/include:$YAML2RPM_HOME/site:$YAML2RPM_HOME/sys
+        export PATH=$YAML2RPM_HOME/bin:$PATH
 fi
 

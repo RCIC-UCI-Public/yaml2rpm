@@ -9,7 +9,10 @@ bootstrap:
 # SYSTEM
 # Packages supplied by the OS vendor that must be installed prior to building anything in this admix
 system:
+   - redhat-lsb-core
+   - platform-python-devel
 
+   
 # BUILD
 # Packages that must be built in this admix
 build0:
