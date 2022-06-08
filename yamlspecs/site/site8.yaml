@@ -1,6 +1,6 @@
 ---
 os_release: "8"
-foundation: "v7"
+foundation: "v8"
 compiler_sys:
   name: gcc
   version: "system"
@@ -42,3 +42,4 @@ OpenBLAS: "0.3.6"
 netcdfc: "4.7.0"
 netcdff: "4.5.2"
 udunits: "2.2.26"
+go: "1.17.7"
