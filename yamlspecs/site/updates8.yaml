@@ -3,6 +3,9 @@ foundation: "v8"
 compiler:
   name: gcc
   version: "11.2.0"
+compiler_intel:
+  name: "intel"
+  version: "2022.2"
 mpi:
   name: openmpi
   version: "4.1.2"
