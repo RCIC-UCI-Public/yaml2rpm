@@ -36,30 +36,15 @@ include yamlspecs/Makefile.toplevel
 
 bootstrap_pristine:
 	$(SUDO) yum -y install redhat-lsb-core
-<<<<<<< HEAD
-	make setuptools-install
-	make future-install
-	make ruamel-yaml-install
-	make ruamel-yaml-clib-install
-=======
 	make bootstrap_install  
 
 download_pristine:
->>>>>>> a4c38a11256d85065785df4dcd8b2ffc365bb459
 	make -e download
 
 build_pristine:
 	make -e -C yamlspecs -f Makefile.site 
 	make -e -C yamlspecs buildall
 
-<<<<<<< HEAD
-setuptools future ruamel-yaml ruamel-yaml-clib:
-	make -C yamlspecs/bootstrap-$@
-
-%-install: %
-	make createlocalrepo
-	$(SUDO) yum -y -c yum.conf install python-$?
-=======
 $(BOOTSTRAP_PKGS):
 	make -C yamlspecs/bootstrap-$@
 
@@ -68,4 +53,3 @@ bootstrap_install_nobuild:
 	make createlocalrepo
 	$(SUDO) yum -y -c yum.conf install $(BOOTSTRAP_PKGS_INST) 
 bootstrap_install: $(BOOTSTRAP_PKGS) bootstrap_install_nobuild 
->>>>>>> a4c38a11256d85065785df4dcd8b2ffc365bb459

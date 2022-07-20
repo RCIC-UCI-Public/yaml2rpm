@@ -31,3 +31,9 @@ build:
 manifest:  
    - "{{build0}}"
    - environment-modules
+   - bin-python
+   - python-future
+   - platform-python-setuptools
+   - python-ruamel-yaml
+   - python-ruamel-yaml-clib
+ 
