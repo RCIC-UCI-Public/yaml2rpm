@@ -181,7 +181,7 @@ ansible:
 
 
 module-provides::
-	( for pkg in $(MANIFEST) $(MODULEYAML); do			\
+	( for pkg in $(MANIFEST); do			\
 		if [ -f $$pkg.yaml ]; then				\
 		     isModule=`$(GENERATE) --query=envmodule $$pkg.yaml`;	\
 		     if [ "$$isModule" == "True" ]; then                \
@@ -201,6 +201,34 @@ module-requires::
 	  done											\
 	)
 	
+
+ANSWER = "True False None"
+module-requires-category::
+	( for ypkg in $(MODULES) $(BOOTSTRAP_YAMLS); do			\
+		if [ -f $$ypkg ]; then					\
+		    answer=`$(GENERATE) --query=build.modules $$ypkg`;	\
+		    if [[ $(ANSWER) != *"$$answer"* ]]; then		\
+		        catname=`$(GENERATE) --query=category $$ypkg`;	\
+		        for mod in $$answer; do				\
+		            echo $$mod $$catname;			\
+		        done; 						\
+		    fi; 						\
+		fi;                                                     \
+	done                                                            \
+	)
+
+module-provides-category::
+	( for pkg in $(MANIFEST); do                                    \
+		ypkg=$$pkg.yaml;                            		\
+		if [ -f $$ypkg ]; then                                  \
+		    answer=`$(GENERATE) --query=module.logname $$ypkg`; \
+		    catname=`$(GENERATE) --query=category $$ypkg`;      \
+		    if [[ $(ANSWER) != *"$$answer"* ]]; then            \
+		        echo $$answer $$catname;                        \
+		    fi; 						\
+		fi;                                                     \
+	done                                                            \
+	)
 admix-bootstrap-yaml:
 	( NEEDS=$$(make -f $(THISMAKE) -s module-requires | sort | uniq); \
 	PROVIDES=$$(make -f $(THISMAKE) -s module-provides | sort | uniq);\
@@ -282,7 +310,7 @@ FORCE:
 ## action is completed
 ##  --> IF BASEONLY is defined, then ALLSETS is not iterated
 ##  --> IF SET=<string>  is defined, then ALLSETS is not iterated
-manifest module-requires module-provides veryclean unbootstrap ::
+manifest module-requires module-provides module-requires-category module-provides-category veryclean unbootstrap ::
 ifndef BASEONLY
 	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
 	    for set in $(ALLSETS); do \
