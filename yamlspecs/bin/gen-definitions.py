@@ -767,6 +767,38 @@ class queryProcessor(object):
             print(rval)
         elif not quiet:
             print('True')
+    def processCategory(self):
+        try:
+            pkgname = self.mk.lookup("pkgname")
+        except:
+            pkgname = "%s_%s" % (self.mk.lookup("name"), self.mk.lookup("version")) 
+
+        try:
+            category = self.mk.lookup("category",stringify=False)
+            provides = self.mk.lookup("module.logname") 
+        except:
+            category = False
+            provides = False
+
+        try:
+            requires = self.mk.lookup("build.modules",stringify=False)
+            if type(requires) is str:
+                requires = requires.split(" ")
+        except:
+            requires = []
+
+        # list can contain '' , remove all occurences
+        requires = [value for value in requires if value != '']
+
+        rstr =  "%s:\n" % pkgname
+        rstr += "  category: %s" % category
+        rstr += "\n  requires:" 
+        for i in requires:
+            rstr += "\n    - %s" % i
+        rstr += "\n  provides:"
+        if provides:
+            rstr += "\n    - %s" % provides
+        print (rstr)
 
 ## *****************************
 ## main routine
@@ -783,6 +815,8 @@ def main(argv):
 
     helpquery = "query if value exists in the yaml file and  print  the result on stdout. Valid types are the keywords in the\n"
     helpquery += "the yaml file: patch, module, source, pkgname, etc. Example: --query=source. If nout found, prints 'False'\n"
+
+    helpcategory = "does a multiquery for requries, provides and category\n"
 
     helpdefaults = "specify packaging defaults yaml file to use. If none is provided, use:\n"
     helpdefaults += "(1) specific ./%s in the current yamlspecs/ directory; if exists \n" % dflts_file
@@ -802,6 +836,7 @@ def main(argv):
     parser.add_argument("-D", "--no-defaults", dest="skipDefaults", default=False, action='store_true', help=helpskipdefaults)
     parser.add_argument("-m", "--module",   dest="doModule",   default=False, action='store_true', help="generate environment modules file")
     parser.add_argument("-q", "--query",    dest="doQuery",    default=False, help=helpquery)
+    parser.add_argument("-c", "--category", dest="doCategory", default=False, action='store_true',help=helpcategory)
     parser.add_argument("-Q", "--quiet",    dest="quiet",      default=False, action='store_true', help="supress output of query processing")
     parser.add_argument("-M", "--map",      dest="mapf",       default=False, help=helpmap)
     parser.add_argument("-V", "--versions", dest="versions",       default=False, help=helpver)
@@ -835,6 +870,9 @@ def main(argv):
     elif args.doQuery:
         qp = queryProcessor(mkP)
         qp.processQuery(args.doQuery,args.quiet)
+    elif args.doCategory:
+        qp = queryProcessor(mkP)
+        qp.processCategory()
     else:
         mig = makeIncludeGenerator(mkP)
         print(mig.generateDefs())
