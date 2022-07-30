@@ -229,6 +229,15 @@ module-provides-category::
 		fi;                                                     \
 	done                                                            \
 	)
+
+module-info::
+	( for ypkg in $(MODULES) $(BOOTSTRAP_YAMLS); do						\
+		if [ -f $$ypkg ]; then                                  \
+		    $(GENERATE) -c $$ypkg; \
+		fi;                                                     \
+	done                                                            \
+	)
+
 admix-bootstrap-yaml:
 	( NEEDS=$$(make -f $(THISMAKE) -s module-requires | sort | uniq); \
 	PROVIDES=$$(make -f $(THISMAKE) -s module-provides | sort | uniq);\
@@ -310,7 +319,7 @@ FORCE:
 ## action is completed
 ##  --> IF BASEONLY is defined, then ALLSETS is not iterated
 ##  --> IF SET=<string>  is defined, then ALLSETS is not iterated
-manifest module-requires module-provides module-requires-category module-provides-category veryclean unbootstrap ::
+manifest module-requires module-provides module-requires-category module-provides-category module-info veryclean unbootstrap ::
 ifndef BASEONLY
 	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
 	    for set in $(ALLSETS); do \

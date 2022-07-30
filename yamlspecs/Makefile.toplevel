@@ -55,6 +55,12 @@ module-requires-provides-category:
 		echo "$$provides";                  \
 	)
 
+module-info:
+	(                                                          \
+		echo "$(ADMIXNAME):";               \
+		make -s -C yamlspecs module-info 2>/dev/null | sed 's/^/  /'; \
+	)
+
 cleansources:
 	- /bin/rm -rf sources
 
