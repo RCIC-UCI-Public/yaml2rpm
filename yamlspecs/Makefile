@@ -202,34 +202,6 @@ module-requires::
 	)
 	
 
-ANSWER = "True False None"
-module-requires-category::
-	( for ypkg in $(MODULES) $(BOOTSTRAP_YAMLS); do			\
-		if [ -f $$ypkg ]; then					\
-		    answer=`$(GENERATE) --query=build.modules $$ypkg`;	\
-		    if [[ $(ANSWER) != *"$$answer"* ]]; then		\
-		        catname=`$(GENERATE) --query=category $$ypkg`;	\
-		        for mod in $$answer; do				\
-		            echo $$mod $$catname;			\
-		        done; 						\
-		    fi; 						\
-		fi;                                                     \
-	done                                                            \
-	)
-
-module-provides-category::
-	( for pkg in $(MANIFEST); do                                    \
-		ypkg=$$pkg.yaml;                            		\
-		if [ -f $$ypkg ]; then                                  \
-		    answer=`$(GENERATE) --query=module.logname $$ypkg`; \
-		    catname=`$(GENERATE) --query=category $$ypkg`;      \
-		    if [[ $(ANSWER) != *"$$answer"* ]]; then            \
-		        echo $$answer $$catname;                        \
-		    fi; 						\
-		fi;                                                     \
-	done                                                            \
-	)
-
 module-info::
 	( for ypkg in $(MODULES) $(BOOTSTRAP_YAMLS); do						\
 		if [ -f $$ypkg ]; then                                  \
@@ -319,7 +291,7 @@ FORCE:
 ## action is completed
 ##  --> IF BASEONLY is defined, then ALLSETS is not iterated
 ##  --> IF SET=<string>  is defined, then ALLSETS is not iterated
-manifest module-requires module-provides module-requires-category module-provides-category module-info veryclean unbootstrap ::
+manifest module-requires module-provides module-info veryclean unbootstrap ::
 ifndef BASEONLY
 	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
 	    for set in $(ALLSETS); do \

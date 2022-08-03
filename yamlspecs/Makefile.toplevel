@@ -44,17 +44,6 @@ module-requires-provides:
 		echo "$$provides";                  \
 	)
 
-module-requires-provides-category:
-	(                                                          \
-		requires=`make -s -C yamlspecs module-requires-category 2>/dev/null | sed 's/^/$(LISTINDENT)/' | sort | uniq`; \
-		provides=`make -s -C yamlspecs module-provides-category 2>/dev/null | sed 's/^/$(LISTINDENT)/' | sort | uniq`; \
-		echo "$(ADMIXNAME):";               \
-		echo "  requires:";                 \
-		echo -e "$$requires";               \
-		echo "  provides:";                 \
-		echo "$$provides";                  \
-	)
-
 module-info:
 	(                                                          \
 		echo "$(ADMIXNAME):";               \
