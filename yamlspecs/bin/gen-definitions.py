@@ -781,7 +781,10 @@ class queryProcessor(object):
             provides = False
 
         try:
-            requires = self.mk.lookup("build.modules",stringify=False)
+            if category: # for module file
+                requires = self.mk.lookup("module.prereq",stringify=False)
+            else: # for regular package file
+                requires = self.mk.lookup("build.modules",stringify=False)
             if type(requires) is str:
                 requires = requires.split(" ")
         except:
