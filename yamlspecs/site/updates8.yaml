@@ -11,7 +11,7 @@ mpi:
   version: "4.1.2"
 cuda:
   name: cuda
-  version:  "11.4.0"
+  version:  "11.7.1"
 cmake: "3.22.1"
 java: "17"
 hdf5: "1.13.1"
