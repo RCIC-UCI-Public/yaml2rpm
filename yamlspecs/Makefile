@@ -166,7 +166,13 @@ buildstart:
 	touch $@
 	echo "===== Completed $@ ( $$(date) )========" 
 
-manifest::
+## Target copyset must be empty in this makefile
+## When need to overwrite do in respective admix/yamlspecs/Makefile
+## only needed for compelx admixes where there are multiple sets of yamls
+## saved in subdirectories.
+copyset:
+
+manifest:: copyset
 	( for pkg in $(MANIFEST); do					\
 		if [ -f $$pkg.yaml ]; then				\
 		     $(GENERATE) --query=pkgname $$pkg.yaml;		\
@@ -180,7 +186,7 @@ ansible:
 	make -f $(THISMAKE) -s manifest | xargs $(MANIFEST2ANSIBLE) --name $(ADMIX) 
 
 
-module-provides::
+module-provides:: copyset
 	( for pkg in $(MANIFEST); do			\
 		if [ -f $$pkg.yaml ]; then				\
 		     isModule=`$(GENERATE) --query=envmodule $$pkg.yaml`;	\
@@ -190,7 +196,7 @@ module-provides::
 		fi;							\
 	  done								\
 	)
-module-requires::
+module-requires:: copyset
 	( for pkg in $(MODULES) $(BOOTSTRAP_YAMLS); do						\
 		if [ -f $$pkg ]; then								\
 		     needModule=`$(GENERATE) --query=build.modules $$pkg`;	\
@@ -202,7 +208,7 @@ module-requires::
 	)
 	
 
-module-info::
+module-info:: copyset
 	( for ypkg in $(MODULES) $(BOOTSTRAP_YAMLS); do						\
 		if [ -f $$ypkg ]; then                                  \
 		    $(GENERATE) -c $$ypkg; \
