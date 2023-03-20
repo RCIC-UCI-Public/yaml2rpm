@@ -6,11 +6,15 @@ REDHAT.ROOT = $(CURDIR)/../../
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
 
-SURL=https://googledrive.com/host/1L-VOgFEvE3OVVQYT3Okfu7Fy9MLUcr8W
+-include ../bootstrap.inc
 ROCKSSHARE=/opt/rocks/share/devel
 DOWNLOADER=$(ROCKSSHARE)/bin/get_sources.sh
 
+ifeq ($(strip $(ROCKS.OS.VERSION.MAJOR)), 7)
+PYTHON_DEV_RPM = python-devel 
+else
 PYTHON_DEV_RPM = platform-python-devel 
+endif
 
 default: prereqs download rpm
 
