@@ -1,6 +1,11 @@
 %post
-PYVER=$(/usr/bin/python3 -c "import sys; print('%d.%d' % (sys.version_info.major, sys.version_info.minor))")
-/usr/sbin/alternatives --install /usr/bin/unversioned-python \
+# Find which OS Release by major version 
+# If 7, do NOT update alternatives to use python3 as unversioned-python 
+#
+MAJOR_VER=$(/bin/cat /etc/os-release | grep ^REDHAT_SUPPORT_PRODUCT_VERSION | /usr/bin/cut -f 2 -d\")
+if [ "$MAJOR_VER" != "7" ]; then
+    PYVER=$(/usr/bin/python3 -c "import sys; print('%d.%d' % (sys.version_info.major, sys.version_info.minor))")
+    /usr/sbin/alternatives --install /usr/bin/unversioned-python \
                           python \
                           /usr/bin/python3 \
                           300 \
@@ -12,7 +17,7 @@ PYVER=$(/usr/bin/python3 -c "import sys; print('%d.%d' % (sys.version_info.major
                           /usr/share/man/man1/python3.1.gz \
                 --slave   /usr/include/python${PYVER} \
                           pyinc${PYVER} \
-                          /usr/include/python${PYVER}m
 
-/usr/sbin/update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+    /usr/sbin/update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+fi
 
