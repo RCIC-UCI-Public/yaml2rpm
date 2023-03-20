@@ -42,8 +42,8 @@ download_pristine:
 	make -e download
 
 build_pristine:
-	make -e -C yamlspecs -f Makefile.site 
-	make -e -C yamlspecs buildall
+	make --environment-overrides TEMPLATE_DIR=$(CWD)/yamlspecs -C yamlspecs -f Makefile.site 
+	make --environment-overrides TEMPLATE_DIR=$(CWD)/yamlspecs -C yamlspecs buildall
 
 $(BOOTSTRAP_PKGS):
 	make -C yamlspecs/bootstrap-$@

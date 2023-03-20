@@ -1,5 +1,10 @@
-# Google Drive ppapadop@UCI Public Access software sources
-SURL=https://googledrive.com/host/1L-VOgFEvE3OVVQYT3Okfu7Fy9MLUcr8W
+# Public sources for admixes are currently held in Wasabi hot cloud 
+# You can set a different base https locations by setting the SURL Environment
+# var
+ifndef SURL
+SURL= https://s3.us-west-1.wasabisys.com/admix-sources
+endif
+
 ROCKSSHARE=/opt/rocks/share/devel
 DOWNLOADER=$(ROCKSSHARE)/bin/get_sources.sh
 ADMIXNAME = $(shell basename $$(pwd))

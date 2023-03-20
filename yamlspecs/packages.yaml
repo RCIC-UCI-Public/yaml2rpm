@@ -1,4 +1,5 @@
 ---
+site: !include site.yaml
 # bootstrap and system packages built/installed when "make bootstrap" is invoked
 # All of these should be lists, see the "build:" example for yaml2rpm below
 
@@ -10,7 +11,7 @@ bootstrap:
 # Packages supplied by the OS vendor that must be installed prior to building anything in this admix
 system:
    - redhat-lsb-core
-   - platform-python-devel
+   - !ifeq "{{site.os_release}},7,python-devel,platform-python-devel"
 
    
 # BUILD

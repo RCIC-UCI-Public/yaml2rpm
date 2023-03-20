@@ -22,10 +22,13 @@ popd
 yum -y install environment-modules
 
 ## Set up TOKENs for authenticated google drive download
-. /etc/profile.d/rocks-devel.sh
-if [ ! -f $TOKENFILE ]; then
-   /opt/rocks/share/devel/bin/get-token.sh
-fi
+## March 2023 - sources moved to S3 provider, eliminating the need to set up 
+## a token for google drive
+# . /etc/profile.d/rocks-devel.sh
+# if [ ! -f $TOKENFILE ]; then
+#   /opt/rocks/share/devel/bin/get-token.sh
+# fi
+
  
 ## Get source tarballs
 make download

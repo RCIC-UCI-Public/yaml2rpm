@@ -3,7 +3,8 @@
 OS.MAJOR = $(shell lsb_release -rs | cut -d . -f 1)
 SITEDIR = site
 SITE.OS = $(SITEDIR)/site$(OS.MAJOR).yaml
-site.yaml: $(SITE.OS)
+$(SITEDIR)/site.yaml: $(SITE.OS)
+
 	if [ -L $@ ]; then unlink $@; fi
 	ln -s $(SITE.OS) $@
  
