@@ -2,7 +2,7 @@
 # Find which OS Release by major version 
 # If 7, do NOT update alternatives to use python3 as unversioned-python 
 #
-MAJOR_VER=$(/bin/cat /etc/os-release | grep ^REDHAT_SUPPORT_PRODUCT_VERSION | /usr/bin/cut -f 2 -d\")
+MAJOR_VER=$(/bin/cat /etc/os-release | grep ^REDHAT_SUPPORT_PRODUCT_VERSION | /usr/bin/cut -f 2 -d\" | /usr/bin/cut -f 1 -d.)
 if [ "$MAJOR_VER" != "7" ]; then
     PYVER=$(/usr/bin/python3 -c "import sys; print('%d.%d' % (sys.version_info.major, sys.version_info.minor))")
     /usr/sbin/alternatives --set python /usr/bin/python3

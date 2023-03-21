@@ -1,6 +1,6 @@
 # This Makefile creates a symlink to local appropriate site8.yaml file 
 # This is used only to build yaml2rpm the first time (e.g. on a pristine system)
-OS.MAJOR = $(shell /bin/cat /etc/os-release | grep ^REDHAT_SUPPORT_PRODUCT_VERSION | /usr/bin/cut -f 2 -d\")
+OS.MAJOR = $(shell /bin/cat /etc/os-release | grep ^REDHAT_SUPPORT_PRODUCT_VERSION | /usr/bin/cut -f 2 -d\" | /usr/bin/cut -f 1 -d.)
 SITEDIR = site
 SITE.OS = $(SITEDIR)/site$(OS.MAJOR).yaml
 site.yaml $(SITEDIR)/site.yaml: $(SITE.OS)

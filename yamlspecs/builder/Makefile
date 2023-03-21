@@ -41,7 +41,7 @@ endif
 # Defaults:
 AUTOMODULE=""
 
-__OS_MAJOR_RELEASE=$(shell /bin/cat /etc/os-release | grep ^REDHAT_SUPPORT_PRODUCT_VERSION | /usr/bin/cut -f 2 -d\")
+__OS_MAJOR_RELEASE=$(shell /bin/cat /etc/os-release | grep ^REDHAT_SUPPORT_PRODUCT_VERSION | /usr/bin/cut -f 2 -d\" | /usr/bin/cut -f 1 -d.)
 
 # RHEL8 (and rebuilds) 
 ifeq ($(__OS_MAJOR_RELEASE),8) 
