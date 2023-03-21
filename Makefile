@@ -49,8 +49,4 @@ $(BOOTSTRAP_PKGS):
 	make -C yamlspecs/bootstrap-$@
 	make -C yamlspecs/bootstrap-$@ pkginstall
 
-bootstrap_build: $(BOOTSTRAP_PKGS)
-bootstrap_install_nobuild:
-	make createlocalrepo
-	$(SUDO) yum -y -c yum.conf install $(BOOTSTRAP_PKGS_INST) 
-bootstrap_install: $(BOOTSTRAP_PKGS) bootstrap_install_nobuild 
+bootstrap_install: $(BOOTSTRAP_PKGS)
