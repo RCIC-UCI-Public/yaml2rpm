@@ -5,7 +5,7 @@
 
 SHELL = /bin/bash
 CWD := $(shell pwd)
-OS.MAJOR = $(shell lsb_release -rs | cut -d . -f 1)
+OS.MAJOR = $(shell /bin/cat /etc/os-release | grep ^REDHAT_SUPPORT_PRODUCT_VERSION | /usr/bin/cut -f 2 -d\") 
 
 
 ## Packages that need to be built prior to yamlrpm 
