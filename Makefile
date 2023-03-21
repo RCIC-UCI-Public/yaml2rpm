@@ -35,7 +35,6 @@ install:
 include yamlspecs/Makefile.toplevel
 
 bootstrap_pristine:
-	$(SUDO) yum -y install redhat-lsb-core
 	make bootstrap_install  
 
 download_pristine:
