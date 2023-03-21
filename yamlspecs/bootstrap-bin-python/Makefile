@@ -7,6 +7,7 @@ REDHAT.ROOT = $(CURDIR)/../../
 -include $(ROCKSROOT)/etc/Rules.mk
 include Rules.mk
 ROCKSSHARE=/opt/rocks/share/devel
+-include ../bootstrap.inc 
 
 default: rpm
 

@@ -34,7 +34,7 @@ manifest:
    - environment-modules
    - bin-python
    - python-future
-   - platform-python-setuptools
+   - !ifeq "{{site.os_release}},7,python-setuptools,platform-python-setuptools"
    - python-ruamel-yaml
    - python-ruamel-yaml-clib
  

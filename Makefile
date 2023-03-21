@@ -47,6 +47,7 @@ build_pristine:
 
 $(BOOTSTRAP_PKGS):
 	make -C yamlspecs/bootstrap-$@
+	make -C yamlspecs/bootstrap-$@ pkginstall
 
 bootstrap_build: $(BOOTSTRAP_PKGS)
 bootstrap_install_nobuild:
