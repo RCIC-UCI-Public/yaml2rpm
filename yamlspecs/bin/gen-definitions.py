@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 # Generate a Definitions.mk file - write to standard output 
 
 from __future__ import print_function

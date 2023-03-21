@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 # Generate an ansible file from a manifest 
 
 import argparse
