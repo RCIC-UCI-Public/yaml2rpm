@@ -3,9 +3,3 @@
 ---
 - baserpm: foundation-{{name}}
   versions: !include versions.yaml
-  build:
-    configure: ./configure --prefix={{root}} 
-  install:
-    makeinstall: $(MAKE) DESTDIR=$(ROOT) install
-  files:
-    -  "{{root}}"
