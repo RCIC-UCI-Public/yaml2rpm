@@ -19,7 +19,7 @@ pushd $DEVELREPO
 popd
 
 ## Make sure environment-modules are installed
-yum -y install environment-modules
+${SUDO} yum -y install environment-modules
 
 ## Set up TOKENs for authenticated google drive download
 ## March 2023 - sources moved to S3 provider, eliminating the need to set up 
