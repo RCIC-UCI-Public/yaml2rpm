@@ -19,8 +19,8 @@ TEMPLATE = """---
   vars:
     pkglist:"""
 PKGSTR = "      - %s"
-ANSIBLEYUM = "yum"
-UPDATE_ONLY = ""
+ANSIBLEYUM = "ansible.builtin.yum"
+UPDATE_ONLY = "update_only: no"
 
 ## *****************************
 ## main routine
@@ -41,13 +41,10 @@ def main(argv):
     parser.add_argument("pkgs",  action="store", help="packages to be installed", nargs='+') 
     args = parser.parse_args()
     
-    EL8=platform.linux_distribution()[1].startswith('8')
-    if EL8:
-       yum_module = "ansible.builtin.yum"
-       update = "update_only: no"
-    else:
-       yum_module =  ANSIBLEYUM
-       update = UPDATEONLY
+    #EL8=platform.linux_distribution()[1].startswith('8')
+    # ansible >= 2.10
+    yum_module =  ANSIBLEYUM
+    update = UPDATE_ONLY
 
     print(TEMPLATE % (args.admixName,yum_module,update))
     for pkg in args.pkgs:

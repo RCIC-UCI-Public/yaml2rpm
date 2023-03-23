@@ -19,7 +19,7 @@ endif
 default: prereqs download rpm
 
 prereqs:
-	- yum -y install $(PYTHON_DEV_RPM)
+	- $(SUDO) yum -y install $(PYTHON_DEV_RPM)
 	
 download: sources
 	SURL=$(SURL) $(DOWNLOADER)
