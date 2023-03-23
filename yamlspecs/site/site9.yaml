@@ -19,7 +19,7 @@ mpi:
 cuda:
   name: cuda
   version:  "10.1.243"
-python_sys: "3.6"
+python_sys: "3.9"
 python: "2.7.17"
 python_major: "2.7"
 python3: "3.8.0"
