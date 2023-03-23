@@ -5,6 +5,7 @@
 SURL = https://s3.us-west-1.wasabisys.com/admix-sources
 
 # Pkg install target for bootstrap-* packages
+# Optionally use sudo to install the package
 pkginstall:
-	(cd $(REDHAT.RPMS)/..; make createlocalrepo; yum -c yum.conf -y install $(NAME))
+	(cd $(REDHAT.RPMS)/..; make createlocalrepo; $(SUDO) yum -c yum.conf -y install $(NAME))
 
