@@ -39,13 +39,13 @@ endif
 
 ### Any OS-release specific things should go here
 # Defaults:
-AUTOMODULE=""
+AUTOMODULE="--auto"
 
 __OS_MAJOR_RELEASE=$(shell /bin/cat /etc/os-release | grep ^REDHAT_SUPPORT_PRODUCT_VERSION | /usr/bin/cut -f 2 -d\" | /usr/bin/cut -f 1 -d.)
 
-# RHEL8 (and rebuilds) 
-ifeq ($(__OS_MAJOR_RELEASE),8) 
-AUTOMODULE="--auto"
+# RHEL7 (and rebuilds) 
+ifeq ($(__OS_MAJOR_RELEASE),7) 
+AUTOMODULE=""
 endif
 
 #################################################################
