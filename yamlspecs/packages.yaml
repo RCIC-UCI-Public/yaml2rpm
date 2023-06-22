@@ -29,7 +29,7 @@ build:
 # This says the manifest is  the {{build0}}. All built and all system packages is 
 # another rational configuration
 manifest:  
-   - "{{build0}}"
+   - "{{build}}"
    - environment-modules
    - bin-python
    - python-future
