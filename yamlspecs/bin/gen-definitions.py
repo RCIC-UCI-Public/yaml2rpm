@@ -14,6 +14,8 @@ import io
 import argparse
 import pdb
 import time
+from multiprocessing import Pool
+
 
 if sys.version_info.major == 3:
     from typing import Dict
@@ -747,26 +749,24 @@ class queryProcessor(object):
                rstr = self.mk.lookup("name")
                rstr += "-%s" % str(self.mk.lookup("version"))
                rstr += ".%s" % self.mk.lookup("extension")
-            print(rstr)
-            sys.exit(0)
+            return rstr
         if rq == "pkgname":
             try:
                 rstr = self.mk.lookup("pkgname")
             except:
                 rstr = "%s_%s" % (self.mk.lookup("name"), self.mk.lookup("version")) 
-            print(rstr)
-            sys.exit(0)
+            return rstr
         try:
             rval = self.mk.lookupAndResolve(rq,' ')
         except:
             if not quiet:
-                print('False')
-            sys.exit(-1)
-            
+                return('False')
+
         if len(rval) > 0:
-            print(rval)
+            return rval
         elif not quiet:
-            print('True')
+            return 'True'
+
     def processCategory(self):
         try:
             pkgname = self.mk.lookup("pkgname")
@@ -801,7 +801,7 @@ class queryProcessor(object):
         rstr += "\n  provides:"
         if provides:
             rstr += "\n    - %s" % provides
-        print (rstr)
+        return rstr
 
 ## *****************************
 ## main routine
@@ -840,25 +840,50 @@ def main(argv):
     parser.add_argument("-m", "--module",   dest="doModule",   default=False, action='store_true', help="generate environment modules file")
     parser.add_argument("-q", "--query",    dest="doQuery",    default=False, help=helpquery)
     parser.add_argument("-c", "--category", dest="doCategory", default=False, action='store_true',help=helpcategory)
+    parser.add_argument("-p", "--parallel", dest="parallel", default=8, action='store',help="How many yaml files to process in parallel")
     parser.add_argument("-Q", "--quiet",    dest="quiet",      default=False, action='store_true', help="supress output of query processing")
     parser.add_argument("-M", "--map",      dest="mapf",       default=False, help=helpmap)
     parser.add_argument("-V", "--versions", dest="versions",       default=False, help=helpver)
     # required positional argument
-    parser.add_argument("yamlfile",  action="store", help="main YAML file with packaging definitions") 
+    parser.add_argument("yamlfiles", nargs="+", help="YAML file(s) with packaging definitions") 
     args = parser.parse_args()
     
-    # Check for existence of args.yamlfile
-    if not os.path.isfile(args.yamlfile):
-       sys.stderr.write("yaml file %s does not exist\n" % args.yamlfile)
-       sys.exit(-1)
+    # Check for existence of args.yamlfiles
+    for yamlfile in args.yamlfiles:
+       if not os.path.isfile(yamlfile):
+           sys.stderr.write("yaml file(s) %s does not exist\n" % yamlfile)
+           sys.exit(-1)
     if args.mapf: 
         incMap.update(eval(args.mapf))
     if args.versions:
         incMap.update({'versions.yaml':args.versions})
 
+    outputs = processInParallel(args)
+    for yamlfile in args.yamlfiles:
+        print(outputs[yamlfile])
+
+
+def processInParallel(args): 
+    rval = dict()
+    for yamlfile in args.yamlfiles:
+        rval[yamlfile] = ""
+    subargs = [(yf,args) for yf in args.yamlfiles]
+
+    with Pool(int(args.parallel)) as pool:
+       for result in pool.imap_unordered(processFile, subargs):
+           rval[result[0]] = result[1]           
+    return rval
+
+
+def processFile(subargs):
+    """subargs = (yamlfile, args) 
+       returns = (yamlfile, output)
+    """
+    yamlfile = subargs[0]
+    args = subargs[1]
     # Open input yaml files, parse, generate
     mkP = mkParser()
-    mkP.readPkgYaml(args.yamlfile)
+    mkP.readPkgYaml(yamlfile)
     if not args.skipDefaults:
         mkP.readPkgYaml(args.dflts_file)
     mkP.resolveVars()
@@ -869,16 +894,17 @@ def main(argv):
 
     if args.doModule: 
         mg = moduleGenerator(mkP)
-        print(mg.generateModFile() )
+        output = mg.generateModFile()
     elif args.doQuery:
         qp = queryProcessor(mkP)
-        qp.processQuery(args.doQuery,args.quiet)
+        output = qp.processQuery(args.doQuery,args.quiet)
     elif args.doCategory:
         qp = queryProcessor(mkP)
         qp.processCategory()
     else:
         mig = makeIncludeGenerator(mkP)
-        print(mig.generateDefs())
+        output = mig.generateDefs()
+    return (yamlfile,output)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
