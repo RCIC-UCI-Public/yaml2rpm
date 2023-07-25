@@ -173,13 +173,16 @@ buildstart:
 copyset:
 
 manifest:: copyset
-	( for pkg in $(MANIFEST); do					\
+	( MANIFEST_YAML=();                                             \
+	  for pkg in $(MANIFEST); do					\
 		if [ -f $$pkg.yaml ]; then				\
-		     $(GENERATE) --query=pkgname $$pkg.yaml;		\
+		     MANIFEST_YAML+=("$$pkg.yaml");                     \
 		else							\
 			echo $$pkg;					\
 		fi;							\
-	  done								\
+	  done;								\
+	  [ $${#MANIFEST_YAML[@]} -gt 0 ] &&                            \
+		$(GENERATE) --query=pkgname $${MANIFEST_YAML[@]};	\
 	)
 	
 ansible:
@@ -187,33 +190,39 @@ ansible:
 
 
 module-provides:: copyset
-	( for pkg in $(MANIFEST); do			\
-		if [ -f $$pkg.yaml ]; then				\
-		     isModule=`$(GENERATE) --query=envmodule $$pkg.yaml`;	\
-		     if [ "$$isModule" == "True" ]; then                \
-		        $(GENERATE) --query=module.logname $$pkg.yaml;	        \
-		     fi;					\
-		fi;							\
-	  done								\
+	( MANIFEST_YAML=();                                                 \
+	  for pkg in $(MANIFEST); do			                    \
+		if [ -f $$pkg.yaml ]; then MANIFEST_YAML+=("$$pkg.yaml");fi;\
+	  done;								    \
+	  [ $${#MANIFEST_YAML[@]} -gt 0 ] &&                             \
+	    modNames=`$(GENERATE) --query=module.logname $${MANIFEST_YAML[@]}`;    \
+          for mod in $$modNames; do                                         \
+	     if [ "$$mod" != "False" ]; then echo $$mod; fi;                \
+	  done							            \
 	)
 module-requires:: copyset
-	( for pkg in $(MODULES) $(BOOTSTRAP_YAMLS); do						\
-		if [ -f $$pkg ]; then								\
-		     needModule=`$(GENERATE) --query=build.modules $$pkg`;	\
-		     if [ "$$needModule" != "False" ] && [ "$$needModule" != "True" ] 		\
-		       && [ "$$needModule" != "None" ]; then echo -e $$needModule | tr ' ' '\n';\
-		     fi; 	\
-		fi;										\
-	  done											\
+	( ALLMODS=();                                                       \
+	  for pkg in $(MODULES) $(BOOTSTRAP_YAMLS); do	                    \
+		if [ -f $$pkg ]; then ALLMODS+=($$pkg); fi;                 \
+	  done;                                                             \
+	  [ $${#ALLMODS[@]} -gt 0 ] &&                                       \
+	     needModule=`$(GENERATE) --query=build.modules $${ALLMODS[@]}`;   \
+          for x in $$needModule; do                                         \
+		if [ "$$x" != "False" ] && [ "$$x" != "True" ]              \
+		&& [ "$$x" != "None" ]; then                                \
+			echo -e $$x| tr ' ' '\n';                           \
+		fi; 	                                                    \
+	  done                                                              \
 	)
 	
 
 module-info:: copyset
-	( for ypkg in $(MODULES) $(BOOTSTRAP_YAMLS); do						\
-		if [ -f $$ypkg ]; then                                  \
-		    $(GENERATE) -c $$ypkg; \
-		fi;                                                     \
-	done                                                            \
+	( MODYAMLS=();                                                  \
+          for ypkg in $(MODULES) $(BOOTSTRAP_YAMLS); do                 \
+		if [ -f $$ypkg ]; then MODYAMLS+=("$$ypkg");fi;         \
+	  done;                                                         \
+          if [ $${#MODYAMLS[@]} -gt 0 ]; then                       \
+	  $(GENERATE) -c $${MODYAMLS[@]}; fi                            \
 	)
 
 admix-bootstrap-yaml:
@@ -242,16 +251,16 @@ bootstrap::
 	)
 
 unbootstrap::
-	( ALLRPMS='';								\
-	  for mod in $(BOOTSTRAP_MODULES); do					\
-		rpmname=$$($(GENERATE) --query=pkgname $$mod.yaml);		\
-                ALLRPMS="$$ALLRPMS $$rpmname";					\
-	  done;									\
-          $(YUM) -y erase $$ALLRPMS 						\
+	( BOOTSTRAP_YAMLS=();                                             \ 
+	  for mod in $(BOOTSTRAP_MODULES); do				  \
+		BOOTSTRAP_YAMLS+=("$$mod.yaml");                          \
+	  done;                                                           \
+	  ALLRRPMS=$$($(GENERATE) --query=pkgname $${BOOTSTRAP_YAMLS[@]); \
+          $(YUM) -y erase $$ALLRPMS                                       \
 	)
 
 unbootstrap-sys:
-	$(YUM) -y erase $(BOOTSTRAP_SYSTEM);					\
+	$(YUM) -y erase $(BOOTSTRAP_SYSTEM);				\
 
 $(TMPBUILD):
 	mkdir $(TMPBUILD)

@@ -761,6 +761,7 @@ class queryProcessor(object):
         except:
             if not quiet:
                 return('False')
+            return ""
 
         if len(rval) > 0:
             return rval
@@ -900,7 +901,7 @@ def processFile(subargs):
         output = qp.processQuery(args.doQuery,args.quiet)
     elif args.doCategory:
         qp = queryProcessor(mkP)
-        qp.processCategory()
+        output=qp.processCategory()
     else:
         mig = makeIncludeGenerator(mkP)
         output = mig.generateDefs()
