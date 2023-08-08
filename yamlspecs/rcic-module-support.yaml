@@ -24,4 +24,4 @@
     makeinstall:  mkdir -p $(ROOT)/{{root}}; $(TAR) cf - * | $(TAR) xf -  -C $(ROOT)/{{root}} 
   clean: "{{name}}-{{version}}"
   files: 
-    - "{{root}}/include/*" 
+    - "{{root}}"

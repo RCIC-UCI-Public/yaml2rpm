@@ -31,5 +31,5 @@
       $(INSTALL) ../rcic-modules.*sh $(ROOT)/etc/profile.d
   clean: "{{name}}-{{version}}"
   files: 
-    - "{{root}}/Modules" 
+    - "{{root}}"
     - /etc/profile.d/*
