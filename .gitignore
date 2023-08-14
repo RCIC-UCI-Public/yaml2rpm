@@ -9,3 +9,4 @@ workdir/
 yamlspecs/tmpbuild/
 yum.*
 .rpmmacros
+*.pkg
