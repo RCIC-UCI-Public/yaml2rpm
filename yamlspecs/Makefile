@@ -181,8 +181,8 @@ manifest:: copyset
 			echo $$pkg;					\
 		fi;							\
 	  done;								\
-	  [ $${#MANIFEST_YAML[@]} -gt 0 ] &&                            \
-		$(GENERATE) --query=pkgname $${MANIFEST_YAML[@]};	\
+	  if [ $${#MANIFEST_YAML[@]} -gt 0 ] ; then                        \
+		$(GENERATE) --query=pkgname $${MANIFEST_YAML[@]}; fi	\
 	)
 	
 ansible:
