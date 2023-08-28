@@ -19,7 +19,8 @@
     tar cf - bin site ../README.md builder samples yaml2rpm.sh | tar xf - -C {{name}}-{{version}};
     install {{sysmake}} {{name}}-{{version}}/sys;
     install Makefile.tmpl {{name}}-{{version}}/samples/Makefile;
-    tar czf ../sources/{{srctar}} {{name}}-{{version}} 
+    tar czf ../sources/{{srctar}} {{name}}-{{version}};
+    rm -rf {{name}}-{{version}}
   build:
     configure: echo
     configure_args: 

@@ -105,7 +105,8 @@ ifneq ($(PACKAGES_FILE),)
 BOOTSTRAP_QUERY = $(shell  $(GENERATE)  --no-defaults --quiet --query=bootstrap  $(PACKAGES_FILE)) 
 BOOTSTRAP_MODULES = $(BOOTSTRAP_QUERY:None=)
 BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --query=system  $(PACKAGES_FILE)) 
-MODULES = $(shell  $(GENERATE) --no-defaults --quiet --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
+MODULES_QUERY = $(shell  $(GENERATE) --no-defaults --quiet --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
+MODULES = $(MODULES_QUERY:None.yaml=)
 MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet --query=manifest  $(PACKAGES_FILE)) 
 else
 BOOTSTRAP_MODULES = $(shell grep -s -v '\#' $(BOOTSTRAP_MODULES_FILE)) 
@@ -285,13 +286,13 @@ cleantmp:
 	- /bin/rm -rf $(TMPBUILD)
 
 cleanpkg:
-	- /bin/rm *pkg
+	- /bin/rm -f *pkg
 
 cleanyaml:
 	echo $(MODULES)
 	( for mod in $(MODULES); do					\
 		cleandir=$$($(GENERATE) --query=clean $$mod);		\
-		if [ $$? == 0 ]; then /bin/rm -r $$cleandir; fi;		\
+		if [ $$? == 0 ]; then /bin/rm -rf $$cleandir; fi;		\
 	  done									\
 	)
 	
