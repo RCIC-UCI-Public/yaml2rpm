@@ -1,51 +1,55 @@
-## this file is usually integrated in yamlspecs as
-## !include rpm.yaml
+# this file is usually integrated in yaml package files as
+# !include rpm.yaml
 ---
-# default setting for jar repack. This is a default in rpm macros:
+# Default setting for jar repack. This is a default in rpm macros:
 # %{!?__jar_repack:/usr/lib/rpm/redhat/brp-java-repack-jars} \
 # and it means repack java jar files when making RPM. Value 1 means repack
 # To disable repacking include in your yaml file the following:
 # rpmJarRepack: 0
 rpmJarRepack: 1
 
-
-
-# define AutoReqProv: Yes 
-# This is the default for RPM, but in some rare instances, may override. 
+# Define AutoReqProv: Yes
+# This is the default for RPM, but in some rare instances, may need to overwrite.
 rpmAutoRequires: "AutoReqProv: {{rpmAutoReqProv}}"
 rpmAutoReqProv: "Yes"
 
-
-# Defines how and if build_id links are generated for ELF files. 
-# See 
+# Defines how and if build_id links are generated for ELF files.
+# For details see
 # https://github.com/rpm-software-management/rpm/blob/4a9440006398646583f0d9ae1837dad2875013aa/macros.in#L506
-# for details 
-# to turn off build id links, set rpmBuildIdLinks to "none"
+# To turn off build id links, set rpmBuildIdLinks below to "none"
 rpmBuildIdLinks: "compat"
 
-# define local filters empty. Tihs means a system rpm macros 
-# for finding RPM requires and provides will be used
+# Define local filters empty. This means system rpm macros
+# for finding RPM's requires and provides will be used
 rpmFilters: ""
 
-# define local rpm requires filter
+# Define local rpm requires filter
+# To use, specify in package yaml file:
+# rpmFilters: *filterRequires
 filterRequires: &filterRequires |
   %define _use_internal_dependency_generator 0\n\
   %define __find_requires %{_builddir}/%{name}-%{version}/filter-requires-{{name}}.sh\n\
   %define __find_provides %{_rpmconfigdir}/find-provides
 
-# define local rpm provides filter
+# Define local rpm provides filter
+# To use, specify in package yaml file:
+# rpmFilters: *filterProvides
 filterProvides: &filterProvides |
   %define _use_internal_dependency_generator 0\n\
   %define __find_provides %{_builddir}/%{name}-%{version}/filter-provides-{{name}}.sh
 
-# define local rpm requires and provides filters
+# Define local rpm requires and provides filters
+# To use, specify in package yaml file:
+# rpmFilters: *filterRequiresProvides
 filterRequiresProvides: &filterRequiresProvides |
   %define _use_internal_dependency_generator 0\n\
   %define __find_requires %{_builddir}/%{name}-%{version}/filter-requires-{{name}}.sh\n\
   %define __find_provides %{_builddir}/%{name}-%{version}/filter-provides-{{name}}.sh
 
-# define local rpm requires, provides and extra exclude filters.
-# This is used when building perl
+# Define local rpm requires, provides and extra exclude filters.
+# This is used when building perl packages
+# To use specify in package yaml file:
+# rpmFilters: *filterPerl
 filterPerl: &filterPerl |
   %define _use_internal_dependency_generator 0\n\
   %define __find_requires %{_builddir}/%{name}-%{version}/filter-requires-{{name}}.sh\n\
@@ -53,10 +57,12 @@ filterPerl: &filterPerl |
   %global __provides_exclude_from %{perl_vendorarch}/auto/.*\\.so$|%{perl_archlib}/.*\\.so$|%{_docdir}\n\
   %global __requires_exclude_from %{_docdir}
 
-# this is a default definition of rpm.extras suitable for most packages.
-# We redefine the __spec_install_post macro to load the correct modules so that 
+# This is a default definition of rpm.extras suitable for most packages.
+# We redefine the __spec_install_post macro to load the correct modules so that
 # brp-python-bytecompile can access libraries and correct version of python
 # default rpmFlters are empty and can be overwritten when needed via setting rpmFilters
+# To use, specify in package yaml file:
+# !include rpm.yaml
 rpm: 
   mangle_shebangs: "%define __brp_mangle_shebangs /bin/echo turn off shebang mangling"
   build_id_links: "%define _build_id_links {{rpmBuildIdLinks}}"
@@ -78,39 +84,28 @@ rpm:
     %{nil}\n\
     {{rpmFilters}}
 
-# for packages that use conda/anaconda.
-# redefine __os_install_post to bypass brp-python-bytecompile of already compiled
-# python packages. To use, specify in package yaml file
+# For packages that use conda/anaconda.
+# Redefine __os_install_post to bypass brp-python-bytecompile of already compiled
+# python packages. To use, specify in package yaml file:
 # rpm:
 #   extras: *RpmConda
 extrasconda: &RpmConda | 
-  {{rpmFilters}}\n\
+  {{rpmAutoRequires}}\n\
+  %define __jar_repack {{rpmJarRepack}}\n\
   {{rpm.build_id_links}}\n\
   {{rpm.mangle_shebangs}}\n\
+  %define _python_bytecompile_errors_terminate_build 0\n\
   %define __strip /bin/true\n\
   %define __spec_install_post \
     %{?__debug_package:%{__debug_install_post}}\
     %{__arch_install_post}\
     %{__os_install_post}\
-  %{nil}
-
-# %define __os_install_post \
-# /usr/lib/rpm/brp-compress \
-# %{?__debug_package:\
-# /usr/lib/rpm/brp-strip %{__strip} \
-# /usr/lib/rpm/brp-strip-comment-note %{__strip} %{__objdump} \
-# } \
-# /usr/lib/rpm/brp-strip-static-archive %{__strip} \
-# /usr/lib/rpm/brp-python-hardlink \
-# %{!?__jar_repack:/usr/lib/rpm/brp-java-repack-jars} \
-# %{nil}\n\
-# {{rpm.build_id_links}}\n\
-# {{rpm.mangle_shebangs}}\n\
-# {{rpmFilters}}
+  %{nil}\n\
+  {{rpmFilters}}
 
 # For use with packages that provide 3-party precompiled software.
-# when there is no need for brp-* commands on existing binaries/libraries.
-# we redefine __os_install_post to handle this case.
+# When there is no need for brp-* commands on existing binaries/libraries.
+# We redefine __os_install_post to handle this case.
 # To use, specify in package yaml file
 # rpm:
 #   extras: *RpmNone
@@ -121,7 +116,7 @@ extrasnone: &RpmNone |
 
 # For use when building python. Need to redefine macros 
 # to use just build python and its libraries from the current build.
-# To use, specify in package yaml file
+# To use, specify in package yaml file:
 # rpm:
 #   extras: *RpmPython
 extraspython: &RpmPython |

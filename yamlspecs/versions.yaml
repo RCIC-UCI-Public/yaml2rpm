@@ -4,7 +4,7 @@ rcic_module_path:
   release: "21"
 rcic_module_support:
   version: "2"
-  release: "21"
+  release: "23"
 yaml2rpm:
   version: "2"
   release: "22"
