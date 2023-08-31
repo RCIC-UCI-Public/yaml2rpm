@@ -120,6 +120,7 @@ extrasnone: &RpmNone |
 # rpm:
 #   extras: *RpmPython
 extraspython: &RpmPython |
+  {{rpmAutoRequires}}\n\
   {{rpmFilters}}\n\
   {{rpm.build_id_links}}\n\
   {{rpm.mangle_shebangs}}\n\
