@@ -779,7 +779,9 @@ class queryProcessor(object):
             provides = self.mk.lookup("module.logname") 
         except:
             category = False
-            provides = False
+            provides = self.mk.lookup("provides",stringify=False)
+        if type(provides) is str:
+            provides = provides.split(" ")
 
         try:
             if category: # for module file
@@ -793,6 +795,7 @@ class queryProcessor(object):
 
         # list can contain '' , remove all occurences
         requires = [value for value in requires if value != '']
+        provides = [value for value in provides if value != '']
 
         rstr =  "%s:\n" % pkgname
         rstr += "  category: %s" % category
@@ -801,7 +804,8 @@ class queryProcessor(object):
             rstr += "\n    - %s" % i
         rstr += "\n  provides:"
         if provides:
-            rstr += "\n    - %s" % provides
+            for j in provides:
+                rstr += "\n    - %s" % j
         return rstr
 
 ## *****************************

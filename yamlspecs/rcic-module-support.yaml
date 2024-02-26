@@ -25,3 +25,4 @@
   clean: "{{name}}-{{version}}"
   files: 
     - "{{root}}"
+  provides: "{{pkgname}}"

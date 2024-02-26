@@ -43,3 +43,4 @@
     - /etc/profile.d/*
   rpm:
     extras: "%define __brp_mangle_shebangs /bin/echo turn of shebang mangling"
+  provides: "{{pkgname}}"
