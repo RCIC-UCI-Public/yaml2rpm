@@ -107,7 +107,7 @@ BOOTSTRAP_MODULES = $(BOOTSTRAP_QUERY:None=)
 BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --query=system  $(PACKAGES_FILE)) 
 MODULES_QUERY = $(shell  $(GENERATE) --no-defaults --quiet --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
 MODULES = $(MODULES_QUERY:None.yaml=)
-MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet --query=manifest  $(PACKAGES_FILE)) 
+MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet --query=manifest  $(PACKAGES_FILE) | sed -e 's/None//') 
 else
 BOOTSTRAP_MODULES = $(shell grep -s -v '\#' $(BOOTSTRAP_MODULES_FILE)) 
 BOOTSTRAP_SYSTEM  = $(shell grep -s -v '\#' $(BOOTSTRAP_SYSTEM_FILE)) 
