@@ -449,6 +449,14 @@ class mkParser(object):
     def flatten(self, mllist):
         """ recursive method to flatten list of elements where each element
             might itself be a list. Returns a list """
+        literals = []
+        for x in mllist:
+            if type(x) is list:
+                literals.extend(self.flatten(x))
+            else:
+                literals.append(x)
+        return literals
+
         sublists = [x for x in mllist if type(x) is list] 
         literals = [x for x in mllist if type(x) is not list] 
         if len(sublists) == 0:
