@@ -1,4 +1,5 @@
 ---
+admix: yaml2rpm
 rcic_module_path: 
   version: "1.0"
   release: "22"

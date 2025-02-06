@@ -2,6 +2,7 @@
 ---
 - package: RCIC dev repo 
   name: rcic-dev-repo
+  versions: !include versions.yaml
   version: "0.9" 
   release: 1
   pkgname: "{{name}}"
