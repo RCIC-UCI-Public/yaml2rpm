@@ -1,0 +1,6 @@
+#!/bin/bash
+# Strips everything that can be stripped. Any errors (like unrecognized formats) does not raise
+# an error 
+STRIP=$(which strip)
+$STRIP $* &> /dev/null
+exit 0

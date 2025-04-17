@@ -31,7 +31,7 @@
       mkdir -p $(ROOT)/{{root}}/site; 
       mkdir -p $(ROOT)/etc/profile.d;
       $(TAR) cf - builder samples sys README.md | $(TAR) xf -  -C $(ROOT)/{{root}};
-      $(INSTALL) bin/*py $(ROOT)/{{root}}/bin;
+      $(INSTALL) -m 755 bin/* $(ROOT)/{{root}}/bin;
       $(INSTALL) -m 644 site/*yaml $(ROOT)/{{root}}/site;
       (OSMAJOR=$$(/bin/cat /etc/os-release | grep ^REDHAT_SUPPORT_PRODUCT_VERSION | /usr/bin/cut -f 2 -d\" | /usr/bin/cut -f 1 -d.); cd $(ROOT)/{{root}}/site; ln -s site$${OSMAJOR}.yaml site.yaml); 
       $(INSTALL) yaml2rpm.sh $(ROOT)/etc/profile.d

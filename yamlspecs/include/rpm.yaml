@@ -66,11 +66,13 @@ filterPerl: &filterPerl |
 rpm: 
   mangle_shebangs: "%define __brp_mangle_shebangs /bin/echo turn off shebang mangling"
   build_id_links: "%define _build_id_links {{rpmBuildIdLinks}}"
+  wrapstrip: "%define __strip %{getenv:YAML2RPM_HOME}/bin/wrapstrip"
   site: !include site.yaml
-  automodule: !ifeq "{{rpm.site.os_release}},8,--auto,"
+  automodule: !eval "'--auto' if {{rpm.site.os_release}} >= 8 else ''"
   extras: &RpmExtras | 
     {{rpmAutoRequires}}\n\
     %define __jar_repack {{rpmJarRepack}}\n\
+    {{rpm.wrapstrip}}\n\
     {{rpm.build_id_links}}\n\
     {{rpm.mangle_shebangs}}\n\
     %define _python_bytecompile_errors_terminate_build 0\n\
