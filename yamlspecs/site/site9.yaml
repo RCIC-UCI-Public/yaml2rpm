@@ -6,7 +6,7 @@ compiler_sys:
   version: "system"
 compiler_intel: 
   name: "intel"
-  version: "2020u1"
+  version: "2024.0.1"
 compiler:
   name: gcc
   version: "8.4.0"
