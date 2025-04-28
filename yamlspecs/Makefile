@@ -126,7 +126,7 @@ default: $(SOURCES) $(PKGS)
 ## Non-conformant admixes should include this makefile and then
 ## define ALL_TARGETS 
 
-.PHONY:  buildall buildstart
+.PHONY:  buildall buildstart stageset
 ifndef ALL_TARGETS
 ALL_TARGETS = bootstrap $(SOURCES) $(PKGS)
 endif
@@ -167,11 +167,12 @@ buildstart:
 	touch $@
 	echo "===== Completed $@ ( $$(date) )========" 
 
-## Target copyset must be empty in this makefile
+## Target copyset, stageset must be empty in this makefile
 ## When need to overwrite do in respective admix/yamlspecs/Makefile
 ## only needed for compelx admixes where there are multiple sets of yamls
 ## saved in subdirectories.
 copyset:
+stageset: 
 
 manifest:: copyset
 	( MANIFEST_YAML=();                                             \
@@ -321,6 +322,7 @@ buildall ::
 ifndef BASEONLY
 	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
 	    for set in $(ALLSETS); do \
+	        make -e SET=$$set -f $(THISMAKE) stageset; \
 		make -e SET=$$set -f $(THISMAKE) clean; \
 		make -e -f $(THISMAKE) SET=$$set $@; \
 	    done; \
