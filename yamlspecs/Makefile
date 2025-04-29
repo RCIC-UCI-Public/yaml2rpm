@@ -245,10 +245,10 @@ bootstrap::
 	- $(YUM) -y install $(BOOTSTRAP_SYSTEM) 
 	echo $(BOOTSTRAP_MODULES)
 	( for mod in $(BOOTSTRAP_MODULES); do					\
-		make -e -f $(THISMAKE) $$mod.pkg;							\
-		make -e -C $(LOCALREPODIR) createlocalrepo; 			\
+		make -e -f $(THISMAKE) $$mod.pkg;				\
+		make -e -C $(LOCALREPODIR) createBootstrapRepo;			\
 		rpmname=$$($(GENERATE) --query=pkgname $$mod.yaml);		\
-		$(YUM) -y -c $(LOCALREPODIR)/yum.conf install $$rpmname;		\
+		$(YUM) -y -c $(LOCALREPODIR)/yum.conf install $$rpmname;	\
 	  done									\
 	)
 

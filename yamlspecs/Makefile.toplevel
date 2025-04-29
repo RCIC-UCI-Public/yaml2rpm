@@ -11,7 +11,7 @@ ADMIXNAME = $(shell basename $$(pwd))
 LI0 = "     - "
 LISTINDENT = $(subst ",,$(LI0))
 BUILDREQUIRES = buildrequires
-.PHONY: manifest cleansources 
+.PHONY: manifest cleansources BoostrapRepo createBootstrapRepo
 
 include  $(ROCKSSHARE)/src/roll/etc/Rules-repo-centos.mk
 download: sources
@@ -31,6 +31,20 @@ install-admix:
 
 uninstall-admix:
 	make -C yamlspecs -s manifest | xargs $(SUDO) yum $(YES) -c yum.conf erase 
+
+
+# Adapt definitions from rocks-devel. When bootstrapping and then installing 
+# a just-built RPM, just need the latest-built RPM. For large bootstraps (Like R and Perl)
+# This is significantly faster over createlocalrepo
+
+BootstrapRepo: $(LOCALREPO.REPO)
+	[ -d $(LOCALPATH)/$(REPONAME) ] || /bin/mkdir -p $(LOCALPATH)/$(REPONAME)/RPMS
+	/bin/rm $(LOCALPATH)/$(REPONAME)/RPMS/*
+	(THERPM=$$(find RPMS -name '*rpm' -exec ls -tr {} + | tail -1); \
+		echo $$THERPM; /bin/cp -p $$THERPM $(LOCALPATH)/$(REPONAME)/RPMS)
+	( cd $(LOCALPATH)/$(REPONAME); createrepo .)
+
+createBootstrapRepo: copyconf BootstrapRepo localcache
 
 buildall:
 	make -e download
