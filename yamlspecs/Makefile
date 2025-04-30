@@ -33,7 +33,7 @@ LOCALREPODIR = ..
 SOURCES = ../sources
 ## Name of local directory for build. Cleared for each package built
 ## so it only supports one build a time
-TMPBUILD = tmpbuild
+TMPBUILD = tmpbuild$(SET)
 ADDFILTERS = addfilters
 
 ## These define the modules.
