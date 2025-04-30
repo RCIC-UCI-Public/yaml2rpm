@@ -39,7 +39,7 @@ uninstall-admix:
 
 BootstrapRepo: $(LOCALREPO.REPO)
 	[ -d $(LOCALPATH)/$(REPONAME) ] || /bin/mkdir -p $(LOCALPATH)/$(REPONAME)/RPMS
-	/bin/rm $(LOCALPATH)/$(REPONAME)/RPMS/*
+	- /bin/rm $(LOCALPATH)/$(REPONAME)/RPMS/*
 	(THERPM=$$(find RPMS -name '*rpm' -exec ls -tr {} + | tail -1); \
 		echo $$THERPM; /bin/cp -p $$THERPM $(LOCALPATH)/$(REPONAME)/RPMS)
 	( cd $(LOCALPATH)/$(REPONAME); createrepo .)
