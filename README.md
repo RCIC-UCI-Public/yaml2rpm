@@ -220,8 +220,3 @@ wget $(/opt/rocks/yaml2rpm/gen-definitions.py --query=vendor_source iperf.yaml)
 ```
 query mode is used in creating the directory structure and copying files. It is also very helpful for the packager to debug resolved definitions. 
 
-
-
-
-
-
