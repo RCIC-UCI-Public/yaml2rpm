@@ -4,7 +4,6 @@ BUILDTARGET =
 INSTALLTARGET = install
 CONFIGURE  = ./configure
 CONFIGURE_ARGS = --prefix=$(PKGROOT)
-REDHAT.ROOT = $(CURDIR)/../../
 RELEASE = 1
 VENDOR = RCIC @ UC Irvine
 PATCH_CMD = patch

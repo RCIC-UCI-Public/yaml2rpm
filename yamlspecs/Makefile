@@ -2,18 +2,34 @@
 # Uncomment this line if using the yaml2rpm files
 SHELL=/bin/bash
 TEMPLATEDIR=$(YAML2RPM_HOME)
-HOME=$(shell pwd)
+
+ifndef USEHOME
+HOME = $(shell pwd)
+else
+HOME = $(USEHOME)
+endif
 
 SUDO = sudo
+AllRepoLockfile = /var/lock/yaml2rpm.lock
 YUM = $(SUDO) /usr/bin/yum
+#  YUM should always be flocked
+#  When installing a bootstrapped package, need to lock both the repo creation and YUM as one 
+YUMEXCLUSIVE = flock $(AllRepoLockfile) $(YUM)
 
 ## We want the name of the enclosing Makefile since
 # this particular Makefile is usually included
 THISMAKE := $(firstword $(MAKEFILE_LIST))
+THISDIR := $(shell pwd)
 
 ifndef ADMIX
 ADMIX = $(shell basename $$(realpath ..))
 endif
+
+## Two marker files to determine if this Makefile is being called directly from
+## an already-staged directory or from the admix's base yamlspecs directory
+
+ADMIXROOT = $(shell if [ -f .admix.root ]; then cat .admix.root; else realpath ..; fi)
+ADMIXYAMLS = $(shell if [ -f .admix.yamls ]; then cat .admix.yamls; else pwd; fi)
 
 ## System template dir should be $YAML2RPM_HOME
 ## if not defined, expect local copy (e.g. as in master Git repo)
@@ -29,11 +45,30 @@ BASEGENERATE = $(TEMPLATEDIR)/bin/gen-definitions.py $(GENEXTRAS)
 MANIFEST2ANSIBLE = $(TEMPLATEDIR)/bin/manifest2ansible.py 
 
 ## Local sources of tarballs
-LOCALREPODIR = ..
-SOURCES = ../sources
+LOCALREPODIR = $(ADMIXROOT)
+SOURCES = $(ADMIXROOT)/sources
+
+## To support parallel SET BUILDS we need to define a subdirectory
+## That
+##   0. (Optionally) copies all files from set-specific yaml directory
+##   1. Mirrors everything else (except .pkg) in the yamlspecs directory (via softlinks)
+##   2. Defines that tmpbuild relative to this staging directory in that 
+##
+STAGEPREFIX = 00STAGE
+STAGEBASE = $(STAGEPREFIX)$(SET)
+
+## Determine if above the stagedir or in the stagedir
+ifeq ($(THISDIR),$(ADMIXYAMLS))
+STAGEDIR = $(THISDIR)/$(STAGEBASE)
+else
+STAGEDIR = $(THISDIR)
+endif
+
+
+##  
 ## Name of local directory for build. Cleared for each package built
 ## so it only supports one build a time
-TMPBUILD = tmpbuild$(SET)
+TMPBUILD = $(STAGEDIR)/tmpbuild
 ADDFILTERS = addfilters
 
 ## These define the modules.
@@ -120,18 +155,18 @@ BOOTSTRAP_YAMLS = $(addsuffix .yaml, $(BOOTSTRAP_MODULES))
 
 ####  TARGETS ####
 
-default: $(SOURCES) $(PKGS)
+default: $(STAGEDIR) $(SOURCES) $(PKGS)
 
 ## This Target Bootstraps and builds packages.
 ## Non-conformant admixes should include this makefile and then
 ## define ALL_TARGETS 
 
-.PHONY:  buildall buildstart stageset
+.PHONY:  buildall buildstart stageset stagedir
 ifndef ALL_TARGETS
 ALL_TARGETS = bootstrap $(SOURCES) $(PKGS)
 endif
 
-buildall:: buildstart $(ALL_TARGETS)
+buildall:: buildstart stagedir $(ALL_TARGETS)
 	echo "== Built ALL Targets ($(SET)): $^ =="
 	echo "== Built ALL ($(SET)) $(shell date) =="
 
@@ -139,6 +174,7 @@ buildstart:
 	echo "== BUILDING ALL ($(SET)) $(shell date) =="
 
 ## This section takes the yaml file and does various interpretations to create files
+## 0. If required, create and populate the STAGEDIR
 ## 1. Create temp working directory $(TMPBUILD) - install template files from $(TEMPLATEDIR)/builder
 ## 2. Generate the Defintions.mk file compatible with the builder/Makefile builder/*mk definitions
 ##    located in $(TEMPLATEDIR) 
@@ -149,31 +185,58 @@ buildstart:
 ## 7. Execute "make pkg" in the $(TMPBUILD) directory 
 ## 8. Touch pkg file to indicate the build was completed.
 
-%.pkg : $(SOURCES)
+%.pkg : $(SOURCES) stagedir
 
 %.pkg : %.yaml
 	echo "===== Building $@ ( $$(date) )========" 
+	make -e -f $(THISMAKE) $(STAGEDIR)
 	make -e -f $(THISMAKE) cleantmp $(TMPBUILD)
-	make -e -f $(THISMAKE) $(ADDFILTERS) thismod=$<
-	$(GENERATE) $< > $(TMPBUILD)/$(DEFINITIONS)
-	- $(GENERATE) -m $< > $(TMPBUILD)/modulefile
-	- $(GENERATE) --query=pretar $< | /bin/sh
-	- install $$($(GENERATE) --query=patch $<) $(TMPBUILD)
-	- install  $(SOURCES)/$$($(GENERATE) --query=tarball $<) $(TMPBUILD)
-	- install $$($(GENERATE) --query=addfile $<) $(TMPBUILD)
-	- (for src in $$($(GENERATE) --query=addsource $<); do  \
+	(cd $(STAGEDIR); make -e -f $(THISMAKE) $(ADDFILTERS) thismod=$<)
+	(cd $(STAGEDIR); $(GENERATE) $< > $(TMPBUILD)/$(DEFINITIONS))
+	(cd $(STAGEDIR); echo "ADMIXROOT = $(ADMIXROOT)"  >> $(TMPBUILD)/$(DEFINITIONS))
+	- ( cd $(STAGEDIR); $(GENERATE) -m $< > $(TMPBUILD)/modulefile )
+	- ( cd $(STAGEDIR); $(GENERATE) --query=pretar $< | ADMIXROOT=$(ADMIXROOT) /bin/sh )
+	- ( cd $(STAGEDIR); install $$($(GENERATE) --query=patch $<) $(TMPBUILD))
+	- ( cd $(STAGEDIR); install  $(SOURCES)/$$($(GENERATE) --query=tarball $<) $(TMPBUILD))
+	- ( cd $(STAGEDIR); install $$($(GENERATE) --query=addfile $<) $(TMPBUILD))
+	- (cd $(STAGEDIR); for src in $$($(GENERATE) --query=addsource $<); do  \
 		install $(SOURCES)/$$src $(TMPBUILD); done)
-	make -e -C $(TMPBUILD) pkg 
-	touch $@
+	make -e -C $(TMPBUILD) USEHOME=$(HOME) ADMIXROOT=$(ADMIXROOT) pkg 
+	touch $(STAGEDIR)/$@
 	echo "===== Completed $@ ( $$(date) )========" 
 
-## Target copyset, stageset must be empty in this makefile
+## Target copyset, thaw must be empty in this makefile
 ## When need to overwrite do in respective admix/yamlspecs/Makefile
 ## only needed for compelx admixes where there are multiple sets of yamls
 ## saved in subdirectories.
 copyset:
-stageset: 
+thaw:
 
+stagedir: $(STAGEDIR)
+
+## This creates the stage directory
+#  1. fill .admix.root and .admix.yamls so that in the STAGEDIR, it can find home 
+#  2. thaw -- used only the R4-admix
+#  3. softlink all remaining files in the ADMIXYAMLS dir to the STAGEDIR
+#
+# 
+$(STAGEDIR): 
+	- mkdir $(STAGEDIR)
+	- echo $(ADMIXROOT) > $(STAGEDIR)/.admix.root
+	- echo $(ADMIXYAMLS) > $(STAGEDIR)/.admix.yamls
+	- make -f $(THISMAKE) thaw
+	(for fname in $$(find $(ADMIXYAMLS) -maxdepth 1 -printf '%P\n' | grep -v $(STAGEPREFIX)); do       \
+		if [ ! -f $(STAGEDIR)/$$fname ]; then         \
+		    echo "softlinking $$fname";               \
+		    ln -s $(ADMIXYAMLS)/$$fname $(STAGEDIR)/$$fname;        \
+		fi;                                           \
+	 done)	
+
+cleanstage:
+	if [ "x$(STAGEDIR)" != "x" ]  && [ $$(expr length $(STAGEDIR)) -ge 10 ]; then \
+	       rm -rf $(STAGEDIR); \
+	fi
+	
 manifest:: copyset
 	( MANIFEST_YAML=();                                             \
 	  for pkg in $(MANIFEST); do					\
@@ -242,15 +305,17 @@ admix-bootstrap-yaml:
 	done )
 
 bootstrap:: 
-	- $(YUM) -y install $(BOOTSTRAP_SYSTEM) 
+	- $(YUMEXCLUSIVE) -y install $(BOOTSTRAP_SYSTEM) 
 	echo $(BOOTSTRAP_MODULES)
-	( for mod in $(BOOTSTRAP_MODULES); do					\
+	( cd $(STAGEDIR); for mod in $(BOOTSTRAP_MODULES); do					\
 		make -e -f $(THISMAKE) $$mod.pkg;				\
-		make -e -C $(LOCALREPODIR) createBootstrapRepo;			\
 		rpmname=$$($(GENERATE) --query=pkgname $$mod.yaml);		\
-		$(YUM) -y -c $(LOCALREPODIR)/yum.conf install $$rpmname;	\
+		flock $(AllRepoLockfile) make -e -f $(THISMAKE) ins-bootstrap PACKAGE=$$rpmname;	\
 	  done									\
 	)
+ins-bootstrap:
+	make -e -C $(LOCALREPODIR) createBootstrapRepo PACKAGE=$(PACKAGE);	\
+	$(YUM) -y -c $(LOCALREPODIR)/yum.conf install $(PACKAGE)
 
 unbootstrap::
 	( BOOTSTRAP_YAMLS=();                                             \ 
@@ -258,11 +323,11 @@ unbootstrap::
 		BOOTSTRAP_YAMLS+=("$$mod.yaml");                          \
 	  done;                                                           \
 	  ALLRRPMS=$$($(GENERATE) --query=pkgname $${BOOTSTRAP_YAMLS[@]); \
-          $(YUM) -y erase $$ALLRPMS                                       \
+          $(YUMEXCLUSIVE) -y erase $$ALLRPMS                                       \
 	)
 
 unbootstrap-sys:
-	$(YUM) -y erase $(BOOTSTRAP_SYSTEM);				\
+	$(YUMEXCLUSIVE) -y erase $(BOOTSTRAP_SYSTEM);				\
 
 $(TMPBUILD):
 	mkdir $(TMPBUILD)
@@ -287,7 +352,7 @@ cleantmp:
 	- /bin/rm -rf $(TMPBUILD)
 
 cleanpkg:
-	- /bin/rm -f *pkg
+	- /bin/rm -f $(STAGEDIR)/*pkg
 
 cleanyaml:
 	echo $(MODULES)
@@ -299,7 +364,7 @@ cleanyaml:
 	
 clean: cleanpkg cleantmp cleanyaml
 
-veryclean:: clean
+veryclean:: clean cleanstage
 
 FORCE:
 
@@ -339,3 +404,7 @@ diag:
 	echo "ALL_TARGETS: $(ALL_TARGETS)"
 	echo "ALLSETS: $(ALLSETS)"
 	echo "SET: $(SET)"
+	echo "ADMIX:  $(ADMIX)"
+	echo "ADMIXROOT  $(ADMIXROOT)"
+	echo "ADMIXYAMLS  $(ADMIXYAMLS)"
+	echo "STAGEDIR  $(STAGEDIR)"

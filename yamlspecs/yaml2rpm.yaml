@@ -16,11 +16,11 @@
     to the essentials into a yaml file that goes through some automated steps to create an RPM.
   pretar: >
     mkdir -p {{name}}-{{version}}/sys;
-    tar cf - bin site ../README.md builder samples yaml2rpm.sh | tar xf - -C {{name}}-{{version}};
+    tar cf - --dereference bin site README.md builder samples yaml2rpm.sh | tar xf - -C {{name}}-{{version}};
     install {{sysmake}} {{name}}-{{version}}/sys;
     install Makefile.tmpl {{name}}-{{version}}/samples/Makefile;
-    tar czf ../sources/{{srctar}} {{name}}-{{version}};
-    rm -rf {{name}}-{{version}}
+    tar czf ${ADMIXROOT}/sources/{{srctar}} {{name}}-{{version}};
+    mv {{name}}-{{version}} {{name}}-{{version}}.pretar
   build:
     configure: echo
     configure_args: 

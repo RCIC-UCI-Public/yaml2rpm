@@ -11,9 +11,14 @@ ADMIXNAME = $(shell basename $$(pwd))
 LI0 = "     - "
 LISTINDENT = $(subst ",,$(LI0))
 BUILDREQUIRES = buildrequires
-.PHONY: manifest cleansources BoostrapRepo createBootstrapRepo
+.PHONY: manifest cleansources BootstrapRepo createBootstrapRepo 
+.PHONY: install-admix install-admix-exclusive uninstall-admix  uninstall-admix-exclusive
+
+
 
 include  $(ROCKSSHARE)/src/roll/etc/Rules-repo-centos.mk
+AllRepoLockfile = /var/lock/yaml2rpm.lock
+
 download: sources
 	SURL=$(SURL) $(DOWNLOADER)
 sources:
@@ -25,22 +30,32 @@ manifest:
 ansible:
 	make -C yamlspecs -s ansible
 
-install-admix:
+## Lock critical section that creates localrepo and installs admix
+install-admix: 
+	flock $(AllRepoLockfile) make install-exclusive YES=$(YES)
+
+install-exclusive:
 	make createlocalrepo
 	make -e -C yamlspecs -s manifest | xargs $(SUDO) yum $(YES) -c yum.conf install 
 
+## Lock critical section that creates manifest and uninstalls admix.
 uninstall-admix:
+	flock $(AllRepoLockfile) make uninstall-exclusive YES=$(YES)
+
+uninstall-exclusive:
 	make -C yamlspecs -s manifest | xargs $(SUDO) yum $(YES) -c yum.conf erase 
 
 
 # Adapt definitions from rocks-devel. When bootstrapping and then installing 
 # a just-built RPM, just need the latest-built RPM. For large bootstraps (Like R and Perl)
 # This is significantly faster over createlocalrepo
+# If called with a PACKAGE= limits to just searching for packages with that pattern
+# This is invoked in the boostrapping of packages and is a CRITICAL section of code
 
 BootstrapRepo: $(LOCALREPO.REPO)
 	[ -d $(LOCALPATH)/$(REPONAME) ] || /bin/mkdir -p $(LOCALPATH)/$(REPONAME)/RPMS
 	- /bin/rm $(LOCALPATH)/$(REPONAME)/RPMS/*
-	(THERPM=$$(find RPMS -name '*rpm' -exec ls -tr {} + | tail -1); \
+	(THERPM=$$(find RPMS -name '$(PACKAGE)*.rpm' -exec ls -tr {} + | tail -1); \
 		echo $$THERPM; /bin/cp -p $$THERPM $(LOCALPATH)/$(REPONAME)/RPMS)
 	( cd $(LOCALPATH)/$(REPONAME); createrepo .)
 

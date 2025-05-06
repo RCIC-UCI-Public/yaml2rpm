@@ -28,3 +28,10 @@ UNTAR = /bin/wc
 else
 UNTAR = $(TAR) -xf - 
 endif
+
+ifndef ADMIXROOT
+REDHAT.ROOT = $(CURDIR)/../../
+else
+REDHAT.ROOT = $(ADMIXROOT)
+endif
+
