@@ -9,6 +9,7 @@ bootstrap:
 
 # SYSTEM
 # Packages supplied by the OS vendor that must be installed prior to building anything in this admix
+#enablerepo: epel
 system:
    - !ifeq "{{site.os_release}},7,python-devel,platform-python-devel"
 
@@ -37,3 +38,4 @@ manifest:
    - python-ruamel-yaml
    - python-ruamel-yaml-clib
  
+

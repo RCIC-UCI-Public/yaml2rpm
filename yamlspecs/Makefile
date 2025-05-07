@@ -146,6 +146,7 @@ ifneq ($(PACKAGES_FILE),)
 BOOTSTRAP_QUERY = $(shell  $(GENERATE)  --no-defaults --quiet --query=bootstrap  $(PACKAGES_FILE)) 
 BOOTSTRAP_MODULES = $(BOOTSTRAP_QUERY:None=)
 BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --query=system  $(PACKAGES_FILE)) 
+BOOTSTRAP_ADDREPO = $(strip $(shell  $(GENERATE) --query=enablerepo  $(PACKAGES_FILE)))
 MODULES_QUERY = $(shell  $(GENERATE) --no-defaults --quiet --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
 MODULES = $(MODULES_QUERY:None.yaml=)
 MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet --query=manifest  $(PACKAGES_FILE) | sed -e 's/None//') 
@@ -155,6 +156,10 @@ BOOTSTRAP_SYSTEM  = $(shell grep -s -v '\#' $(BOOTSTRAP_SYSTEM_FILE))
 MODULES           = $(shell grep -s -v '\#' $(BUILD_MODULES_FILE) | sed 's/$$/.yaml/') 
 MANIFEST          = $(shell grep -s -v '\#' $(MANIFEST_FILE)) 
 endif
+
+ifneq ("$(BOOTSTRAP_ADDREPO)","False")
+ENABLEREPO = --enablerepo=$(BOOTSTRAP_ADDREPO)
+endif 
 
 PKGS = $(MODULES:.yaml=.pkg)
 BOOTSTRAP_YAMLS = $(addsuffix .yaml, $(BOOTSTRAP_MODULES))
@@ -311,7 +316,7 @@ admix-bootstrap-yaml:
 	done )
 
 bootstrap:: 
-	- $(YUMEXCLUSIVE) -y install $(BOOTSTRAP_SYSTEM) 
+	- $(YUMEXCLUSIVE) $(ENABLEREPO) -y install $(BOOTSTRAP_SYSTEM) 
 	echo $(BOOTSTRAP_MODULES)
 	( cd $(STAGEDIR); for mod in $(BOOTSTRAP_MODULES); do					\
 		make -e -f $(THISMAKE) $$mod.pkg;				\
@@ -401,6 +406,10 @@ ifndef BASEONLY
 endif 
 
 ## As above, but builds each set in parallel. 
+## Very similar to above except instead of making buildall in each set serially it:
+##   1. it builds \n separated string of the above "make -e -f $(THISMAKE) SET=$$set $@;"
+##   2. Creates stdout and stderr prefixes for each set
+##   3. Uses the helper runparallel script to run upto $(PARALLEL) makes concurrently
 buildall-parallel ::
 ifndef BASEONLY
 	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
@@ -409,7 +418,7 @@ ifndef BASEONLY
 		make -e SET=$$set -f $(THISMAKE) clean; \
 		MAKECOMMANDS+=$$(echo "make -e -f $(THISMAKE) SET=$$set $@\n"); \
 	    done; \
-	    ERRPFX=$$(echo $(ALLSETS) | sed 's/\b\w\+\b/err-&/g' |sed -e 's/ /: ,/' -e 's/$$/: /'); \
+	    ERRPFX=$$(echo $(ALLSETS) | sed 's/\b\w\+\b/err-&/g' |sed -e 's/ /: ,/g' -e 's/$$/: /'); \
 	    STDPFX=$$(echo $$ERRPFX | sed 's/err-/out-/g'); \
 	    MAKELIST=$$(echo $$MAKECOMMANDS | sed 's/\\n$$/'/); \
 	    echo -e $$MAKELIST | $(MAKEPARALLEL) -p $(PARALLEL) -O "$$(echo $$STDPFX)" -E "$$(echo $$ERRPFX)" run;\
@@ -430,3 +439,4 @@ diag:
 	echo "ADMIXROOT  $(ADMIXROOT)"
 	echo "ADMIXYAMLS  $(ADMIXYAMLS)"
 	echo "STAGEDIR  $(STAGEDIR)"
+	echo "BOOTSTRAP_ADDREPO :$(BOOTSTRAP_ADDREPO):"
