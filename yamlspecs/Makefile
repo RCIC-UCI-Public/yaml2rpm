@@ -2,6 +2,7 @@
 # Uncomment this line if using the yaml2rpm files
 SHELL=/bin/bash
 TEMPLATEDIR=$(YAML2RPM_HOME)
+MAKEPARALLEL=$(YAML2RPM_HOME)/bin/runparallel
 
 ifndef USEHOME
 HOME = $(shell pwd)
@@ -64,7 +65,6 @@ else
 STAGEDIR = $(THISDIR)
 endif
 
-
 ##  
 ## Name of local directory for build. Cleared for each package built
 ## so it only supports one build a time
@@ -106,6 +106,12 @@ ifeq ($(MANIFEST_FILE),)
 MANIFEST_FILE = $(BUILD_MODULES_FILE)
 endif
 PACKAGES_FILE = $(wildcard packages.yaml)
+
+## How many SETS to build in parallel
+PARALLEL = $(shell $(BASEGENERATE) -Q --query=parallel $(PACKAGES_FILE))
+ifeq ($(PARALLEL),)
+PARALLEL = 2
+endif 
 
 ## Handling a version set. 
 ## A set file MUST have an entry 
@@ -166,7 +172,7 @@ ifndef ALL_TARGETS
 ALL_TARGETS = bootstrap $(SOURCES) $(PKGS)
 endif
 
-buildall:: buildstart stagedir $(ALL_TARGETS)
+buildall buildall-parallel:: buildstart stagedir $(ALL_TARGETS)
 	echo "== Built ALL Targets ($(SET)): $^ =="
 	echo "== Built ALL ($(SET)) $(shell date) =="
 
@@ -391,6 +397,22 @@ ifndef BASEONLY
 		make -e SET=$$set -f $(THISMAKE) clean; \
 		make -e -f $(THISMAKE) SET=$$set $@; \
 	    done; \
+	fi 
+endif 
+
+## As above, but builds each set in parallel. 
+buildall-parallel ::
+ifndef BASEONLY
+	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
+	    for set in $(ALLSETS); do \
+	        make -e SET=$$set -f $(THISMAKE) stageset; \
+		make -e SET=$$set -f $(THISMAKE) clean; \
+		MAKECOMMANDS+=$$(echo "make -e -f $(THISMAKE) SET=$$set $@\n"); \
+	    done; \
+	    ERRPFX=$$(echo $(ALLSETS) | sed 's/\b\w\+\b/err-&/g' |sed -e 's/ /: ,/' -e 's/$$/: /'); \
+	    STDPFX=$$(echo $$ERRPFX | sed 's/err-/out-/g'); \
+	    MAKELIST=$$(echo $$MAKECOMMANDS | sed 's/\\n$$/'/); \
+	    echo -e $$MAKELIST | $(MAKEPARALLEL) -p $(PARALLEL) -O "$$(echo $$STDPFX)" -E "$$(echo $$ERRPFX)" run;\
 	fi 
 endif 
 

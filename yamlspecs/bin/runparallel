@@ -1,0 +1,188 @@
+#!/usr/bin/env python3
+# Read lines of command input and execute them in parallel with a variable number of
+# concurrent jobs to run. 
+# Optionally prefix lines of output/standard error so that output can sorted
+# Author: Philip Papadopoulos (ppapadop@uci.edu)
+# (C) UC Regents 2023 - 2024
+
+## Try the two following test runs
+# sample simple jobs
+# sleep 5; ls /var
+# sleep 3; ls -l /tmp
+
+# Should complete in about 5 seconds, both ls jobs are sleeping
+#  time echo -e "sleep 5; ls /var\nsleep 3; ls -l /tmp" | ./runparallel -O "o-var: ,o-tmp: " -E "err-var: ,err-tmp: " run
+
+# Should complete in about 8 seconds, --parallel=1 runs the jobs serially 
+#  time echo -e "sleep 5; ls /var\nsleep 3; ls -l /tmp" | ./runparallel -O "o-var: ,o-tmp: " -E "err-var: ,err-tmp: " --parallel=1 run
+
+import sys
+import datetime
+import os
+import io
+import argparse
+import time
+import subprocess
+from multiprocessing import Pool
+from threading import Thread
+class jobRunner(object):
+   
+    def __init__(self,alljobs,parallel=2):
+        self._alljobs = alljobs
+        self._parallel = parallel
+        
+    def handle_stream(self,stream, output, prefix=""):
+        """Read lines from stream and write prefixed versions to output."""
+        for line in iter(stream.readline, ''):
+            output.write(f"{prefix}{line}")
+            output.flush()
+
+    def run_job(self, job):
+        """Execute a command and prefix output lines with 'XXX: ' in real-time."""
+        if not job.quiet:
+            print(f"@@@ '{job}' started at {datetime.datetime.now()}")
+        proc = subprocess.Popen(
+            job.cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1  # Line-buffered
+        )
+        stdout_thread = Thread(target=self.handle_stream, args=(proc.stdout, sys.stdout,job.prefixStdout))
+        stderr_thread = Thread(target=self.handle_stream, args=(proc.stderr, sys.stderr,job.prefixStderr))
+        stdout_thread.start()
+        stderr_thread.start()
+        # Wait for process completion and threads to finish
+        proc.wait()
+        stdout_thread.join()
+        stderr_thread.join()
+        job.returncode = proc.returncode
+        return job
+
+
+    def run_jobs(self):
+        
+        with Pool(self._parallel) as pool:
+            finaljob = None
+            try:
+                for finished in pool.imap_unordered(self.run_job, self._alljobs):
+                    # run each job. The Pool will run at most "parallel" jobs at once
+                    if not finished.quiet:
+                        print(f"@@@ '{finished}' completed at {datetime.datetime.now()}")
+                if not finished.quiet:
+                    print("@@@ All tasks completed.")
+            except:
+                print(e) 
+
+class shellJob(object):
+    def __init__(self,cmd,jobID,prefixStdout="",prefixStderr="",quiet=False):
+        self._cmd = cmd 
+        self._jobID = jobID
+        self._prefixStdout = prefixStdout 
+        self._prefixStderr = prefixStderr 
+        self._returncode = None
+        self._quiet = quiet
+    ## Standard Setters and Getters for various components of a backup job object
+    @property
+    def cmd(self):
+        return self._cmd
+
+    @property
+    def jobID(self):
+        return self._jobID
+
+    @property
+    def prefixStdout(self):
+        return self._prefixStdout
+
+    @property
+    def prefixStderr(self):
+        return self._prefixStderr
+
+    @property
+    def quiet(self):
+        return self._quiet
+
+    @property
+    def returncode(self):
+        return self._returncode
+
+    @cmd.setter
+    def cmd(self,value):
+        self._cmd = value 
+
+    @jobID.setter
+    def jobID(self,value):
+        self._jobID= value 
+
+    @prefixStdout.setter
+    def prefixStdout(self,value):
+        self._prefixStdout = value 
+
+    @prefixStderr.setter
+    def prefixStderr(self,value):
+        self._prefixStderr = value 
+
+    @returncode.setter
+    def returncode(self,value):
+        self._returncode = value 
+
+    def __str__(self):
+        return self._cmd 
+
+## *****************************
+## main routine
+## *****************************
+
+def main(argv):
+
+
+    # description and help lines for the usage  help
+    description = """Lines of input as shell commands and runs commands in parallel. Optionally prefixes
+    stdout and stderr for each command run"""
+
+    ## Define command-line parser
+    parser = argparse.ArgumentParser(description=description, formatter_class=argparse.RawTextHelpFormatter,allow_abbrev=True)
+    # optional arguments
+    parser.add_argument("-E", "--stderr", dest="errorPrefixes", default="", help="comma sep list")
+    parser.add_argument("-O", "--stdout", dest="stdoutPrefixes", default="", help="comma sep list")
+    parser.add_argument("-d", "--dry-run",   dest="dryrun",  default=False, action='store_true')
+    parser.add_argument("-q", "--quiet",   dest="quiet",  default=False, action='store_true',help="don't print timing")
+    parser.add_argument("-p", "--parallel",   dest="parallel",  default=2,help="how many commands to run in parallel (2)")
+    parser.add_argument('command', metavar='command',choices=['list','run'], nargs=1,
+              help='list | run ')
+
+    # Parse the arguments
+    args = parser.parse_args()
+    command = args.command[0]    
+
+    alljobs = []
+    stdoutPrefixes = args.stdoutPrefixes.split(",")
+    stderrPrefixes = args.errorPrefixes.split(",")
+
+    jobID = 0
+    for line in sys.stdin:
+        ls = line.rstrip()
+        job = shellJob(ls, jobID,quiet=args.quiet)
+        try:
+            job.prefixStdout = stdoutPrefixes[jobID]
+        except:
+            pass
+        try:
+            job.prefixStderr = stderrPrefixes[jobID]
+        except:
+            pass
+        alljobs.extend([job])
+        jobID += 1
+       
+    if command == 'list':
+        for job in alljobs:
+            print (f"{job.jobID} ==={job.cmd}=== O:{job.prefixStdout} E:{job.prefixStderr}")
+
+    elif command == 'run':
+        runner = jobRunner(alljobs,parallel=int(args.parallel))
+        runner.run_jobs()
+
+if __name__ == "__main__":
+    main(sys.argv[1:])

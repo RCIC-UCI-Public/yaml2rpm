@@ -61,9 +61,9 @@ BootstrapRepo: $(LOCALREPO.REPO)
 
 createBootstrapRepo: copyconf BootstrapRepo localcache
 
-buildall:
+buildall buildall-parallel:
 	make -e download
-	make -e -C yamlspecs buildall
+	make -e -C yamlspecs $@
 
 module-requires-provides:
 	(	                                                   \
