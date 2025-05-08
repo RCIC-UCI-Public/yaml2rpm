@@ -32,7 +32,7 @@ ansible:
 
 ## Lock critical section that creates localrepo and installs admix
 install-admix: 
-	flock $(AllRepoLockfile) make install-exclusive YES=$(YES)
+	flock $(AllRepoLockfile) make -s install-exclusive YES=$(YES)
 
 install-exclusive:
 	make createlocalrepo
@@ -40,7 +40,7 @@ install-exclusive:
 
 ## Lock critical section that creates manifest and uninstalls admix.
 uninstall-admix:
-	flock $(AllRepoLockfile) make uninstall-exclusive YES=$(YES)
+	flock $(AllRepoLockfile) make -s uninstall-exclusive YES=$(YES)
 
 uninstall-exclusive:
 	make -C yamlspecs -s manifest | xargs $(SUDO) yum $(YES) -c yum.conf erase 
