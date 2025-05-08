@@ -147,6 +147,7 @@ def main(argv):
     # optional arguments
     parser.add_argument("-E", "--stderr", dest="errorPrefixes", default="", help="comma sep list")
     parser.add_argument("-O", "--stdout", dest="stdoutPrefixes", default="", help="comma sep list")
+    parser.add_argument("-A", "--autoprefix",   dest="autoprefix",  default=False, action='store_true', help="automatically generate out and error prefixes")
     parser.add_argument("-d", "--dry-run",   dest="dryrun",  default=False, action='store_true')
     parser.add_argument("-q", "--quiet",   dest="quiet",  default=False, action='store_true',help="don't print timing")
     parser.add_argument("-p", "--parallel",   dest="parallel",  default=2,help="how many commands to run in parallel (2)")
@@ -165,14 +166,19 @@ def main(argv):
     for line in sys.stdin:
         ls = line.rstrip()
         job = shellJob(ls, jobID,quiet=args.quiet)
-        try:
-            job.prefixStdout = stdoutPrefixes[jobID]
-        except:
-            pass
-        try:
-            job.prefixStderr = stderrPrefixes[jobID]
-        except:
-            pass
+        if args.autoprefix:
+           job.prefixStdout = f"out-{jobID}: "
+           job.prefixStderr = f"err-{jobID}: "
+        else:
+           try:
+              job.prefixStdout = stdoutPrefixes[jobID]
+           except:
+              pass
+           try:
+             job.prefixStderr = stderrPrefixes[jobID]
+           except:
+             pass
+
         alljobs.extend([job])
         jobID += 1
        
