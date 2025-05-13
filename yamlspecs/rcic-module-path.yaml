@@ -17,7 +17,7 @@
   pretar: >
     mkdir {{name}}-{{version}};
     tar cf - Modules | tar xf - -C {{name}}-{{version}};
-    tar czf ../sources/{{srctar}} {{name}}-{{version}};
+    tar czf $(ADMIXROOT)/sources/{{srctar}} {{name}}-{{version}};
     rm -rf {{name}}-{{version}};
   build:
     configure: echo
