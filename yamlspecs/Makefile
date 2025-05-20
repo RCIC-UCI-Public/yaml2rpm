@@ -4,6 +4,7 @@ SHELL=/bin/bash
 TEMPLATEDIR=$(YAML2RPM_HOME)
 MAKEPARALLEL=$(YAML2RPM_HOME)/bin/runparallel
 
+SILENT := $(findstring s,$(filter-out -%,$(MAKEFLAGS)))
 ifndef USEHOME
 HOME = $(shell pwd)
 else
@@ -120,10 +121,18 @@ endif
 ## if SET is not empty, then we want to look in the 
 ## set file for versions: tag and use that file for versions going forward
 ## PACKAGES_FILE is then the set-$(SET) file
+## There are three types of sets:
+##   1. UNNAMED Set:  This is the "set" that corresponds to versions.yaml
+##   2. ALLSETS: All Sets 
+##   3. SERIAL_SETS: SETS Groups That must be built serially
 VMAP = 
 ifneq ($(PACKAGES_FILE),)
 ALLSETS := $(shell $(BASEGENERATE) -Q --query=sets $(PACKAGES_FILE))
+SERIAL_SETS := $(shell $(BASEGENERATE) -Q --query=serialsets --values $(PACKAGES_FILE))
+SERIAL_SETS_PY := $(shell $(BASEGENERATE) -Q --raw --query=serialsets $(PACKAGES_FILE))
+PARALLEL_SETS := $(filter-out $(SERIAL_SETS),$(ALLSETS))
 else
+SERIAL_SETS = 
 ALLSETS = 
 endif
 
@@ -172,12 +181,12 @@ default: $(STAGEDIR) $(SOURCES) $(PKGS)
 ## Non-conformant admixes should include this makefile and then
 ## define ALL_TARGETS 
 
-.PHONY:  buildall buildstart stageset stagedir
+.PHONY:  buildall buildall-parallel buildstart stageset stagedir thawyamls thawsources
 ifndef ALL_TARGETS
 ALL_TARGETS = bootstrap $(SOURCES) $(PKGS)
 endif
 
-buildall buildall-parallel:: buildstart stagedir $(ALL_TARGETS)
+buildall buildall-parallel:: buildstart stagedir thawsources $(ALL_TARGETS)
 	echo "== Built ALL Targets ($(SET)): $^ =="
 	echo "== Built ALL ($(SET)) $(shell date) =="
 
@@ -222,6 +231,8 @@ buildstart:
 ## saved in subdirectories.
 copyset:
 thaw:
+thawyamls:
+thawsources:
 
 stagedir: $(STAGEDIR)
 
@@ -235,10 +246,10 @@ $(STAGEDIR):
 	- mkdir $(STAGEDIR)
 	- echo $(ADMIXROOT) > $(STAGEDIR)/.admix.root
 	- echo $(ADMIXYAMLS) > $(STAGEDIR)/.admix.yamls
-	- make -f $(THISMAKE) thaw
+	- make -f $(THISMAKE) thawyamls
 	(for fname in $$(find $(ADMIXYAMLS) -maxdepth 1 -printf '%P\n' | grep -v $(STAGEPREFIX)); do       \
 		if [ ! -f $(STAGEDIR)/$$fname ]; then         \
-		    echo "softlinking $$fname";               \
+		    [ "x$(SILENT)" != "x" ] || echo "softlinking $$fname";               \
 		    ln -s $(ADMIXYAMLS)/$$fname $(STAGEDIR)/$$fname;        \
 		fi;                                           \
 	 done)	
@@ -248,7 +259,7 @@ cleanstage:
 	       rm -rf $(STAGEDIR); \
 	fi
 	
-manifest:: copyset
+manifest:: stagedir
 	( MANIFEST_YAML=();                                             \
 	  for pkg in $(MANIFEST); do					\
 		if [ -f $$pkg.yaml ]; then				\
@@ -265,7 +276,7 @@ ansible:
 	make -f $(THISMAKE) -s manifest | xargs $(MANIFEST2ANSIBLE) --name $(ADMIX) 
 
 
-module-provides:: copyset
+module-provides:: stagedir
 	( MANIFEST_YAML=();                                                 \
 	  for pkg in $(MANIFEST); do			                    \
 		if [ -f $$pkg.yaml ]; then MANIFEST_YAML+=("$$pkg.yaml");fi;\
@@ -276,7 +287,7 @@ module-provides:: copyset
 	     if [ "$$mod" != "False" ]; then echo $$mod; fi;                \
 	  done							            \
 	)
-module-requires:: copyset
+module-requires:: stagedir
 	( ALLMODS=();                                                       \
 	  for pkg in $(MODULES) $(BOOTSTRAP_YAMLS); do	                    \
 		if [ -f $$pkg ]; then ALLMODS+=($$pkg); fi;                 \
@@ -292,7 +303,7 @@ module-requires:: copyset
 	)
 	
 
-module-info:: copyset
+module-info:: stagedir
 	( MODYAMLS=();                                                  \
           for ypkg in $(MODULES) $(BOOTSTRAP_YAMLS); do                 \
 		if [ -f $$ypkg ]; then MODYAMLS+=("$$ypkg");fi;         \
@@ -384,7 +395,19 @@ FORCE:
 ## action is completed
 ##  --> IF BASEONLY is defined, then ALLSETS is not iterated
 ##  --> IF SET=<string>  is defined, then ALLSETS is not iterated
-manifest module-requires module-provides module-info veryclean unbootstrap ::
+## This only make sense when called from the main yamlspecs directory
+manifest module-requires module-provides module-info unbootstrap ::
+ifndef BASEONLY
+	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
+	    for set in $(ALLSETS); do \
+		make -s -e -f $(THISMAKE) SET=$$set stagedir; \
+		make -C $(THISDIR)/$(STAGEBASE)$${set} -s -e -f $(THISMAKE) SET=$$set $@; \
+	    done; \
+	fi 
+endif 
+
+## Similar to above, but don't make the stagedir, it needs to be removed
+veryclean ::
 ifndef BASEONLY
 	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
 	    for set in $(ALLSETS); do \
@@ -393,14 +416,14 @@ ifndef BASEONLY
 	fi 
 endif 
 
-## Same as above, except make clean between each stage. 
+## Same as above, except make clean each stage. 
 buildall ::
 ifndef BASEONLY
-	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
+	if [ "$(SET)" == "" ] &&  [ "$(ALLSETS)" != "" ] ; then \
 	    for set in $(ALLSETS); do \
-	        make -e SET=$$set -f $(THISMAKE) stageset; \
-		make -e SET=$$set -f $(THISMAKE) clean; \
-		make -e -f $(THISMAKE) SET=$$set $@; \
+	        make -e SET=$$set -f $(THISMAKE) stagedir; \
+		make -C $(THISDIR)/$(STAGEBASE)$${set} -e SET=$$set -f $(THISMAKE) clean; \
+		make -C $(THISDIR)/$(STAGEBASE)$${set} -e -f $(THISMAKE) SET=$$set $@; \
 	    done; \
 	fi 
 endif 
@@ -410,20 +433,28 @@ endif
 ##   1. it builds \n separated string of the above "make -e -f $(THISMAKE) SET=$$set $@;"
 ##   2. Creates stdout and stderr prefixes for each set
 ##   3. Uses the helper runparallel script to run upto $(PARALLEL) makes concurrently
+##         -- builds the SERIAL_SETS (if any) in parallel
+##         -- builds the PARALLEL_SETS (if any) in parallel
 buildall-parallel ::
 ifndef BASEONLY
-	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
-	    for set in $(ALLSETS); do \
-	        make -e SET=$$set -f $(THISMAKE) stageset; \
-		make -e SET=$$set -f $(THISMAKE) clean; \
-		MAKECOMMANDS+=$$(echo "make -e -f $(THISMAKE) SET=$$set $@\n"); \
-	    done; \
-	    ERRPFX=$$(echo $(ALLSETS) | sed 's/\b\w\+\b/err-&/g' |sed -e 's/ /: ,/g' -e 's/$$/: /'); \
-	    STDPFX=$$(echo $$ERRPFX | sed 's/err-/out-/g'); \
-	    MAKELIST=$$(echo $$MAKECOMMANDS | sed 's/\\n$$/'/); \
-	    echo -e $$MAKELIST | $(MAKEPARALLEL) -p $(PARALLEL) -O "$$(echo $$STDPFX)" -E "$$(echo $$ERRPFX)" run;\
-	fi 
+	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ] ; then \
+		make -e PBUILD_SETS="$(SERIAL_SETS)" PBUILD_SETS_PY="$(SERIAL_SETS_PY)" -f $(THISMAKE) parallelBuild; \
+		make -e PBUILD_SETS="$(PARALLEL_SETS)" PBUILD_SETS_PY="$(PARALLEL_SETS)" -f $(THISMAKE) parallelBuild; \
+	fi
 endif 
+
+# This is passed a variable PBUILD_SETS from the buildall-parallel target
+# These are either SERIAL_SETS or  ALLSETS
+# Currently, only the perl-admix defines serialsets: in its packages.yaml file 
+parallelBuild:
+	## First setup each stage
+	for set in $(PBUILD_SETS); do \
+	   make -e SET=$$set -f $(THISMAKE) stagedir; \
+	   make -C $(THISDIR)/$(STAGEBASE)$${set} -e SET=$$set -f $(THISMAKE) clean; \
+	done; \
+        TEMPLATE="make -C $(THISDIR)/$(STAGEBASE)%SET% -e -f $(THISMAKE) SET=%SET% buildall-parallel" ; \
+	PATTERN="%SET%" ; \
+	$(MAKEPARALLEL) -p $(PARALLEL) --autoprefix --template="$$TEMPLATE" --pattern="$$PATTERN" --variables="$(PBUILD_SETS_PY)" run
 
 diag:
 	echo "HOME:  $(HOME)"
@@ -434,9 +465,13 @@ diag:
 	echo "MAKEFILE_LIST: $(MAKEFILE_LIST)"
 	echo "ALL_TARGETS: $(ALL_TARGETS)"
 	echo "ALLSETS: $(ALLSETS)"
+	echo "PARALLEL_SETS: $(PARALLEL_SETS)"
+	echo "SERIAL_SETS: $(SERIAL_SETS)"
+	echo "SERIAL_SETS_PY: $(SERIAL_SETS_PY)"
 	echo "SET: $(SET)"
 	echo "ADMIX:  $(ADMIX)"
 	echo "ADMIXROOT  $(ADMIXROOT)"
 	echo "ADMIXYAMLS  $(ADMIXYAMLS)"
 	echo "STAGEDIR  $(STAGEDIR)"
 	echo "BOOTSTRAP_ADDREPO :$(BOOTSTRAP_ADDREPO):"
+	echo "SILENT: $(SILENT)"

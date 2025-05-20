@@ -284,14 +284,19 @@ class mkParser(object):
             return str(val)
         return val
 
-    def lookupAndResolve(self,keyword,joinString):
+    def lookupAndResolve(self,keyword,joinString,valuesonly=False):
         """ Lookup a value for key.  if val is a list, join the elements
             via the joinString. 
             Note: throws an exception if keyword does not exist """
 
         elems = self.lookup(keyword,stringify=False)
+        ## if values only requested this is a dict, get the values and flatten to a single list
+        if type(elems) is dict and valuesonly:
+            flist = [ v for k,v in elems.items() ]
+            elems = self.flatten(flist)
         if type(elems) is list:
-            elems = joinString.join(elems) 
+            if joinString is not None: 
+                elems = joinString.join(elems)
         elif type(elems) is bool: # convert boolean to string
             elems = str(elems)
         return elems
@@ -743,7 +748,7 @@ class queryProcessor(object):
         """ mkp is an mkParser, already initialized """
         self.mk = mkp
 
-    def processQuery(self,query,quiet=False):
+    def processQuery(self,query,quiet=False,joinString=' ',valuesonly=False):
         rq = query.strip().lower()
         if rq == "patch":
             rq = "build.patchfile"
@@ -765,7 +770,7 @@ class queryProcessor(object):
                 rstr = "%s_%s" % (self.mk.lookup("name"), self.mk.lookup("version")) 
             return rstr
         try:
-            rval = self.mk.lookupAndResolve(rq,' ')
+            rval = self.mk.lookupAndResolve(rq,joinString,valuesonly)
         except:
             if not quiet:
                 return('False')
@@ -855,6 +860,8 @@ def main(argv):
     parser.add_argument("-c", "--category", dest="doCategory", default=False, action='store_true',help=helpcategory)
     parser.add_argument("-p", "--parallel", dest="parallel", default=8, action='store',help="How many yaml files to process in parallel")
     parser.add_argument("-Q", "--quiet",    dest="quiet",      default=False, action='store_true', help="supress output of query processing")
+    parser.add_argument("-R", "--raw",    dest="raw",      default=False, action='store_true', help="Give the raw python str of the query object")
+    parser.add_argument("--values",    dest="valuesonly",      default=False, action='store_true', help="Flatten and only return values of dict entries")
     parser.add_argument("-M", "--map",      dest="mapf",       default=False, help=helpmap)
     parser.add_argument("-V", "--versions", dest="versions",       default=False, help=helpver)
     # required positional argument
@@ -910,7 +917,8 @@ def processFile(subargs):
         output = mg.generateModFile()
     elif args.doQuery:
         qp = queryProcessor(mkP)
-        output = qp.processQuery(args.doQuery,args.quiet)
+        joinString = ' ' if not args.raw else None
+        output = qp.processQuery(args.doQuery,args.quiet,joinString=joinString,valuesonly=args.valuesonly)
     elif args.doCategory:
         qp = queryProcessor(mkP)
         output=qp.processCategory()

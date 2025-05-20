@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
-# Read lines of command input and execute them in parallel with a variable number of
+# Mode 1:
+# Read lines of shell command input and execute them in parallel with a variable number of
 # concurrent jobs to run. 
+#
+# Mode 2:
+# Read a template, pattern, a list of pattern assignments. Creates the shell commands by replacing the pattern in the template
+# 
 # Optionally prefix lines of output/standard error so that output can sorted
+#
+# 
 # Author: Philip Papadopoulos (ppapadop@uci.edu)
 # (C) UC Regents 2023 - 2024
 
@@ -70,17 +77,21 @@ class jobRunner(object):
                     # run each job. The Pool will run at most "parallel" jobs at once
                     if not finished.quiet:
                         print(f"@@@ '{finished}' completed at {datetime.datetime.now()}")
-                if not finished.quiet:
+                if len(self._alljobs) > 0 and not finished.quiet:
                     print("@@@ All tasks completed.")
             except:
                 print(e) 
 
 class shellJob(object):
-    def __init__(self,cmd,jobID,prefixStdout="",prefixStderr="",quiet=False):
+    def __init__(self,cmd,jobID,prefixStdout="",prefixStderr="",quiet=False,autoprefix=False):
         self._cmd = cmd 
         self._jobID = jobID
-        self._prefixStdout = prefixStdout 
-        self._prefixStderr = prefixStderr 
+        if autoprefix:
+            self._prefixStdout = f"out-{jobID}: " 
+            self._prefixStderr = f"err-{jobID}: " 
+        else:
+           self._prefixStdout = prefixStdout 
+           self._prefixStderr = prefixStderr 
         self._returncode = None
         self._quiet = quiet
     ## Standard Setters and Getters for various components of a backup job object
@@ -131,6 +142,66 @@ class shellJob(object):
     def __str__(self):
         return self._cmd 
 
+def jobsFromStdin(args):
+    """ Read lines from standard input and define as jobs """
+    alljobs = []
+    stdoutPrefixes = args.stdoutPrefixes.split(",")
+    stderrPrefixes = args.errorPrefixes.split(",")
+    jobID = 0
+    for line in sys.stdin:
+        ls = line.rstrip()
+        prefixStdout = ""
+        prefixStderr = ""
+        try:
+           prefixStdout = stdoutPrefixes[jobID]
+        except:
+           pass
+        try:
+           prefixStderr = stderrPrefixes[jobID]
+        except:
+             pass
+        job = shellJob(ls, jobID,prefixStdout=prefixStdout,prefixStderr=prefixStderr,quiet=args.quiet,autoprefix=args.autoprefix)
+        alljobs.extend([job])
+        jobID += 1
+    return alljobs
+
+def jobsFromTemplate(args):
+    """ Read the template do pattern replacement """
+    alljobs = []
+    pattern = args.pattern
+    template = args.template
+
+    # Evaluate the variables to get a python object
+    # if the variables are just a single string, turn it into a list
+    try:
+        variables = eval(args.variables)
+    except:
+        variables = args.variables.split()
+
+    # Handle case where a single variable might evaluate to a number (integer or float).
+    # re-read the variables and interpret a a string, put it in a list
+    if type(variables) is not list and type(variables) is not dict:
+        variables = args.variables.split()
+    ## Two cases for variables
+    ##    1. list -- each element of the list is a pattern replacement. One job per item
+    ##    2. dict -- each key in the dict is a job. The list of pattern replacements are run serially  in the job
+
+    if type(variables) is list:
+        resolved = [ template.replace(pattern,v) for v in variables ]
+        jobIDs = range(len(resolved))
+        alljobs = [ shellJob(r,jobID,quiet=args.quiet,autoprefix=args.autoprefix) for jobID, r in zip(jobIDs,resolved) ]
+    else:
+        alljobs = []
+        jobID = 0
+        for k,serialv in variables.items():
+            resolved = [ template.replace(pattern,v) for v in serialv ]
+            shellCmd = ";".join(resolved)
+            outPrefix = f"out-{k}: " if args.autoprefix else ""
+            errPrefix = f"err-{k}: " if args.autoprefix else ""
+            alljobs.extend([shellJob(shellCmd,jobID,quiet=args.quiet,prefixStdout=outPrefix,prefixStderr=errPrefix)])
+            jobID += 1
+    return alljobs
+    
 ## *****************************
 ## main routine
 ## *****************************
@@ -151,6 +222,10 @@ def main(argv):
     parser.add_argument("-d", "--dry-run",   dest="dryrun",  default=False, action='store_true')
     parser.add_argument("-q", "--quiet",   dest="quiet",  default=False, action='store_true',help="don't print timing")
     parser.add_argument("-p", "--parallel",   dest="parallel",  default=2,help="how many commands to run in parallel (2)")
+    parser.add_argument("-T", "--template", dest="template", default=None, help="Template to fill out")
+    parser.add_argument("-P", "--pattern", dest="pattern", default="", help="Pattern to replace in template")
+    parser.add_argument("-V", "--variables", dest="variables", default=None, help="String version of python variables. Singleton, List, or Dict")
+
     parser.add_argument('command', metavar='command',choices=['list','run'], nargs=1,
               help='list | run ')
 
@@ -158,30 +233,11 @@ def main(argv):
     args = parser.parse_args()
     command = args.command[0]    
 
-    alljobs = []
-    stdoutPrefixes = args.stdoutPrefixes.split(",")
-    stderrPrefixes = args.errorPrefixes.split(",")
+    if args.template is None:
+        alljobs = jobsFromStdin(args)
+    else:
+        alljobs = jobsFromTemplate(args)
 
-    jobID = 0
-    for line in sys.stdin:
-        ls = line.rstrip()
-        job = shellJob(ls, jobID,quiet=args.quiet)
-        if args.autoprefix:
-           job.prefixStdout = f"out-{jobID}: "
-           job.prefixStderr = f"err-{jobID}: "
-        else:
-           try:
-              job.prefixStdout = stdoutPrefixes[jobID]
-           except:
-              pass
-           try:
-             job.prefixStderr = stderrPrefixes[jobID]
-           except:
-             pass
-
-        alljobs.extend([job])
-        jobID += 1
-       
     if command == 'list':
         for job in alljobs:
             print (f"{job.jobID} ==={job.cmd}=== O:{job.prefixStdout} E:{job.prefixStderr}")
