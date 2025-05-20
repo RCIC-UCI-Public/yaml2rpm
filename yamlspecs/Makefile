@@ -158,7 +158,7 @@ BOOTSTRAP_SYSTEM = $(shell  $(GENERATE) --no-defaults --quiet  --query=system  $
 BOOTSTRAP_ADDREPO = $(strip $(shell  $(GENERATE) --query=enablerepo  $(PACKAGES_FILE)))
 MODULES_QUERY = $(shell  $(GENERATE) --no-defaults --quiet --query=build  $(PACKAGES_FILE) |  sed -e 's/ /.yaml /g' -e 's/$$/.yaml/') 
 MODULES = $(MODULES_QUERY:None.yaml=)
-MANIFEST = $(shell  $(GENERATE) --no-defaults --quiet --query=manifest  $(PACKAGES_FILE) | sed -e 's/None//') 
+MANIFEST = $(shell $(GENERATE) --no-defaults --quiet --query=manifest  $(PACKAGES_FILE) | sed -e 's/None//') 
 else
 BOOTSTRAP_MODULES = $(shell grep -s -v '\#' $(BOOTSTRAP_MODULES_FILE)) 
 BOOTSTRAP_SYSTEM  = $(shell grep -s -v '\#' $(BOOTSTRAP_SYSTEM_FILE)) 
@@ -260,7 +260,7 @@ cleanstage:
 	fi
 	
 manifest:: stagedir
-	( MANIFEST_YAML=();                                             \
+	( cd $(STAGEDIR); MANIFEST_YAML=();                             \
 	  for pkg in $(MANIFEST); do					\
 		if [ -f $$pkg.yaml ]; then				\
 		     MANIFEST_YAML+=("$$pkg.yaml");                     \
@@ -277,7 +277,7 @@ ansible:
 
 
 module-provides:: stagedir
-	( MANIFEST_YAML=();                                                 \
+	( cd $(STAGEDIR); MANIFEST_YAML=();                                 \
 	  for pkg in $(MANIFEST); do			                    \
 		if [ -f $$pkg.yaml ]; then MANIFEST_YAML+=("$$pkg.yaml");fi;\
 	  done;								    \
@@ -288,7 +288,7 @@ module-provides:: stagedir
 	  done							            \
 	)
 module-requires:: stagedir
-	( ALLMODS=();                                                       \
+	( cd $(STAGEDIR); ALLMODS=();                                                       \
 	  for pkg in $(MODULES) $(BOOTSTRAP_YAMLS); do	                    \
 		if [ -f $$pkg ]; then ALLMODS+=($$pkg); fi;                 \
 	  done;                                                             \
@@ -304,7 +304,7 @@ module-requires:: stagedir
 	
 
 module-info:: stagedir
-	( MODYAMLS=();                                                  \
+	( cd $(STAGEDIR); MODYAMLS=();                                  \
           for ypkg in $(MODULES) $(BOOTSTRAP_YAMLS); do                 \
 		if [ -f $$ypkg ]; then MODYAMLS+=("$$ypkg");fi;         \
 	  done;                                                         \
@@ -340,7 +340,7 @@ ins-bootstrap:
 	$(YUM) -y -c $(LOCALREPODIR)/yum.conf install $(PACKAGE)
 
 unbootstrap::
-	( BOOTSTRAP_YAMLS=();                                             \ 
+	( cd $(STAGEDIR); BOOTSTRAP_YAMLS=();                             \ 
 	  for mod in $(BOOTSTRAP_MODULES); do				  \
 		BOOTSTRAP_YAMLS+=("$$mod.yaml");                          \
 	  done;                                                           \
