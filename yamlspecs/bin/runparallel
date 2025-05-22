@@ -43,6 +43,7 @@ class jobRunner(object):
         for line in iter(stream.readline, ''):
             output.write(f"{prefix}{line}")
             output.flush()
+        output.flush()
 
     def run_job(self, job):
         """Execute a command and prefix output lines with 'XXX: ' in real-time."""
@@ -76,9 +77,9 @@ class jobRunner(object):
                 for finished in pool.imap_unordered(self.run_job, self._alljobs):
                     # run each job. The Pool will run at most "parallel" jobs at once
                     if not finished.quiet:
-                        print(f"@@@ '{finished}' completed at {datetime.datetime.now()}")
+                        print(f"\n@@@ '{finished}' completed at {datetime.datetime.now()}")
                 if len(self._alljobs) > 0 and not finished.quiet:
-                    print("@@@ All tasks completed.")
+                    print("\n@@@ All tasks completed.")
             except:
                 print(e) 
 
@@ -188,8 +189,7 @@ def jobsFromTemplate(args):
 
     if type(variables) is list:
         resolved = [ template.replace(pattern,v) for v in variables ]
-        jobIDs = range(len(resolved))
-        alljobs = [ shellJob(r,jobID,quiet=args.quiet,autoprefix=args.autoprefix) for jobID, r in zip(jobIDs,resolved) ]
+        alljobs = [ shellJob(r,jobID,quiet=args.quiet,autoprefix=args.autoprefix) for jobID, r in zip(variables,resolved) ]
     else:
         alljobs = []
         jobID = 0

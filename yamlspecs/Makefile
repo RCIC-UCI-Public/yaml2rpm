@@ -5,10 +5,8 @@ TEMPLATEDIR=$(YAML2RPM_HOME)
 MAKEPARALLEL=$(YAML2RPM_HOME)/bin/runparallel
 
 SILENT := $(findstring s,$(filter-out -%,$(MAKEFLAGS)))
-ifndef USEHOME
+ifndef HOME 
 HOME = $(shell pwd)
-else
-HOME = $(USEHOME)
 endif
 
 SUDO = sudo
@@ -67,9 +65,11 @@ STAGEDIR = $(THISDIR)
 endif
 
 ##  
-## Name of local directory for build. Cleared for each package built
+## Name of local directory for build. Cleared each time package is built
+## TMPEXT (tmp extension) can tack on an additional string. parallelpkgs
+## target uses this to support simulatenous build of packages
 ## so it only supports one build a time
-TMPBUILD = $(STAGEDIR)/tmpbuild
+TMPBUILD = $(STAGEDIR)/tmpbuild$(TMPEXT)
 ADDFILTERS = addfilters
 
 ## These define the modules.
@@ -109,9 +109,13 @@ endif
 PACKAGES_FILE = $(wildcard packages.yaml)
 
 ## How many SETS to build in parallel
-PARALLEL = $(shell $(BASEGENERATE) -Q --query=parallel $(PACKAGES_FILE))
-ifeq ($(PARALLEL),)
-PARALLEL = 2
+PARALLELSETS = $(shell $(BASEGENERATE) -Q --query=parallel.sets $(PACKAGES_FILE))
+PARALLELPKGS = $(shell $(BASEGENERATE) -Q --query=parallel.pkgs $(PACKAGES_FILE))
+ifeq ($(PARALLELSETS),)
+PARALLELSETS = 2
+endif 
+ifeq ($(PARALLELPKGS),)
+PARALLELPKGS = 2
 endif 
 
 ## Handling a version set. 
@@ -181,15 +185,25 @@ default: $(STAGEDIR) $(SOURCES) $(PKGS)
 ## Non-conformant admixes should include this makefile and then
 ## define ALL_TARGETS 
 
-.PHONY:  buildall buildall-parallel buildstart stageset stagedir thawyamls thawsources
+.PHONY:  buildall buildall-parallel buildstart stageset stagedir thawyamls thawsources parallelpkgs
+
 ifndef ALL_TARGETS
 ALL_TARGETS = bootstrap $(SOURCES) $(PKGS)
 endif
 
-buildall buildall-parallel:: buildstart stagedir thawsources $(ALL_TARGETS)
+# For parallel building of packages in the build: section of packages
+PKGS_IN_ALL_TARGETS = $(filter $(PKGS),$(ALL_TARGETS))
+PARA_ALL_TARGETS = $(filter-out $(PKGS_IN_ALL_TARGETS),$(ALL_TARGETS))
+PKGBASE = $(PKGS_IN_ALL_TARGETS:.pkg=)
+
+
+buildall :: buildstart stagedir thawsources $(ALL_TARGETS)
 	echo "== Built ALL Targets ($(SET)): $^ =="
 	echo "== Built ALL ($(SET)) $(shell date) =="
 
+buildall-parallel:: buildstart stagedir thawsources $(PARA_ALL_TARGETS) parallelpkgs 
+	echo "== Built ALL Targets ($(SET)): $^ =="
+	echo "== Built ALL ($(SET)) $(shell date) =="
 buildstart:
 	echo "== BUILDING ALL ($(SET)) $(shell date) =="
 
@@ -221,9 +235,16 @@ buildstart:
 	- ( cd $(STAGEDIR); install $$($(GENERATE) --query=addfile $<) $(TMPBUILD))
 	- (cd $(STAGEDIR); for src in $$($(GENERATE) --query=addsource $<); do  \
 		install $(SOURCES)/$$src $(TMPBUILD); done)
-	make -e -C $(TMPBUILD) USEHOME=$(HOME) ADMIXROOT=$(ADMIXROOT) pkg 
+	make -e -C $(TMPBUILD) HOME=$(TMPBUILD) ADMIXROOT=$(ADMIXROOT) pkg 
 	touch $(STAGEDIR)/$@
 	echo "===== Completed $@ ( $$(date) )========" 
+
+parallelpkgs: stagedir
+	(TEMPLATE="make -e -f $(THISMAKE) TMPEXT='-%PKG%' %PKG%.pkg; /bin/rm -r $(STAGEDIR)/tmpbuild-%PKG%"; \
+	 PATTERN="%PKG%"; \
+	 $(MAKEPARALLEL) -p $(PARALLELPKGS) --autoprefix --template="$$TEMPLATE" --pattern="$$PATTERN" --variables="$(PKGBASE)" run \
+	)
+         	 
 
 ## Target copyset, thaw must be empty in this makefile
 ## When need to overwrite do in respective admix/yamlspecs/Makefile
@@ -404,7 +425,7 @@ FORCE:
 ##  --> IF BASEONLY is defined, then ALLSETS is not iterated
 ##  --> IF SET=<string>  is defined, then ALLSETS is not iterated
 ## This only make sense when called from the main yamlspecs directory
-manifest module-requires module-provides module-info module-table unbootstrap ::
+manifest module-requires module-provides module-info unbootstrap ::
 ifndef BASEONLY
 	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
 	    for set in $(ALLSETS); do \
@@ -462,7 +483,7 @@ parallelBuild:
 	done; \
         TEMPLATE="make -C $(THISDIR)/$(STAGEBASE)%SET% -e -f $(THISMAKE) SET=%SET% buildall-parallel" ; \
 	PATTERN="%SET%" ; \
-	$(MAKEPARALLEL) -p $(PARALLEL) --autoprefix --template="$$TEMPLATE" --pattern="$$PATTERN" --variables="$(PBUILD_SETS_PY)" run
+	$(MAKEPARALLEL) -p $(PARALLELSETS) --autoprefix --template="$$TEMPLATE" --pattern="$$PATTERN" --variables="$(PBUILD_SETS_PY)" run
 
 diag:
 	echo "HOME:  $(HOME)"
@@ -472,6 +493,9 @@ diag:
 	echo "THISMAKE: $(THISMAKE)"
 	echo "MAKEFILE_LIST: $(MAKEFILE_LIST)"
 	echo "ALL_TARGETS: $(ALL_TARGETS)"
+	echo "PARA_ALL_TARGETS: $(PARA_ALL_TARGETS)"
+	echo "PKGS: $(PKGS)"
+	echo "PKGBASE: $(PKGBASE)"
 	echo "ALLSETS: $(ALLSETS)"
 	echo "PARALLEL_SETS: $(PARALLEL_SETS)"
 	echo "SERIAL_SETS: $(SERIAL_SETS)"
