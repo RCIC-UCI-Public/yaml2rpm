@@ -312,6 +312,14 @@ module-info:: stagedir
 	  $(GENERATE) -c $${MODYAMLS[@]}; fi                            \
 	)
 
+module-table:: stagedir
+	( cd $(STAGEDIR); MODYAMLS=();                                  \
+          for ypkg in $(MODULES) $(BOOTSTRAP_YAMLS); do                 \
+		if [ -f $$ypkg ]; then MODYAMLS+=("$$ypkg");fi;         \
+	  done;                                                         \
+          if [ $${#MODYAMLS[@]} -gt 0 ]; then                       \
+	  $(GENERATE) -i $${MODYAMLS[@]}; fi                            \
+	)
 admix-bootstrap-yaml:
 	( NEEDS=$$(make -f $(THISMAKE) -s module-requires | sort | uniq); \
 	PROVIDES=$$(make -f $(THISMAKE) -s module-provides | sort | uniq);\
@@ -396,7 +404,7 @@ FORCE:
 ##  --> IF BASEONLY is defined, then ALLSETS is not iterated
 ##  --> IF SET=<string>  is defined, then ALLSETS is not iterated
 ## This only make sense when called from the main yamlspecs directory
-manifest module-requires module-provides module-info unbootstrap ::
+manifest module-requires module-provides module-info module-table unbootstrap ::
 ifndef BASEONLY
 	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
 	    for set in $(ALLSETS); do \

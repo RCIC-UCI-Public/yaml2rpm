@@ -821,6 +821,33 @@ class queryProcessor(object):
                 rstr += "\n    - %s" % j
         return rstr
 
+    def processInfo(self):
+        # need only module yaml files that have category
+        try:
+            category = self.mk.lookup("category",stringify=False)
+            provides = self.mk.lookup("module.logname") 
+        except:
+            return 
+
+        # short description if exists, otherwise take a first 
+        # statement of the description.
+        try:
+            description = self.mk.lookup("shortdescription") 
+            description = description.replace('\n',' ')
+        except:
+            try:
+                description = self.mk.lookup("description") 
+                description = description.replace('\n',' ')
+                description = description.partition(". ")[0]
+            except:
+                pass
+
+        if category:
+            rstr =  "%s," % provides
+            rstr += "%s," % category
+            rstr += "%s"  % description
+        return rstr
+
 ## *****************************
 ## main routine
 ## *****************************
@@ -838,6 +865,7 @@ def main(argv):
     helpquery += "the yaml file: patch, module, source, pkgname, etc. Example: --query=source. If nout found, prints 'False'\n"
 
     helpcategory = "does a multiquery for requries, provides and category\n"
+    helpinfo = "does a multiquery for module name, description and category\n"
 
     helpdefaults = "specify packaging defaults yaml file to use. If none is provided, use:\n"
     helpdefaults += "(1) specific ./%s in the current yamlspecs/ directory; if exists \n" % dflts_file
@@ -858,6 +886,7 @@ def main(argv):
     parser.add_argument("-m", "--module",   dest="doModule",   default=False, action='store_true', help="generate environment modules file")
     parser.add_argument("-q", "--query",    dest="doQuery",    default=False, help=helpquery)
     parser.add_argument("-c", "--category", dest="doCategory", default=False, action='store_true',help=helpcategory)
+    parser.add_argument("-i", "--info", dest="doInfo", default=False, action='store_true',help=helpinfo)
     parser.add_argument("-p", "--parallel", dest="parallel", default=8, action='store',help="How many yaml files to process in parallel")
     parser.add_argument("-Q", "--quiet",    dest="quiet",      default=False, action='store_true', help="supress output of query processing")
     parser.add_argument("-R", "--raw",    dest="raw",      default=False, action='store_true', help="Give the raw python str of the query object")
@@ -922,6 +951,9 @@ def processFile(subargs):
     elif args.doCategory:
         qp = queryProcessor(mkP)
         output=qp.processCategory()
+    elif args.doInfo:
+        qp = queryProcessor(mkP)
+        output=qp.processInfo()
     else:
         mig = makeIncludeGenerator(mkP)
         output = mig.generateDefs()
