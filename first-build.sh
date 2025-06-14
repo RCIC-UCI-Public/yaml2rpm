@@ -8,14 +8,15 @@
 #
 # After completion, open a new bash shell or logout/in to get profiles sourced
 
-DEVELREPO=core
-ROCKSGIT=https://github.com/rocksclusters/core.git
+#DEVELREPO=core
+#ROCKSGIT=https://github.com/rocksclusters/core.git
 DEVEL_BUILD_SCRIPT=build-devel-rpm.sh
 ARCH=$(/bin/arch)
 
 ## Clone, Build, and Install rocks-devel rpm
-git clone $ROCKSGIT
-pushd $DEVELREPO
+#git clone $ROCKSGIT
+#pushd $DEVELREPO
+pushd core-tiny
 ./$DEVEL_BUILD_SCRIPT
 popd
 
@@ -29,7 +30,6 @@ ${SUDO} yum -y install environment-modules
 # if [ ! -f $TOKENFILE ]; then
 #   /opt/rocks/share/devel/bin/get-token.sh
 # fi
-
  
 ## Get source tarballs
 make download
