@@ -329,8 +329,19 @@ module-info:: stagedir
           for ypkg in $(MODULES) $(BOOTSTRAP_YAMLS); do                 \
 		if [ -f $$ypkg ]; then MODYAMLS+=("$$ypkg");fi;         \
 	  done;                                                         \
-          if [ $${#MODYAMLS[@]} -gt 0 ]; then                       \
-	  $(GENERATE) -c $${MODYAMLS[@]}; fi                            \
+          if [ $${#MODYAMLS[@]} -gt 0 ]; then                           \
+	  $(GENERATE) -c $${MODYAMLS[@]}; fi;                           \
+	  if [ "$$SET" == "" ]; then                                    \
+	      syspkgs=`$(GENERATE) --query=system packages.yaml`;       \
+	      if [ "$${syspkgs[0]}" != "True" ] && [ "$${syspkgs[0]}" != "False" ]; then \
+	          echo "system:";                                       \
+	      fi; 	                                                \
+              for x in $$syspkgs; do                                    \
+		  if [ "$$x" != "False" ] && [ "$$x" != "True" ]; then  \
+		      echo "  - $$x";                                   \
+		  fi; 	                                                \
+	      done;                                                     \
+	  fi;                                                           \
 	)
 
 module-table:: stagedir

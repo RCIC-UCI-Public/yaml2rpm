@@ -781,11 +781,15 @@ class queryProcessor(object):
         elif not quiet:
             return 'True'
 
-    def processCategory(self):
+    def processCategory(self, setname):
+        try:
+            version = self.mk.lookup("version")
+        except:
+            version = ""
         try:
             pkgname = self.mk.lookup("pkgname")
         except:
-            pkgname = "%s_%s" % (self.mk.lookup("name"), self.mk.lookup("version")) 
+            pkgname = "%s_%s" % (self.mk.lookup("name"), version) 
 
         try:
             category = self.mk.lookup("category",stringify=False)
@@ -795,6 +799,11 @@ class queryProcessor(object):
             provides = self.mk.lookup("provides",stringify=False)
         if type(provides) is str:
             provides = provides.split(" ")
+
+        try:
+            admixname = self.mk.lookup("versions.admix",stringify=False)
+        except:
+            admixname = False
 
         try:
             if category: # for module file
@@ -810,8 +819,11 @@ class queryProcessor(object):
         requires = [value for value in requires if value != '']
         provides = [value for value in provides if value != '']
 
-        rstr =  "%s:\n" % pkgname
-        rstr += "  category: %s" % category
+        rstr =  "%s:" % pkgname
+        rstr += "\n  admix: %s" % admixname
+        rstr += "\n  set: %s" % setname
+        rstr += "\n  version: %s" % version
+        rstr += "\n  category: %s" % category
         rstr += "\n  requires:" 
         for i in requires:
             rstr += "\n    - %s" % i
@@ -936,6 +948,10 @@ def processFile(subargs):
     if not args.skipDefaults:
         mkP.readPkgYaml(args.dflts_file)
     mkP.resolveVars()
+    setName = "base"
+    if args.versions:
+        setName = args.versions.replace("versions-", "")
+        setName = setName.replace(".yaml", "") 
 
     ### DEBUG
     #a = mkP.__dict__['varsdict']
@@ -950,7 +966,7 @@ def processFile(subargs):
         output = qp.processQuery(args.doQuery,args.quiet,joinString=joinString,valuesonly=args.valuesonly)
     elif args.doCategory:
         qp = queryProcessor(mkP)
-        output=qp.processCategory()
+        output=qp.processCategory(setName)
     elif args.doInfo:
         qp = queryProcessor(mkP)
         output=qp.processInfo()
