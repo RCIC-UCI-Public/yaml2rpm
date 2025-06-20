@@ -8,6 +8,6 @@ rcic_module_support:
   release: "27"
 yaml2rpm:
   version: "2"
-  release: "42"
+  release: "43"
 rocks_devel: "7.1"
 

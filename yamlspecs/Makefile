@@ -436,7 +436,7 @@ FORCE:
 ##  --> IF BASEONLY is defined, then ALLSETS is not iterated
 ##  --> IF SET=<string>  is defined, then ALLSETS is not iterated
 ## This only make sense when called from the main yamlspecs directory
-manifest module-requires module-provides module-info unbootstrap ::
+manifest module-requires module-provides module-info module-table unbootstrap ::
 ifndef BASEONLY
 	if [ "$(SET)" == "" ] && [ "$(ALLSETS)" != "" ]; then \
 	    for set in $(ALLSETS); do \
