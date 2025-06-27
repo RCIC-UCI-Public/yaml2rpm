@@ -159,4 +159,6 @@ default: roll
 preroll::
 	make -C include-version default
 
-
+clean::
+	(cd src/devel; make clean )
+	rm -rf _arch
