@@ -45,6 +45,9 @@ uninstall-admix:
 uninstall-exclusive:
 	make -C yamlspecs -s manifest | xargs $(SUDO) yum $(YES) -c yum.conf erase 
 
+# check rpms size
+admixdb:
+	ls -l RPMS/*/ | grep rpm | awk '{printf "%-15.f %s\n", int($$5/100)*100, $$9}'
 
 # Adapt definitions from rocks-devel. When bootstrapping and then installing 
 # a just-built RPM, just need the latest-built RPM. For large bootstraps (Like R and Perl)
