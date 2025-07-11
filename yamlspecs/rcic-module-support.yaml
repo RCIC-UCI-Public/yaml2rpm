@@ -13,7 +13,7 @@
     for generated environment modules created with yaml2rpm
   pretar: >
     mkdir {{name}}-{{version}};
-    tar cf - include | tar xf - -C {{name}}-{{version}};
+    tar cf - --dereference include | tar xf - -C {{name}}-{{version}};
     tar czf ${ADMIXROOT}/sources/{{srctar}} {{name}}-{{version}};
     rm -rf {{name}}-{{version}};
   build:
