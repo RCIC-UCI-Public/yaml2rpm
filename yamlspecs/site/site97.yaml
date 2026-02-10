@@ -1,0 +1,48 @@
+---
+
+os_release: "9"
+foundation: "v8"
+compiler_sys:
+  name: gcc
+  version: "system"
+compiler_intel: 
+  name: "intel"
+  version: "2025.1.0"
+compiler:
+  name: gcc
+  version: "15.2.0"
+mpi_sys:
+  name: openmpi
+  version: "4.1.1"
+mpi:
+  name: openmpi
+  version: "5.0.9"
+cuda:
+  name: cuda
+  version:  "13.0.1"
+
+python_sys: "3.9"
+python: "2.7.17"
+python_major: "2.7"
+python3: "3.10.2"
+python3_major: "3.10"
+python3_family: "3"
+cmake: "3.30.2"
+java: "17"
+perl: "5.30.0"
+R: "4.5.2"
+hdf5: "2.0.0"
+# leave commented versions for a reference
+# untill all newere versions are finalized
+#boost: "1.78.0"
+#protobuf: "3.19.4"
+mkl: "2025.1.0"
+#eigen: "3.4.0"
+#intel_tbb: "2022.1"
+#ffmpeg: "6.1"
+fftw: "3.3.10"
+#gsl: "2.7.1"
+OpenBLAS: "0.3.31"
+#netcdfc: "4.8.1"
+udunits: "2.2.28"
+#go: "1.22.3"
