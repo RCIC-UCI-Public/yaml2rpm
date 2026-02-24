@@ -1,31 +1,23 @@
 #!/usr/bin/env python
-# Generate a Definitions.mk file - write to standard output 
+# Generate a Definitions.mk file - write to standard output
 
 from __future__ import print_function
 #from builtins import str  # does not work with python2, breaks recursion
 
-import ruamel.yaml 
+import ruamel.yaml
 import re
 import sys
 import datetime
-import socket 
+import socket
 import os
 import io
 import argparse
 import pdb
 import time
 from multiprocessing import Pool
-
-if sys.version_info.major == 3:
-    from typing import Dict
-    from builtins import next 
-    from builtins import object
-
-incMap = {}   # type: dictionary, represents mapping of included filenames
-incStack = [] # type: list of strings keep track of ACTIVE !include maps
-
-#yaml = ruamel.yaml.YAML(typ='safe', pure=True)
-#yaml.default_flow_style = False
+from typing import Dict
+from builtins import next
+from builtins import object
 
 def new_compose_document(self):
     self.parser.get_event()
@@ -50,33 +42,30 @@ def new_yaml_include(loader, node, include_state):
 
     for p in incPath:
         try:
-            fname = os.path.join(p,filename)
+            fname = os.path.join(p, filename)
             with open(fname, 'r') as f:
                 # Pass same include_state to child parser
                 tparser = mkParser(include_state=include_state)
                 tparser.readPkgYaml(fname)
                 data = tparser.combo
-                if mapped: 
-                    incStack.pop() 
+                if mapped:
+                    incStack.pop()
                 return data
         except Exception as err:
            pass
-           #DEBUG print("Exception: %s", str(err)) 
-    raise  Exception("%s not found in: %s" % (filename,str(incPath)))
+           #DEBUG print("Exception: %s", str(err))
+    raise  Exception("%s not found in: %s" % (filename, str(incPath)))
 
-
-#yaml.Composer.compose_document = new_compose_document
-#yaml.Constructor.add_constructor("!include", new_yaml_include)
 
 ## This section of code enables yaml declarations of
 ##      var: !eval "<python code>"
-## once all {{vars}} have been replaced, the statement itself can be evaluated. 
-## The evaluation should return a single string. 
+## once all {{vars}} have been replaced, the statement itself can be evaluated.
+## The evaluation should return a single string.
 ## A simple example
 ##     foo: !eval "'{{bar}}' if {{testval}}==5 else '{{baz}}'"
 
-# small state holder to pass around to classes and functions
-# replacement for former global vaariables incMap and incStack
+# A small state holder to pass around to classes and functions.
+# This is a replacement for former global vaariables incMap and incStack
 class IncludeState(object):
     def __init__(self, inc_map=None, inc_stack=None):
         self.incMap = inc_map or {}
@@ -84,25 +73,25 @@ class IncludeState(object):
 
 
 class evalStmt(object):
-    def __init__(self,rhs='',evaluated=False):
+    def __init__(self,rhs='', evaluated=False):
         self._stmt = str(rhs)
         self._evaluated = evaluated
-        self._value = str(rhs) 
-    
+        self._value = str(rhs)
+
     @property
     def stmt(self):
         return self._value if self._evaluated else self._stmt
 
     @stmt.setter
-    def stmt(self,value):
-        self._stmt=value 
+    def stmt(self, value):
+        self._stmt=value
 
-    @property 
+    @property
     def evaluated(self):
         return self._evaluated
 
     def __str__(self):
-        return self.stmt 
+        return self.stmt
 
     def __len__(self):
         return len(self.stmt)
@@ -124,19 +113,19 @@ class execStmt(evalStmt):
         # Create a dictionary of "globals", code should set __rval
         gdict={'__rval':''}
         if not self._evaluated:
-            exec(self.stmt,gdict)
+            exec(self.stmt, gdict)
             self._value = gdict['__rval']
             self._evaluated = True
-        return self._value 
-      
+        return self._value
+
 def yaml_python_eval(loader, node):
     stmt = loader.construct_scalar(node)
     return evalStmt(stmt)
-   
+
 def yaml_python_exec(loader, node):
     stmt = loader.construct_scalar(node)
     return execStmt(stmt)
-   
+
 def yaml_python_ifeq(loader, node):
     ### !ifeq "x,y,<true result>[,<false result>]
     template= "'%s' if '%s' == '%s' else '%s'"
@@ -147,16 +136,16 @@ def yaml_python_ifneq(loader, node):
     template= "'%s' if '%s' != '%s' else '%s'"
     return parseIfstmt(loader, node, template)
 
-def parseIfstmt(loader,node,template):
+def parseIfstmt(loader, node, template):
     raw = loader.construct_scalar(node)
     parsed = [ x.strip() for x in raw.split(",")]
     try:
-         (what,compare,truestmt,elsestmt) = parsed
+         (what, compare, truestmt, elsestmt) = parsed
     except:
          elsestmt = ''
-         (what,compare,truestmt)= parsed
-    return evalStmt(template % (truestmt,what,compare,elsestmt))
-    
+         (what, compare, truestmt)= parsed
+    return evalStmt(template % (truestmt, what, compare, elsestmt))
+
 class IncPath(object):
     def __init__(self):
         self.incPath = ['.']
@@ -164,14 +153,14 @@ class IncPath(object):
             iPath = os.environ['YAML2RPM_INC']
             self.incPath.extend( iPath.split(':'))
         except:
-            pass    
+            pass
 
     def getPath(self):
         return self.incPath
 
 class IncParser(io.FileIO):
-    """ This class handles !include directives to have a more natural
-        'include this yamlfile' and merge with keys """
+    """ This class handles !include directives to have a more
+        natural 'include this yamlfile' and merge with keys """
     def __init__(self, filename, mode='r', include_state=None):
         self.include_state = include_state or IncludeState()
         incMap = self.include_state.incMap
@@ -184,19 +173,19 @@ class IncParser(io.FileIO):
         self.incPath = IncPath().getPath()
         for p in self.incPath:
             try:
-                fullpath = os.path.join(p,filename)
-                super(IncParser,self).__init__(fullpath,mode)
+                fullpath = os.path.join(p, filename)
+                super(IncParser, self).__init__(fullpath, mode)
                 with open(fullpath, 'r') as f:
                     self.items = [l for l in f]
-                    # pdb.set_trace()         
+                    # pdb.set_trace()
                     self.iter = iter(self.items)
                     self.child = []
                     return
             except:
                 pass
-        raise  Exception("%s not found in: %s" % (filename,str(self.incPath)))
+        raise  Exception("%s not found in: %s" % (filename, str(self.incPath)))
 
-    # We are including files, so we need to go to the current include file, which may be 
+    # We are including files, so we need to go to the current include file, which may be
     # several layers deep. Find the correct lines to iterate through
     def getIter(self):
         if not self.child:
@@ -204,7 +193,7 @@ class IncParser(io.FileIO):
         else:
            return self.child[0].getIter()
 
-    def read(self,size):
+    def read(self, size):
         # Called by the YAML parser, it is supposed to return lines of valid YAML or comments
         # since we have includes, this is more complicated.
         try:
@@ -213,14 +202,14 @@ class IncParser(io.FileIO):
             # text. In other words, parse the included file, but don't return !include
             if line.startswith("!include"):
                 incName = line.split()[1]
-                self.child.insert(0,IncParser(incName))
+                self.child.insert(0, IncParser(incName))
                 return self.read(size)
-            return line 
+            return line
         except StopIteration:
             if not self.child:
                 return ""
             # We reached the end of the current file that we were reading. go up one level and read the
-            # the next line of that file 
+            # the next line of that file
             self.child.pop(0)
             return self.read(size)
 
@@ -243,20 +232,20 @@ class mkParser(object):
         self.yaml.Constructor.add_constructor("!ifeq", yaml_python_ifeq)
         self.yaml.Constructor.add_constructor("!ifneq", yaml_python_ifneq)
 
-    def readPkgYaml(self,fname):
-        """ read yaml file, proesss loading of all included yamls,
-            merge all into one dictionary and update self.combo with the result """
+    def readPkgYaml(self, fname):
+        """ Read yaml file, proesss loading of all included yamls, merge
+            all into one dictionary and update self.combo with the result """
         f = IncParser(fname, include_state=self.include_state)
-        docs = list(filter(lambda x: x is not None,list(self.yaml.load_all(f))))
-        kvdict = self.mergeDocs(docs) 
+        docs = list(filter(lambda x: x is not None, list(self.yaml.load_all(f))))
+        kvdict = self.mergeDocs(docs)
         self.combo.update(kvdict)
-    
-    def mergeDocs(self,docs):
-        """ Merge parsed YAML docs into a single dictionary. Keys are overwritten if 
-            multiple docs have the same key. If a key is a dictionary old and new are merged
-            the latter fileds are overwriting the former """
+
+    def mergeDocs(self, docs):
+        """ Merge parsed YAML docs into a single dictionary. Keys are overwritten if
+            multiple docs have the same key. If a key is a dictionary old and new are
+            merged the latter fileds are overwriting the former """
         fullDict = {}
-        for d in docs: 
+        for d in docs:
             if type(d) is list:
                 srcDct = d[0]
             else:
@@ -276,10 +265,10 @@ class mkParser(object):
 
         return fullDict
 
-    def lookup(self,e,ldict=None,stringify=True):
-        """Looks up x.y.z references in multilevel dictionary
-           stringify: True - return a string representation of contents
-                      False - return the contents (could be any python type)"""
+    def lookup(self, e, ldict=None, stringify=True):
+        """ Looks up x.y.z references in multilevel dictionary. stringify:
+            True - return a string representation of contents
+            False - return the contents (could be any python type) """
 
         if ldict is None:
             ldict = self.combo
@@ -289,59 +278,57 @@ class mkParser(object):
             val = eval("ldict%s"%"".join(dkey))
         except:
             val = ldict[e]
-        if type(val) is list: 
+        if type(val) is list:
             val = [_f for _f in val if _f]                  # filter out  empty string
             val = [word for word in val if word != 'None']  # filter out  None
             val = self.flatten(val)
         if val is None: # definition in yaml was empty. TODO remove this check
             return ''
-        if isinstance(val,evalStmt) and val.evaluated:  # replace evalStmt with string version ASAP
+        if isinstance(val, evalStmt) and val.evaluated:  # replace evalStmt with string version ASAP
             val = str(val)
         if stringify:
             return str(val)
-        if type(val) in [type(1),type(1.1),type(True)]:
+        if type(val) in [type(1), type(1.1), type(True)]:
             return str(val)
         return val
 
-    def lookupAndResolve(self,keyword,joinString,valuesonly=False):
-        """ Lookup a value for key.  if val is a list, join the elements
-            via the joinString. 
+    def lookupAndResolve(self, keyword, joinString, valuesonly=False):
+        """ Lookup a value for key. If val is a list, join the elements via the joinString.
             Note: throws an exception if keyword does not exist """
 
-        elems = self.lookup(keyword,stringify=False)
+        elems = self.lookup(keyword, stringify=False)
         ## if values only requested this is a dict, get the values and flatten to a single list
         if type(elems) is dict and valuesonly:
-            flist = [ v for k,v in elems.items() ]
+            flist = [ v for k, v in elems.items() ]
             elems = self.flatten(flist)
         if type(elems) is list:
-            if joinString is not None: 
+            if joinString is not None:
                 elems = joinString.join(elems)
         elif type(elems) is bool: # convert boolean to string
             elems = str(elems)
         return elems
 
     def stringRep(self, obj):
-        """recursively expand object to provide a string representation"""
+        """ Recursively expand object to provide a string representation """
         basetypes = [type(""), type(1.0), type(1), type(True)]
-        if isinstance(obj,evalStmt) or type(obj) in basetypes:
+        if isinstance(obj, evalStmt) or type(obj) in basetypes:
            return str(obj)
         try:
             return " ".join([self.stringRep(x) for x in obj.values()])
         except:
             return " ".join([self.stringRep(x) for x in obj])
 
+    def hasVars(self, s):
+        """ Determine if an object has vars {{ }} """
+        return len(re.findall(self.varpat, self.stringRep(s))) > 0
 
-    def hasVars(self,s):
-        """ determine if an object has vars {{ }} """
-        return len(re.findall(self.varpat,self.stringRep(s))) > 0
-
-    def varsInString(self,s):
+    def varsInString(self, s):
         """ Return all the variable patterns in the supplied string """
-        return re.findall(self.varpat,self.stringRep(s))
+        return re.findall(self.varpat, self.stringRep(s))
 
-    def extractVars(self,s):
-        """ return a list of 'stripped' var names """
-        lvars = [x.replace('{{','').replace('}}','').strip() for x in re.findall(self.varpat,self.stringRep(s))]
+    def extractVars(self, s):
+        """ Return a list of 'stripped' var names """
+        lvars = [x.replace('{{','').replace('}}','').strip() for x in re.findall(self.varpat, self.stringRep(s))]
         res = []
         [res.append(x) for x in lvars if x not in res] # remove duplicates
         lvars = res
@@ -352,9 +339,9 @@ class mkParser(object):
             return elem
         for var in self.varsInString(elem):
             subvar = var.replace('{{','').replace('}}','').strip()
-            expand = self.lookup(subvar,vdict,stringify=False)
+            expand = self.lookup(subvar, vdict, stringify=False)
             if type(expand) is type("string"):
-                elem = elem.replace(var,expand)
+                elem = elem.replace(var, expand)
             if type(expand) is list:
                 check = elem.replace('{{','').replace('}}','').strip()
                 if len(check) > len(subvar):
@@ -362,17 +349,16 @@ class mkParser(object):
                 else:
                     elem = expand
         return elem
-            
+
     def replaceVars(self, src, vdict):
-        """ replace the vars in src with variables from vdict
-            recursively call if src is type list or type dictionary
-        """
+        """ Replace the vars in src with variables from vdict
+            recursively call if src is type list or type dictionary """
         if type(src) is type(None):
             work = ''
         if type(src) is type("string"):
             work = self.replaceStr(src, vdict)
-        if isinstance(src,evalStmt):
-            src.stmt = self.replaceStr(src.stmt, vdict) 
+        if isinstance(src, evalStmt):
+            src.stmt = self.replaceStr(src.stmt, vdict)
             if not self.hasVars(src.stmt):
                src.eval()   # evaluate the statement as soon as possible
             work = src.stmt
@@ -386,23 +372,23 @@ class mkParser(object):
                 work[key] = self.replaceVars(src[key], vdict)
         return work
 
-    def setVar(self,vdict,v,value=''):
+    def setVar(self, vdict, v, value=''):
         vdict[v] = value
 
     def replaceNoneIntFloat(self):
-        """ replace all None and int values as '' """
-        tvect = [type(1),type(1.1),type(True)]
+        """ Replace all None and int values as '' """
+        tvect = [type(1), type(1.1), type(True)]
         for key in self.combo.keys():
             rhs = self.combo[key]
-            if rhs is None: 
+            if rhs is None:
                 self.combo[key] = ''
-            elif rhs is type(""): 
-                self.combo[key] = rhs.rstrip("\n") 
+            elif rhs is type(""):
+                self.combo[key] = rhs.rstrip("\n")
             elif type(rhs) in tvect:
                 self.combo[key] = str(rhs)
             elif type(rhs) is type({}):
                 d = self.combo[key]
-                for k,v in d.items():
+                for k, v in d.items():
                     if type(v) in tvect:
                         d[k] = str(v)
                     elif v is None:
@@ -414,10 +400,10 @@ class mkParser(object):
                 self.combo[key] = d
 
     def resolveVars(self):
-        """ Resolve all variables in the combo dictionary. As variables are 
+        """ Resolve all variables in the combo dictionary. As variables are
             are resolved, the object varsdict will hold the resolved versions """
 
-        # replace None,float,int values with strings
+        # replace None, float, int values with strings
         self.replaceNoneIntFloat()
 
         # find all the vars that need to be replaced in any definition
@@ -425,22 +411,22 @@ class mkParser(object):
             rhs = self.combo[key]
             if self.hasVars(rhs):
                 for v in self.extractVars(rhs):
-                    self.setVar(self.varsdict,v,'')
+                    self.setVar(self.varsdict, v, '')
 
         # initial setting of key-value pairs from combo dict, no strignigy
         for v in self.varsdict.keys():
-            self.setVar(self.varsdict,v,self.lookup(v,self.combo,stringify=False))
+            self.setVar(self.varsdict, v, self.lookup(v, self.combo, stringify=False))
 
         # resolve all variables in varsdict
         while True:
             changed = 0
             for v in self.varsdict.keys():
                 if self.hasVars(self.varsdict[v]):
-                    rhs = self.replaceVars(self.varsdict[v],self.varsdict) 
-                    # special handling of evalStmt objects 
+                    rhs = self.replaceVars(self.varsdict[v], self.varsdict)
+                    # special handling of evalStmt objects
                     var = self.varsdict[v]
-                    if isinstance(var,evalStmt):
-                        rhs = type(var)(rhs,var.evaluated)  # new instance with some/all vars replaced
+                    if isinstance(var, evalStmt):
+                        rhs = type(var)(rhs, var.evaluated)  # new instance with some/all vars replaced
                     self.varsdict[v] = rhs
                     changed = 1
             if changed == 0:
@@ -448,7 +434,7 @@ class mkParser(object):
 
         # update combo/varsdict values with resolved from varsdict
         for key, val in self.varsdict.items():
-            if isinstance(val,evalStmt):
+            if isinstance(val, evalStmt):
                resolved = val.eval()
                self.varsdict[key] = resolved
                val = resolved
@@ -459,20 +445,20 @@ class mkParser(object):
             changed = 0
             for v in self.combo.keys():
                 if self.hasVars(self.combo[v]):
-                    rhs = self.replaceVars(self.combo[v],self.combo) 
+                    rhs = self.replaceVars(self.combo[v], self.combo)
                     var = self.combo[v]
-                    if isinstance(var,evalStmt):
-                        rhs = type(var)(rhs,var.evaluated)
+                    if isinstance(var, evalStmt):
+                        rhs = type(var)(rhs, var.evaluated)
                     self.combo[v] = rhs
                     changed = 1
-                elif isinstance(self.combo[v],evalStmt):
+                elif isinstance(self.combo[v], evalStmt):
                     self.combo[v] = self.combo[v].eval()
             if changed == 0:
                 break
 
     def flatten(self, mllist):
-        """ recursive method to flatten list of elements where each element
-            might itself be a list. Returns a list """
+        """ Recursive method to flatten list of elements where each
+            element might itself be a list. Returns a list """
         literals = []
         for x in mllist:
             if type(x) is list:
@@ -481,8 +467,8 @@ class mkParser(object):
                 literals.append(x)
         return literals
 
-        sublists = [x for x in mllist if type(x) is list] 
-        literals = [x for x in mllist if type(x) is not list] 
+        sublists = [x for x in mllist if type(x) is list]
+        literals = [x for x in mllist if type(x) is not list]
         if len(sublists) == 0:
             return literals
         else:
@@ -491,26 +477,26 @@ class mkParser(object):
 
 
 class moduleGenerator(object):
-    def __init__(self,mkp):
+    def __init__(self, mkp):
         """ mkp is an mkParser, already initialized """
         self.mk = mkp
         try:
-            self.category = self.mk.lookup("category") 
+            self.category = self.mk.lookup("category")
         except:
             self.category = ""
 
         try:
-            self.description = self.mk.lookup("description") 
+            self.description = self.mk.lookup("description")
         except:
             self.description = ""
 
         try:
-            self.logname = self.mk.lookup("module.logname") 
+            self.logname = self.mk.lookup("module.logname")
         except:
             self.logname = ""
 
         try:
-            self.version = self.mk.lookup("version") 
+            self.version = self.mk.lookup("version")
         except:
             self.version = ""
 
@@ -520,7 +506,7 @@ class moduleGenerator(object):
             self.logger = "\nif { [ module-info mode load ] } {\n  %s\n}"
             self.listPrereqs()
             try:
-                self.reqs = self.mk.lookup("requires",stringify=False)
+                self.reqs = self.mk.lookup("requires", stringify=False)
                 if type(self.reqs) is str:
                     self.reqs = self.reqs.split(" ")
             except:
@@ -533,40 +519,40 @@ class moduleGenerator(object):
 #####################################################################
 ## Date: %s
 ## Built on: %s
-## Standard header for invoking autoloading functionality 
+## Standard header for invoking autoloading functionality
 ##
 source /opt/rcic/include/rcic-module-head.tcl
-""" 
-        rstr = profile % (str(datetime.date.today()),socket.gethostname()) # faster than socket.getfqdn()
+"""
+        rstr = profile % (str(datetime.date.today()), socket.gethostname()) # faster than socket.getfqdn()
         return rstr
 
 
     def gen_tail(self):
         profile = """
 #####################################################################
-## Standard tail for invoking autoloading functionality 
-## 
+## Standard tail for invoking autoloading functionality
+##
 source /opt/rcic/include/rcic-module-tail.tcl
-""" 
-        rstr = profile 
+"""
+        rstr = profile
         return rstr
 
     def gen_help(self):
-        """ generate ModuleHelp function """
+        """ Generate ModuleHelp function """
         rstr =  '\nproc ModulesHelp { } {\n'
         if len(self.version) > 0:
             rstr += '        puts stderr "\\tModule: %s version %s"\n' % (self.name, self.version)
         else:
             rstr += '        puts stderr "\\tModule: %s"\n' % (self.name)
         template = '        puts stderr "\\t%s"\n'
-        for txtline in self.descriptionList: 
+        for txtline in self.descriptionList:
             rstr += template % txtline
-        rstr =  rstr[0:-2] + '\\n"\n' # add NL to the last line item 
+        rstr =  rstr[0:-2] + '\\n"\n' # add NL to the last line item
         rstr += '}\n\n'
         return rstr
 
     def gen_whatis(self):
-        """ generate module-whatis lines """
+        """ Generate module-whatis lines """
         rstr = 'module-whatis "Category_______ %s"\n' % self.category
         rstr += 'module-whatis "Name___________ %s"\n' % self.name
         if len(self.version) > 0:
@@ -580,7 +566,7 @@ source /opt/rcic/include/rcic-module-tail.tcl
         return rstr
 
     def genMultiLine(self, headline, items):
-        """ generate multi-line item for module-whatis """
+        """ Generate multi-line item for module-whatis """
         if items == []:
             return  headline % "none"
         template = 'module-whatis "                %s"\n'
@@ -599,12 +585,12 @@ source /opt/rcic/include/rcic-module-tail.tcl
         Vars = self.mk.flatten(entries)
         template = word + "\t%s\t%s\n"
         for Var in Vars:
-            eName,eVal = re.split('[ \t]+', Var, 1)
+            eName, eVal = re.split('[ \t]+', Var, 1)
             rstr += template % (eName, eVal)
         return rstr
 
     def listPrereqs(self):
-        """ find prerequisite modules """
+        """ Find prerequisite modules """
         self.prereqModules = []
         try:
             prereqs = self.mk.lookup("module.prereq", stringify=False)
@@ -613,14 +599,14 @@ source /opt/rcic/include/rcic-module-tail.tcl
             prereqs = [_f for _f in prereqs if _f]  # filter ''
             self.prereqModules = prereqs
         except:
-            return 
+            return
 
     def gen_prereqs(self):
-        """ load other modules as prereqs """
+        """ Load other modules as prereqs """
         rstr = ""
         template = 'if { [module-info mode load] } { LoadPrereq "%s" }\nprereq\t%s\n'
         for mod in self.prereqModules:
-            rstr += template % (mod,mod)
+            rstr += template % (mod, mod)
         return rstr
 
     def gen_logger(self):
@@ -644,33 +630,33 @@ source /opt/rcic/include/rcic-module-tail.tcl
         rstr += self.gen_lines("module.setenv", "setenv")
         rstr += self.gen_lines("module.alias", "set-alias")
         rstr += self.gen_lines("module.prepend_path", "prepend-path")
-        rstr += self.gen_tail() 
-        rstr += self.gen_logger() 
+        rstr += self.gen_tail()
+        rstr += self.gen_logger()
         return rstr
 
 class makeIncludeGenerator(object):
     """ Create output for Definitions.mk """
-    def __init__(self,mkp):
-        """ mkp is an mkParser, already initialized """
+    def __init__(self, mkp):
+        """ mkp is an mkParser already initialized """
         self.mk = mkp
 
     def generateDefs(self):
         rstr = ""
         # The following are "Required" keys - meaning packaging should fail without them
-        # However, if we use this parsing for other reasons, having these be missing might be OK 
-        options=[ ("TARNAME","name"),("VERSION", "version")]
-        options.extend([ ("NAME","pkgname","$(TARNAME)_$(VERSION)") ])
-        options.extend([ ("TARBALL-EXTENSION","extension") ])
-        options.extend([ ("PKGROOT","root") ])
+        # However, if we use this parsing for other reasons, having these be missing might be OK
+        options=[ ("TARNAME", "name"), ("VERSION", "version")]
+        options.extend([ ("NAME", "pkgname", "$(TARNAME)_$(VERSION)") ])
+        options.extend([ ("TARBALL-EXTENSION", "extension") ])
+        options.extend([ ("PKGROOT", "root") ])
 
-        rstr += "DESCRIPTION \t = " 
+        rstr += "DESCRIPTION \t = "
         try:
-            self.description = self.mk.lookup("description") 
+            self.description = self.mk.lookup("description")
             self.descriptionList = self.description.split("\n")[:-1] # description as list of lines
             if len(self.descriptionList) == 0:
                 rstr += self.description + "\n"
             else:
-                for txtline in self.descriptionList: 
+                for txtline in self.descriptionList:
                     rstr += "%s \\\n" % txtline
                 rstr =  rstr[0:-3] + "\n" # rm last ' \' and add NL back
         except:
@@ -678,34 +664,34 @@ class makeIncludeGenerator(object):
 
         # Standard options and defaults, if defined
         # Format of these tuples (MAKEFILE VAR, YAML VAR, [default])
-        options.extend([ ("RELEASE","release"),("VENDOR", "vendor"), ("SRC_TARBALL","src_tarball") ])
+        options.extend([ ("RELEASE", "release"), ("VENDOR", "vendor"), ("SRC_TARBALL", "src_tarball") ])
         options.extend([ ("RPM.ARCH", "arch")])
-        options.extend([ ("SRC_DIR","src_dir"),("NO_SRC_DIR", "no_src_dir") ])
-        options.extend([ ("PRECONFIGURE", "build.preconfigure","echo no preconfigure required")])
+        options.extend([ ("SRC_DIR", "src_dir"), ("NO_SRC_DIR", "no_src_dir") ])
+        options.extend([ ("PRECONFIGURE", "build.preconfigure", "echo no preconfigure required")])
         options.extend([ ("BUILDTARGET", "build.target")])
         options.extend([ ("PKGMAKE", "build.pkgmake")])
         options.extend([ ("MAKEINSTALL", "install.makeinstall")])
         options.extend([ ("INSTALLEXTRA", "install.installextra")])
-        options.extend([ ("MODULENAME", "module.name","")])
-        options.extend([ ("MODULESPATH", "module.path","")])
+        options.extend([ ("MODULENAME", "module.name", "")])
+        options.extend([ ("MODULESPATH", "module.path", "")])
         options.extend([ ("RPMS.SCRIPTLETS.FILE", "rpm.scriptlets")])
         options.extend([ ("RPM.OBSOLETES", "obsoletes")])
         options.extend([ ("RPM.CONFLICTS", "conflicts")])
-        
+
         # The options look the same in the Makefile, some have defaults
         for option in options:
             mfVar = option[0]
             yamlVar = option[1]
             try:
                 rVar = self.mk.lookup(yamlVar)
-                rstr += "%s\t = %s\n" % (mfVar,rVar)
+                rstr += "%s\t = %s\n" % (mfVar, rVar)
             except:
-                # if it has a default value, print it. 
-                if len(option) == 3: 
-                   rstr += "%s\t = %s\n" % (mfVar,option[2])
-                
+                # if it has a default value, print it.
+                if len(option) == 3:
+                   rstr += "%s\t = %s\n" % (mfVar, option[2])
+
         # Handle configure separately
-        stdconfigure = "+=" 
+        stdconfigure = "+="
         try:
             cprog = self.mk.lookup("build.configure")
             rstr +=  "CONFIGURE \t = %s\n" % cprog
@@ -720,54 +706,54 @@ class makeIncludeGenerator(object):
             pass
 
         try:
-            mods =  self.mk.lookupAndResolve("build.modules"," ")
-            rstr += "MODULES \t = %s\n" % mods 
+            mods =  self.mk.lookupAndResolve("build.modules", " ")
+            rstr += "MODULES \t = %s\n" % mods
         except:
             pass
 
         try:
             rstr += "PATCH_FILE \t = %s\n" % self.mk.lookup("build.patchfile")
-            rstr += "PATCH_METHOD \t = $(PATCH_CMD)\n" 
+            rstr += "PATCH_METHOD \t = $(PATCH_CMD)\n"
         except:
-            rstr += "PATCH_METHOD \t = $(PATCH_NONE)\n" 
+            rstr += "PATCH_METHOD \t = $(PATCH_NONE)\n"
 
         try:
-            reqs =  self.mk.lookupAndResolve("requires"," ")
+            reqs =  self.mk.lookupAndResolve("requires", " ")
             rstr += "RPM.REQUIRES\t = %s\n" % reqs
         except:
             pass
 
         try:
-            provs =  self.mk.lookupAndResolve("provides"," ")
+            provs =  self.mk.lookupAndResolve("provides", " ")
             rstr += "RPM.PROVIDES\t = %s\n" % provs
         except:
-            rstr += "RPM.PROVIDES\t = \n" 
+            rstr += "RPM.PROVIDES\t = \n"
 
         try:
-            files =  self.mk.lookupAndResolve("files","\\n\\\n")
-            rstr += "RPM.FILES\t = %s\n" % files 
+            files =  self.mk.lookupAndResolve("files", "\\n\\\n")
+            rstr += "RPM.FILES\t = %s\n" % files
         except:
             try:
-                files =  self.mk.lookupAndResolve("fileslist","\\n\\\n")
-                rstr += "RPM.FILESLIST\t = %s\n" % files 
+                files =  self.mk.lookupAndResolve("fileslist", "\\n\\\n")
+                rstr += "RPM.FILESLIST\t = %s\n" % files
             except:
-                rstr += "RPM.FILES\t = $(PKGROOT)\n" 
+                rstr += "RPM.FILES\t = $(PKGROOT)\n"
 
         try:
-            extras = self.mk.lookup("rpm.extras",stringify=False)
-            rstr += "RPM.EXTRAS\t = %s\n" % extras 
+            extras = self.mk.lookup("rpm.extras", stringify=False)
+            rstr += "RPM.EXTRAS\t = %s\n" % extras
         except:
             pass
-            
+
         return rstr
 
 class queryProcessor(object):
     """ Query based on the yaml file """
-    def __init__(self,mkp):
-        """ mkp is an mkParser, already initialized """
+    def __init__(self, mkp):
+        """ mkp is an mkParser already initialized """
         self.mk = mkp
 
-    def processQuery(self,query,quiet=False,joinString=' ',valuesonly=False):
+    def processQuery(self, query, quiet=False, joinString=' ', valuesonly=False):
         rq = query.strip().lower()
         if rq == "patch":
             rq = "build.patchfile"
@@ -775,7 +761,7 @@ class queryProcessor(object):
             rq = "vendor_source"
 
         if rq == "tarball":
-            try: 
+            try:
                rstr = self.mk.lookup("src_tarball")
             except:
                rstr = self.mk.lookup("name")
@@ -786,10 +772,10 @@ class queryProcessor(object):
             try:
                 rstr = self.mk.lookup("pkgname")
             except:
-                rstr = "%s_%s" % (self.mk.lookup("name"), self.mk.lookup("version")) 
+                rstr = "%s_%s" % (self.mk.lookup("name"), self.mk.lookup("version"))
             return rstr
         try:
-            rval = self.mk.lookupAndResolve(rq,joinString,valuesonly)
+            rval = self.mk.lookupAndResolve(rq, joinString, valuesonly)
         except:
             if not quiet:
                 return('False')
@@ -808,27 +794,27 @@ class queryProcessor(object):
         try:
             pkgname = self.mk.lookup("pkgname")
         except:
-            pkgname = "%s_%s" % (self.mk.lookup("name"), version) 
+            pkgname = "%s_%s" % (self.mk.lookup("name"), version)
 
         try:
-            category = self.mk.lookup("category",stringify=False)
-            provides = self.mk.lookup("module.logname") 
+            category = self.mk.lookup("category", stringify=False)
+            provides = self.mk.lookup("module.logname")
         except:
             category = False
-            provides = self.mk.lookup("provides",stringify=False)
+            provides = self.mk.lookup("provides", stringify=False)
         if type(provides) is str:
             provides = provides.split(" ")
 
         try:
-            admixname = self.mk.lookup("versions.admix",stringify=False)
+            admixname = self.mk.lookup("versions.admix", stringify=False)
         except:
             admixname = False
 
         try:
             if category: # for module file
-                requires = self.mk.lookup("module.prereq",stringify=False)
+                requires = self.mk.lookup("module.prereq", stringify=False)
             else: # for regular package file
-                requires = self.mk.lookup("build.modules",stringify=False)
+                requires = self.mk.lookup("build.modules", stringify=False)
             if type(requires) is str:
                 requires = requires.split(" ")
         except:
@@ -843,7 +829,7 @@ class queryProcessor(object):
         rstr += "\n  set: %s" % setname
         rstr += "\n  version: %s" % version
         rstr += "\n  category: %s" % category
-        rstr += "\n  requires:" 
+        rstr += "\n  requires:"
         for i in requires:
             rstr += "\n    - %s" % i
         rstr += "\n  provides:"
@@ -855,20 +841,20 @@ class queryProcessor(object):
     def processInfo(self):
         # need only module yaml files that have category
         try:
-            category = self.mk.lookup("category",stringify=False)
-            provides = self.mk.lookup("module.logname") 
+            category = self.mk.lookup("category", stringify=False)
+            provides = self.mk.lookup("module.logname")
         except:
-            return 
+            return
 
-        # short description if exists, otherwise take a first 
+        # short description if exists, otherwise take a first
         # statement of the description.
         try:
-            description = self.mk.lookup("shortdescription") 
-            description = description.replace('\n',' ')
+            description = self.mk.lookup("shortdescription")
+            description = description.replace('\n', ' ')
         except:
             try:
-                description = self.mk.lookup("description") 
-                description = description.replace('\n',' ')
+                description = self.mk.lookup("description")
+                description = description.replace('\n', ' ')
                 description = description.partition(". ")[0]
             except:
                 pass
@@ -884,10 +870,10 @@ class queryProcessor(object):
 ## *****************************
 
 def main(argv):
-    dflts_file = 'pkg-defaults.yaml'  # defaults package file, assume in the current yamlspecs/ directory 
+    dflts_file = 'pkg-defaults.yaml'  # defaults package file, assume in the current yamlspecs/ directory
 
     # descriptionand help lines for the usage  help
-    description = "The definitions parser gen-defintions.py reads the yaml descripton file\n" 
+    description = "The definitions parser gen-defintions.py reads the yaml descripton file\n"
     description += "and creates include and module files needed for generating of RPM package"
 
     helpquery = "query if value exists in the yaml file and  print  the result on stdout. Valid types are the keywords in the\n"
@@ -898,9 +884,9 @@ def main(argv):
 
     helpdefaults = "specify packaging defaults yaml file to use. If none is provided, use:\n"
     helpdefaults += "(1) specific ./%s in the current yamlspecs/ directory; if exists \n" % dflts_file
-    helpdefaults += "(2) default /opt/rocks/yaml2rpm/sys/%s otherwise \n" % dflts_file 
+    helpdefaults += "(2) default /opt/rocks/yaml2rpm/sys/%s otherwise \n" % dflts_file
 
-    helpskipdefaults = "To skips all defaults reading" 
+    helpskipdefaults = "To skips all defaults reading"
 
     helpmap = "use mapping to substitute a default file with a replacement. Can use when building multiple versions of the\n"
     helpmap += "package. Mapping is  python dictionary, ke is the original file, and the value is the substitute file. For \n"
@@ -912,20 +898,20 @@ def main(argv):
     # optional arguments
     parser.add_argument("-d", "--defaults", dest="dflts_file", default=dflts_file, help=helpdefaults)
     parser.add_argument("-D", "--no-defaults", dest="skipDefaults", default=False, action='store_true', help=helpskipdefaults)
-    parser.add_argument("-m", "--module",   dest="doModule",   default=False, action='store_true', help="generate environment modules file")
-    parser.add_argument("-q", "--query",    dest="doQuery",    default=False, help=helpquery)
+    parser.add_argument("-m", "--module", dest="doModule", default=False, action='store_true', help="generate environment modules file")
+    parser.add_argument("-q", "--query", dest="doQuery", default=False, help=helpquery)
     parser.add_argument("-c", "--category", dest="doCategory", default=False, action='store_true',help=helpcategory)
     parser.add_argument("-i", "--info", dest="doInfo", default=False, action='store_true',help=helpinfo)
     parser.add_argument("-p", "--parallel", dest="parallel", default=8, action='store',help="How many yaml files to process in parallel")
-    parser.add_argument("-Q", "--quiet",    dest="quiet",      default=False, action='store_true', help="supress output of query processing")
-    parser.add_argument("-R", "--raw",    dest="raw",      default=False, action='store_true', help="Give the raw python str of the query object")
-    parser.add_argument("--values",    dest="valuesonly",      default=False, action='store_true', help="Flatten and only return values of dict entries")
-    parser.add_argument("-M", "--map",      dest="mapf",       default=False, help=helpmap)
-    parser.add_argument("-V", "--versions", dest="versions",       default=False, help=helpver)
+    parser.add_argument("-Q", "--quiet", dest="quiet", default=False, action='store_true', help="supress output of query processing")
+    parser.add_argument("-R", "--raw", dest="raw", default=False, action='store_true', help="Give the raw python str of the query object")
+    parser.add_argument("--values", dest="valuesonly", default=False, action='store_true', help="Flatten and only return values of dict entries")
+    parser.add_argument("-M", "--map", dest="mapf", default=False, help=helpmap)
+    parser.add_argument("-V", "--versions", dest="versions", default=False, help=helpver)
     # required positional argument
-    parser.add_argument("yamlfiles", nargs="+", help="YAML file(s) with packaging definitions") 
+    parser.add_argument("yamlfiles", nargs="+", help="YAML file(s) with packaging definitions")
     args = parser.parse_args()
-    
+
     # Check for existence of args.yamlfiles
     for yamlfile in args.yamlfiles:
        if not os.path.isfile(yamlfile):
@@ -935,7 +921,7 @@ def main(argv):
     # Build include mapping state
     include_state = IncludeState()
 
-    if args.mapf: 
+    if args.mapf:
         include_state.incMap.update(eval(args.mapf))
     if args.versions:
         include_state.incMap.update({'versions.yaml':args.versions})
@@ -956,9 +942,7 @@ def processInParallel(args, include_state):
     return rval
 
 def processFile(subargs):
-    """subargs = (yamlfile, args, include_state)
-       returns = (yamlfile, output)
-    """
+    """ subargs = (yamlfile, args, include_state) returns = (yamlfile, output) """
     yamlfile, args, include_state = subargs
 
     # Open input yaml files, parse, generate
