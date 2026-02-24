@@ -16,7 +16,6 @@ import pdb
 import time
 from multiprocessing import Pool
 
-
 if sys.version_info.major == 3:
     from typing import Dict
     from builtins import next 
@@ -34,21 +33,27 @@ def new_compose_document(self):
     self.parser.get_event()
     return node
 
-def new_yaml_include(loader, node):
+def new_yaml_include(loader, node, include_state):
     y = loader.loader
     incPath = IncPath().getPath()
-    global incMap,incStack
+
     filename = loader.construct_scalar(node)
     mapped= False
+
+    incMap = include_state.incMap
+    incStack = include_state.incStack
+
     if filename in list(incMap.keys()):
         incStack.append(filename)   # Track that we are currently remapping a filename
         mapped = True
         filename = incMap[filename]
+
     for p in incPath:
         try:
             fname = os.path.join(p,filename)
             with open(fname, 'r') as f:
-                tparser=mkParser()
+                # Pass same include_state to child parser
+                tparser = mkParser(include_state=include_state)
                 tparser.readPkgYaml(fname)
                 data = tparser.combo
                 if mapped: 
@@ -69,6 +74,14 @@ def new_yaml_include(loader, node):
 ## The evaluation should return a single string. 
 ## A simple example
 ##     foo: !eval "'{{bar}}' if {{testval}}==5 else '{{baz}}'"
+
+# small state holder to pass around to classes and functions
+# replacement for former global vaariables incMap and incStack
+class IncludeState(object):
+    def __init__(self, inc_map=None, inc_stack=None):
+        self.incMap = inc_map or {}
+        self.incStack = inc_stack or []
+
 
 class evalStmt(object):
     def __init__(self,rhs='',evaluated=False):
@@ -156,12 +169,14 @@ class IncPath(object):
     def getPath(self):
         return self.incPath
 
-
 class IncParser(io.FileIO):
-    """ This class handles !include directives to have a more natural 'include this
-            yaml file' and merge with keys """
-    def __init__(self,filename,mode='r'):
-        global incMap,incStack
+    """ This class handles !include directives to have a more natural
+        'include this yamlfile' and merge with keys """
+    def __init__(self, filename, mode='r', include_state=None):
+        self.include_state = include_state or IncludeState()
+        incMap = self.include_state.incMap
+        incStack = self.include_state.incStack
+
         if filename in list(incMap.keys()) and filename not in incStack:
             filename = incMap[filename]
 
@@ -209,16 +224,20 @@ class IncParser(io.FileIO):
             self.child.pop(0)
             return self.read(size)
 
-        
+
 class mkParser(object):
-    def __init__(self):
+    def __init__(self, include_state=None):
         self.varsdict = {}
         self.varpat = re.compile(r'{{[A-Za-z0-9_\\. ]+}}')
-        self.combo = {} 
+        self.combo = {}
+        self.include_state = include_state or IncludeState()
+
         self.yaml = ruamel.yaml.YAML(typ='safe', pure=True)
         self.yaml.default_flow_style = False
         self.yaml.Composer.compose_document = new_compose_document
-        self.yaml.Constructor.add_constructor("!include", new_yaml_include)
+
+        # Bind !include to a closure that captures include_state
+        self.yaml.Constructor.add_constructor( "!include", lambda loader, node: new_yaml_include(loader, node, self.include_state))
         self.yaml.Constructor.add_constructor("!eval", yaml_python_eval)
         self.yaml.Constructor.add_constructor("!exec", yaml_python_exec)
         self.yaml.Constructor.add_constructor("!ifeq", yaml_python_ifeq)
@@ -227,7 +246,7 @@ class mkParser(object):
     def readPkgYaml(self,fname):
         """ read yaml file, proesss loading of all included yamls,
             merge all into one dictionary and update self.combo with the result """
-        f = IncParser(fname)
+        f = IncParser(fname, include_state=self.include_state)
         docs = list(filter(lambda x: x is not None,list(self.yaml.load_all(f))))
         kvdict = self.mergeDocs(docs) 
         self.combo.update(kvdict)
@@ -865,8 +884,6 @@ class queryProcessor(object):
 ## *****************************
 
 def main(argv):
-    global incMap
-
     dflts_file = 'pkg-defaults.yaml'  # defaults package file, assume in the current yamlspecs/ directory 
 
     # descriptionand help lines for the usage  help
@@ -914,66 +931,73 @@ def main(argv):
        if not os.path.isfile(yamlfile):
            sys.stderr.write("yaml file(s) %s does not exist\n" % yamlfile)
            sys.exit(-1)
-    if args.mapf: 
-        incMap.update(eval(args.mapf))
-    if args.versions:
-        incMap.update({'versions.yaml':args.versions})
 
-    outputs = processInParallel(args)
+    # Build include mapping state
+    include_state = IncludeState()
+
+    if args.mapf: 
+        include_state.incMap.update(eval(args.mapf))
+    if args.versions:
+        include_state.incMap.update({'versions.yaml':args.versions})
+
+    outputs = processInParallel(args, include_state)
     for yamlfile in args.yamlfiles:
         print(outputs[yamlfile])
 
 
-def processInParallel(args): 
+def processInParallel(args, include_state):
     rval = dict()
     for yamlfile in args.yamlfiles:
         rval[yamlfile] = ""
-    subargs = [(yf,args) for yf in args.yamlfiles]
-
+    subargs = [(yf, args, include_state) for yf in args.yamlfiles]
     with Pool(int(args.parallel)) as pool:
-       for result in pool.imap_unordered(processFile, subargs):
-           rval[result[0]] = result[1]           
+        for result in pool.imap_unordered(processFile, subargs):
+            rval[result[0]] = result[1]
     return rval
 
-
 def processFile(subargs):
-    """subargs = (yamlfile, args) 
+    """subargs = (yamlfile, args, include_state)
        returns = (yamlfile, output)
     """
-    yamlfile = subargs[0]
-    args = subargs[1]
+    yamlfile, args, include_state = subargs
+
     # Open input yaml files, parse, generate
-    mkP = mkParser()
+    mkP = mkParser(include_state=include_state)
     mkP.readPkgYaml(yamlfile)
     if not args.skipDefaults:
         mkP.readPkgYaml(args.dflts_file)
     mkP.resolveVars()
+
     setName = "base"
     if args.versions:
         setName = args.versions.replace("versions-", "")
-        setName = setName.replace(".yaml", "") 
+        setName = setName.replace(".yaml", "")
 
     ### DEBUG
     #a = mkP.__dict__['varsdict']
     #print ("DEBUG varsdict", type(a), a.keys())
 
-    if args.doModule: 
+    if args.doModule:
         mg = moduleGenerator(mkP)
         output = mg.generateModFile()
     elif args.doQuery:
         qp = queryProcessor(mkP)
         joinString = ' ' if not args.raw else None
-        output = qp.processQuery(args.doQuery,args.quiet,joinString=joinString,valuesonly=args.valuesonly)
+        output = qp.processQuery(args.doQuery, args.quiet,
+                                 joinString=joinString,
+                                 valuesonly=args.valuesonly)
     elif args.doCategory:
         qp = queryProcessor(mkP)
-        output=qp.processCategory(setName)
+        output = qp.processCategory(setName)
     elif args.doInfo:
         qp = queryProcessor(mkP)
-        output=qp.processInfo()
+        output = qp.processInfo()
     else:
         mig = makeIncludeGenerator(mkP)
         output = mig.generateDefs()
-    return (yamlfile,output)
+
+    return (yamlfile, output)
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])
