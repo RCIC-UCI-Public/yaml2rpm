@@ -213,7 +213,7 @@ class IncParser(io.FileIO):
 class mkParser(object):
     def __init__(self):
         self.varsdict = {}
-        self.varpat = re.compile('{{[A-Za-z0-9_\. ]+}}')
+        self.varpat = re.compile(r'{{[A-Za-z0-9_\\. ]+}}')
         self.combo = {} 
         self.yaml = ruamel.yaml.YAML(typ='safe', pure=True)
         self.yaml.default_flow_style = False
