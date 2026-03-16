@@ -47,7 +47,7 @@ uninstall-exclusive:
 
 # check rpms size
 admixdb:
-	ls -l RPMS/*/ | grep rpm | awk '{printf "%-15.f %s\n", int($$5/100)*100, $$9}'
+	ls -l RPMS/*/ | grep rpm | awk '{printf "%-15.f %s\n", $$5, $$9}'
 
 # Adapt definitions from rocks-devel. When bootstrapping and then installing 
 # a just-built RPM, just need the latest-built RPM. For large bootstraps (Like R and Perl)
