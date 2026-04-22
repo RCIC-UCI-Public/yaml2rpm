@@ -71,6 +71,7 @@ rpm:
   automodule: !eval "'--auto' if {{rpm.site.os_release}} >= 8 else ''"
   extras: &RpmExtras | 
     {{rpmAutoRequires}}\n\
+    %global source_date_epoch_from_changelog 0\n\
     %define __jar_repack {{rpmJarRepack}}\n\
     {{rpm.wrapstrip}}\n\
     {{rpm.build_id_links}}\n\
