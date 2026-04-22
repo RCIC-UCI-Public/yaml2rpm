@@ -11,7 +11,10 @@ bootstrap:
 # Packages supplied by the OS vendor that must be installed prior to building anything in this admix
 #enablerepo: epel
 system:
-   - !ifeq "{{site.os_release}},7,python-devel,platform-python-devel"
+   - !ifeq "{{site.os_release}},7,python-devel,"
+   - !ifeq "{{site.os_release}},8,platform-python-devel,"
+   - !ifeq "{{site.os_release}},9,platform-python-devel,"
+   - !ifeq "{{site.os_release}},10,python3-devel,"
 
    
 # BUILD
@@ -34,7 +37,10 @@ manifest:
    - environment-modules
    - bin-python
    - python-future
-   - !ifeq "{{site.os_release}},7,python-setuptools,platform-python-setuptools"
+   - !ifeq "{{site.os_release}},7,python-setuptools,"
+   - !ifeq "{{site.os_release}},8,platform-python-setuptools,"
+   - !ifeq "{{site.os_release}},9,platform-python-setuptools,"
+   - !ifeq "{{site.os_release}},10,python3-setuptools,"
    - python-ruamel-yaml
    - python-ruamel-yaml-clib
  
