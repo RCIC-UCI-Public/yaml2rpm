@@ -129,6 +129,14 @@ VERSION.MINOR = 0
 RELEASE_NAME = Helium
 endif
 
+
+ifeq ($(strip $(ROCKS.OS.VERSION.MAJOR)), 10)
+VERSION.MAJOR = 10
+VERSION.MINOR = 0
+#VERSION.PATCH = 3
+RELEASE_NAME = Neon
+endif
+
 VERSION_NAME = "$(RELEASE_NAME)"
 
 rocks-version-common.mk: $(wildcard $(ROCKSROOT)/etc/rocks-version-common.mk)

@@ -1,6 +1,11 @@
 NAME 		= python-future
+ifeq ($(strip $(VERSION.MAJOR)), 10)
+ARCHIVENAME 	= python-future
+VERSION 	= 1.0.0
+else
 ARCHIVENAME 	= future
 VERSION 	= 0.18.2
+endif
 RELEASE 	= 1
 TARBALL_POSTFIX	= tar.gz
 DISTRO          = $(ARCHIVENAME)-$(VERSION).$(TARBALL_POSTFIX)
