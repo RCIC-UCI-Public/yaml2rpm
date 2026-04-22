@@ -8,5 +8,5 @@ endif
 RELEASE 	= 1
 TARBALL_POSTFIX	= tar.gz
 DISTRO          = $(ARCHIVENAME)-$(VERSION).$(TARBALL_POSTFIX)
-RPM.EXTRAS      = "AutoReq: no"
+RPM.EXTRAS      = "AutoReq: no\\n%global source_date_epoch_from_changelog 0"
 RPM.FILES       = /usr/lib64/python$(PY.VERSION)/site-packages

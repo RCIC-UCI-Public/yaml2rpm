@@ -11,4 +11,4 @@ TARBALL_POSTFIX	= tar.gz
 DISTRO          = $(ARCHIVENAME)-$(VERSION).$(TARBALL_POSTFIX)
 RPM.ARCH        = noarch
 RPM.FILES       = /usr/lib/python$(PY.VERSION)/site-packages/*\n/usr/bin/*
-RPM.EXTRAS      = "AutoReq: no\\n%define __brp_mangle_shebangs /bin/echo"
+RPM.EXTRAS      = "AutoReq: no\\n%define __brp_mangle_shebangs /bin/echo\\n%global source_date_epoch_from_changelog 0"

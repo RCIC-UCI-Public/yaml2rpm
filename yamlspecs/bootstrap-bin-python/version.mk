@@ -12,3 +12,4 @@ endif
 RPM.SCRIPTLETS.FILE = scriptlets
 RPM.ROOT	= /usr/share/$(NAME)
 RPM.FILES	= $(RPM.ROOT)
+RPM.EXTRAS      = "%global source_date_epoch_from_changelog 0"
