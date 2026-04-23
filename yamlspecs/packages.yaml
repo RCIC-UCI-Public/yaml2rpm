@@ -32,11 +32,12 @@ build:
 # List of packages that would probably be installed on a generic target system
 # This says the manifest is  the {{build0}}. All built and all system packages is 
 # another rational configuration
+# There are special names of python support packages, dependent upon os release
 manifest:  
    - "{{build0}}"
    - environment-modules
-   - bin-python
-   - python-future
+   - !eval "'bin-python' if int({{site.os_release}}) < 10 else ''"
+   - !eval "'python-future' if int({{site.os_release}}) < 10 else ''"
    - !ifeq "{{site.os_release}},7,python-setuptools,"
    - !ifeq "{{site.os_release}},8,platform-python-setuptools,"
    - !ifeq "{{site.os_release}},9,platform-python-setuptools,"

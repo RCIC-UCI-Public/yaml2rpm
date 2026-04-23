@@ -10,10 +10,13 @@ OS.MAJOR = $(shell /bin/cat /etc/os-release | grep ^REDHAT_SUPPORT_PRODUCT_VERSI
 
 ## Packages that need to be built prior to yamlrpm 
 # The included version of setuptools is new enough in EL9
+COMMON_BOOTSTRAP_PKGS = ruamel-yaml ruamel-yaml-clib
 ifeq ($(strip $(OS.MAJOR)),8)
-BOOTSTRAP_PKGS = bin-python future setuptools ruamel-yaml ruamel-yaml-clib
+BOOTSTRAP_PKGS = bin-python future setuptools $(COMMON_BOOTSTRAP_PKGS) 
+else ifeq ($(strip $(OS.MAJOR)),9)
+BOOTSTRAP_PKGS = bin-python future $(COMMON_BOOTSTRAP_PKGS) 
 else
-BOOTSTRAP_PKGS = bin-python future ruamel-yaml ruamel-yaml-clib
+BOOTSTRAP_PKGS = $(COMMON_BOOTSTRAP_PKGS) 
 endif
 
 TMP0_BOOTSTRAP_PKGS = $(BOOTSTRAP_PKGS:%=python-%) 
