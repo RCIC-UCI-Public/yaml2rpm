@@ -26,3 +26,7 @@
   files: 
     - "{{root}}"
   provides: "{{pkgname}}"
+  rpm:
+    extras: | 
+      %global source_date_epoch_from_changelog 0\n\
+      %define __brp_mangle_shebangs /bin/echo turn off shebang mangling
