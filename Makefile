@@ -1,4 +1,4 @@
-# Copyright (c) 2000 - 2020 The Regents of the University of California.
+# Copyright (c) 2000 - 2026 The Regents of the University of California.
 # All rights reserved.	
 # This includes the Generic toplevel Makefile - most admixes should
 # be able to use this.
