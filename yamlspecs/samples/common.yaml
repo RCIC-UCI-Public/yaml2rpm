@@ -1,5 +1,0 @@
-# Common definitions for foundation packages
-!include rcic-package.yaml
----
-- baserpm: foundation-{{name}}
-  versions: !include versions.yaml

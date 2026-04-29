@@ -16,9 +16,8 @@
     to the essentials into a yaml file that goes through some automated steps to create an RPM.
   pretar: >
     mkdir -p {{name}}-{{version}}/sys;
-    tar cf - --dereference bin site README.md builder samples yaml2rpm.sh | tar xf - -C {{name}}-{{version}};
+    tar cf - --dereference bin site README.md builder yaml2rpm.sh | tar xf - -C {{name}}-{{version}};
     install {{sysmake}} {{name}}-{{version}}/sys;
-    install Makefile.tmpl {{name}}-{{version}}/samples/Makefile;
     tar czf ${ADMIXROOT}/sources/{{srctar}} {{name}}-{{version}};
     mv {{name}}-{{version}} {{name}}-{{version}}.pretar
   build:
@@ -30,7 +29,7 @@
       mkdir -p $(ROOT)/{{root}}/bin; 
       mkdir -p $(ROOT)/{{root}}/site; 
       mkdir -p $(ROOT)/etc/profile.d;
-      $(TAR) cf - builder samples sys README.md | $(TAR) xf -  -C $(ROOT)/{{root}};
+      $(TAR) cf - builder sys README.md | $(TAR) xf -  -C $(ROOT)/{{root}};
       $(INSTALL) -m 755 bin/* $(ROOT)/{{root}}/bin;
       $(INSTALL) -m 644 site/*yaml $(ROOT)/{{root}}/site;
       (OSMAJOR=$$(/bin/cat /etc/os-release | grep ^REDHAT_SUPPORT_PRODUCT_VERSION | /usr/bin/cut -f 2 -d\" | /usr/bin/cut -f 1 -d.); cd $(ROOT)/{{root}}/site; ln -s site$${OSMAJOR}.yaml site.yaml); 
