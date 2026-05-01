@@ -291,10 +291,14 @@ ifeq ($(MAKE.rpmflag),)
 MAKE.rpmflag = -bb
 endif
 
+ifeq ($(QA_RPATHS),)
+QA_RPATHS = 0x0002
+endif
+
 ifndef MAKE.iscontrib
 .PHONY: rpm
 rpm:: root-check rpm-mkdirs $(REDHAT.SOURCES)/$(TARBALL.GZ) $(REDHAT.SPECS)/$(SPECFILE) $(HOME)/.rpmmacros
-	rpmbuild $(MAKE.rpmflag) $(REDHAT.SPECS)/$(SPECFILE)
+	QA_RPATHS=$(QA_RPATHS) rpmbuild $(MAKE.rpmflag) $(REDHAT.SPECS)/$(SPECFILE)
 else
 rpm:: root-check rpm-mkdirs $(HOME)/.rpmmacros
 endif
