@@ -42,5 +42,5 @@ if [ ! -d RPMS/$ARCH ]; then mkdir -p RPMS/$ARCH; fi
 find core-tiny/RPMS -name '*rpm' -exec cp -p {} RPMS/$ARCH \; -print
 ## 
 echo "=== First Build completed ==="
-echo "Start a new bash shell or logout/login to make certain all profile.d scripts"
+echo "Start a new bash shell or logout/login to make certain all scripts from /etc/profile.d are sourced"
 
