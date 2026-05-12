@@ -1,8 +1,8 @@
-# Public sources for admixes are currently held in Wasabi hot cloud 
+# Public sources for admixes are currently held in AWS with public access turned on 
 # You can set a different base https locations by setting the SURL Environment
 # var
 ifndef SURL
-SURL= https://s3.us-west-1.wasabisys.com/admix-sources
+SURL= https://admix-sources.s3.us-west-2.amazonaws.com
 endif
 
 ROCKSSHARE=/opt/rocks/share/devel
