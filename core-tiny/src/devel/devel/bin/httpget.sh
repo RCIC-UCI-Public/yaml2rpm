@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 # Get file from URL using curl 
 # usage:
 #    httpget.sh [-B baseurl] [-F Folder] -n <filename>  [-o outputfile]
@@ -27,7 +27,35 @@ function cleanup
 	fi
 }
 trap cleanup EXIT
-#!/bin/bash
+urlencode() {
+    local input="$1"
+    local length=${#input}
+    local i char ascii
+
+    for (( i = 0; i < length; i++ )); do
+        char="${input:i:1}"
+        case "$char" in
+            [a-zA-Z0-9.~_-])
+                # Safe characters remain unchanged
+                printf '%s' "$char"
+                ;;
+            ' ')
+                # Encode space as %20 (not '+')
+                printf '%%20'
+                ;;
+            '/')
+                printf '/'
+		;;
+            ':')
+                printf ':'
+		;;
+            *)
+                # Encode all other characters
+                printf '%%%02X' "'$char"
+                ;;
+        esac
+    done
+}
 
 CWD=$(pwd)
 COOKIE=$(mktemp --tmpdir=$CWD)
@@ -73,7 +101,8 @@ fi
 echo "$BASEURL/$FOLDER/$FILENAME  --> $OUTFILE"
 
 ## Retrieve the file
-DLPATH="$BASEURL/$FOLDER/$FILENAME"
+DLPATH=$(urlencode "$BASEURL/$FOLDER/$FILENAME")
+# echo "X: $DLPATH"
 #wget -O $TMPFILE --save-cookie $COOKIE --load-cookie $COOKIE "$DLPATH"
 curl --remote-time -f --cookie-jar $COOKIE -o $TMPFILE -L "$DLPATH" 
 ## Handle the case where curl returned an error
