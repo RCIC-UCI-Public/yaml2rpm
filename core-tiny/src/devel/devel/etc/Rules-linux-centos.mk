@@ -292,7 +292,7 @@ MAKE.rpmflag = -bb
 endif
 
 ifeq ($(QA_RPATHS),)
-QA_RPATHS = 0x0002
+QA_RPATHS = 0x0003
 endif
 
 ifndef MAKE.iscontrib
