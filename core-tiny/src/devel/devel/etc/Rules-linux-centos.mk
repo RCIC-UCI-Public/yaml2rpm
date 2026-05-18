@@ -208,6 +208,7 @@ USERID = $(shell id -u)
 INSTALL = install
 CAT	= /bin/cat
 CVS	= /usr/bin/cvs
+RULES.OS.VERSION.MAJOR=$(shell /bin/cat /etc/os-release | grep ^REDHAT_SUPPORT_PRODUCT_VERSION | /usr/bin/cut -f 2 -d\" | /usr/bin/cut -f 1 -d.)
 #MYSQL_LDFLAGS = -all-static
 TARGET_PKG = rpm
 TAR = tar
@@ -295,10 +296,19 @@ ifeq ($(QA_RPATHS),)
 QA_RPATHS = 0x0003
 endif
 
+# rpmbuild on 10 (and presumably later) need to explicitly declare noclean
+# to retain all BUILD artifacts. Set to empty for 9 and earliear
+#
+ifeq ($(shell [ $(RULES.OS.VERSION.MAJOR) -ge 10 ] && echo true),true)
+RPMBUILD.NOCLEAN = --noclean
+else
+RPMBUILD.NOCLEAN =
+endif 
+
 ifndef MAKE.iscontrib
 .PHONY: rpm
 rpm:: root-check rpm-mkdirs $(REDHAT.SOURCES)/$(TARBALL.GZ) $(REDHAT.SPECS)/$(SPECFILE) $(HOME)/.rpmmacros
-	QA_RPATHS=$(QA_RPATHS) rpmbuild $(MAKE.rpmflag) $(REDHAT.SPECS)/$(SPECFILE)
+	QA_RPATHS=$(QA_RPATHS) rpmbuild $(RPMBUILD.NOCLEAN) $(MAKE.rpmflag) $(REDHAT.SPECS)/$(SPECFILE)
 else
 rpm:: root-check rpm-mkdirs $(HOME)/.rpmmacros
 endif
