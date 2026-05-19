@@ -74,8 +74,6 @@ moduleCompiler: &ModuleCompiler
   prepend_path:
     - *Prepend_path
     - *Flagspath
-  prereq_c: &ModuleCompiler_prereq
-    - "{{compiler}}/{{compiler_version}}"
 
 # module with compiler and interconnect specs
 moduleCompilerMpi: &ModuleCompilerMpi
@@ -86,5 +84,3 @@ moduleCompilerMpi: &ModuleCompilerMpi
   prepend_path:
     - *Prepend_path
     - *Flagspath
-  prereq_mpi: &ModuleCompilerMpi_prereq
-    - "{{mpi}}/{{mpi_version}}/{{compiler}}.{{compiler_version}}"
