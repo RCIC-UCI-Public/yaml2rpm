@@ -70,6 +70,8 @@ rpm:
   site: !include site.yaml
   automodule: !eval "'--auto' if {{rpm.site.os_release}} >= 8 else ''"
   extras: &RpmExtras | 
+    %changelog\n\
+    %autochangelog\n\
     {{rpmAutoRequires}}\n\
     %global source_date_epoch_from_changelog 0\n\
     %define __jar_repack {{rpmJarRepack}}\n\

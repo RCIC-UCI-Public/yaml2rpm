@@ -27,7 +27,8 @@ provides: "{{module.provides}}"
 files:
   -  "{{module.category_path}}"
 rpm:
-  extras:
+  extras: >
+    %changelog\n%autochangelog\n\
 
 mod_defaults: &Module
   category_path: "{{pkg_defaults.RCICmpath}}/{{category}}"
