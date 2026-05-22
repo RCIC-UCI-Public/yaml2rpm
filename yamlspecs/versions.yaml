@@ -9,5 +9,8 @@ rcic_module_support:
 yaml2rpm:
   version: "2"
   release: "50"
+# Below is just a nominal version for the older OSes. Actual version
+# comes from what is in core-tiny/ for the rocks-devel RPM and
+# it is higher which satisfies the build
 rocks_devel: "7.1"
 
