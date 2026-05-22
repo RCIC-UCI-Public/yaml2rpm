@@ -352,19 +352,6 @@ module-table:: stagedir
           if [ $${#MODYAMLS[@]} -gt 0 ]; then                       \
 	  $(GENERATE) -i $${MODYAMLS[@]}; fi                            \
 	)
-admix-bootstrap-yaml:
-	( NEEDS=$$(make -f $(THISMAKE) -s module-requires | sort | uniq); \
-	PROVIDES=$$(make -f $(THISMAKE) -s module-provides | sort | uniq);\
-	echo "!include rcic-admix-requires.yaml" > $(ADMIX)-bootstrap.yaml;\
-        echo "---" >> $(ADMIX)-bootstrap.yaml; \
-        echo "- package: $(ADMIX)-bootstrap" >> $(ADMIX)-bootstrap.yaml; \
-        echo "  name: $(ADMIX)-bootstrap" >> $(ADMIX)-bootstrap.yaml; \
-        echo "  requires: " >> $(ADMIX)-bootstrap.yaml; \
- 	for x in $$NEEDS; do echo $$PROVIDES | grep -q $$x; \
-	  if [ $$? != 0 ]; then echo "    - $$x" >> \
-		$(ADMIX)-bootstrap.yaml; \
-	  fi;\
-	done )
 
 bootstrap:: 
 	- $(YUMEXCLUSIVE) $(ENABLEREPO) -y install $(BOOTSTRAP_SYSTEM) 
