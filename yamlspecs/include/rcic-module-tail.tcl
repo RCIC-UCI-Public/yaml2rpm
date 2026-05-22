@@ -1,6 +1,6 @@
 ## Handle automated loading/unloading of modules. This is intended
 ## to be included at the end of a environment module specification
-## (C) 2018-2019 UC Regents
+## (C) 2018-2026 UC Regents
 ## Research Cyberinfrastructure Center, UC Irvine
 ## Author: Philip M. Papadopoulos
 set AUTOLOADED [string trim ${AUTOLOADED}]

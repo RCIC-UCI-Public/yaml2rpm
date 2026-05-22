@@ -7,7 +7,7 @@
 ## It is intended to be sourced in specific environment module files
 ## See examples in yaml2rpm-generated RPMS
 ## Load and Unload functions
-## (C) 2018-2019 UC Regents
+## (C) 2018-2026 UC Regents
 ## Research Cyberinfrastructure Center, UC Irvine
 ## Author: Philip M. Papadopoulos
 
