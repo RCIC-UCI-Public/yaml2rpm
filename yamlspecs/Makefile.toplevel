@@ -93,4 +93,14 @@ cleansources:
 veryclean: clean cleansources
 	make -C yamlspecs veryclean	
 
+targets-detail:         ## Show available targets and sources
+        @grep -E '^[a-zA-Z0-9_.-]+:([^=]|$$)' $(MAKEFILE_LIST) | \
+                grep -v '^[[:space:]]' | \
+                awk -F':' '{printf "%s %s\n", $$1, $$2}' | \
+                sed 's/## //' | grep -v .PHONY | column -t
 
+targets:                ## Show available targets
+        @grep -E '^[a-zA-Z0-9_.-]+:([^=]|$$)' $(MAKEFILE_LIST) | \
+                grep -v '^[[:space:]]' | \
+                awk -F':' '{print $$2}' | \
+                sed 's/## //' | grep -v .PHONY
