@@ -72,6 +72,9 @@ rpm:
   extras: &RpmExtras | 
     %changelog\n\
     %autochangelog\n\
+    %if 0%{?rhel} >= 10\n\
+    %undefine _auto_set_build_flags\n\
+    %endif\n\
     {{rpmAutoRequires}}\n\
     %global source_date_epoch_from_changelog 0\n\
     %define __jar_repack {{rpmJarRepack}}\n\
