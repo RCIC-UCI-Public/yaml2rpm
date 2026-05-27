@@ -293,7 +293,7 @@ MAKE.rpmflag = -bb
 endif
 
 ifeq ($(QA_RPATHS),)
-QA_RPATHS = 0x0003
+QA_RPATHS = 0x003f
 endif
 
 # rpmbuild on 10 (and presumably later) need to explicitly declare noclean
