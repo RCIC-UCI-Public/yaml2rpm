@@ -19,10 +19,12 @@ mpi:
 cuda:
   name: cuda
   version:  "13.0.1"
-python_sys: "3.9"
 python: "2.7.17"
 python_major: "2.7"
-# there is a newer python 3.14.3
+# Version of python provided by the system
+# python_sys and python3_major are the same once python3 became default
+# python. For older OSes system python was 2. 
+python_sys: "3.12"
 python3: "3.12.12"
 python3_major: "3.12"
 python3_family: "3"
