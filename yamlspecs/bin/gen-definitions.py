@@ -18,6 +18,27 @@ from multiprocessing import Pool
 from typing import Dict
 from builtins import next
 from builtins import object
+import traceback
+
+RELEASE_FILE = '/etc/os-release'
+VERKEY = 'REDHAT_SUPPORT_PRODUCT_VERSION'
+
+def findOsVersion():
+    # find the current OS release by reading RELEASE_FILE
+    try:
+        with open(RELEASE_FILE, 'r') as f:
+            input = f.readlines()
+            lines = filter( lambda x: "=" in x, input)
+            evars = {
+                k: v.strip('"')
+                for k, v in (line.strip().split('=', 1) for line in lines)
+            }
+            return evars[VERKEY]
+    except Exception as e:
+        print(f"Error: {RELEASE_FILE} file does not exist. Or {VERKEY} does not exist in file ")
+        sys.exit(-1)
+
+_OS_RELEASE = findOsVersion()
 
 def new_compose_document(self):
     self.parser.get_event()
@@ -78,6 +99,11 @@ class evalStmt(object):
         self._evaluated = evaluated
         self._value = str(rhs)
 
+        # if this eval stmt has no vars, evaluate it immediately
+        tmpMkp=mkParser()
+        if not tmpMkp.hasVars(self._stmt):
+            self.eval()
+
     @property
     def stmt(self):
         return self._value if self._evaluated else self._stmt
@@ -102,6 +128,10 @@ class evalStmt(object):
             self._value = eval(self.stmt)
             self._evaluated = True
         return self._value
+
+    def hasVars(self, s):
+        """ Determine if an object has vars {{ }} """
+        return len(re.findall(self.varpat, self.stringRep(s))) > 0
 
 ## This is subclass of eval that execs more complicated python code. The code MUST
 ## set the variable __rval as the value "returned" from the exec
@@ -135,6 +165,15 @@ def yaml_python_ifneq(loader, node):
     ### !ifneq "x,y,<true result>[,<false result>]
     template= "'%s' if '%s' != '%s' else '%s'"
     return parseIfstmt(loader, node, template)
+
+def yaml_python_oscmp(loader, node):
+    # Compares the actual OS version (e.g. 9.7 or 10.1) 
+    ### !OScmp "cmp,val,<true result>,<false result>"
+    ## e.g. !OScmp "<,10,'rocky9-','rocky10+'"
+    raw = loader.construct_scalar(node)
+    (cmp, val,truestmt, falsestmt) = [ x.strip() for x in raw.split(",")]
+    template= "'%s' if %s %s float(%s) else '%s'" % (truestmt,_OS_RELEASE,cmp,val,falsestmt)
+    return evalStmt(template)
 
 def parseIfstmt(loader, node, template):
     raw = loader.construct_scalar(node)
@@ -231,6 +270,7 @@ class mkParser(object):
         self.yaml.Constructor.add_constructor("!exec", yaml_python_exec)
         self.yaml.Constructor.add_constructor("!ifeq", yaml_python_ifeq)
         self.yaml.Constructor.add_constructor("!ifneq", yaml_python_ifneq)
+        self.yaml.Constructor.add_constructor("!OScmp", yaml_python_oscmp)
 
     def readPkgYaml(self, fname):
         """ Read yaml file, proesss loading of all included yamls, merge
@@ -239,7 +279,7 @@ class mkParser(object):
         docs = list(filter(lambda x: x is not None, list(self.yaml.load_all(f))))
         kvdict = self.mergeDocs(docs)
         self.combo.update(kvdict)
-
+      
     def mergeDocs(self, docs):
         """ Merge parsed YAML docs into a single dictionary. Keys are overwritten if
             multiple docs have the same key. If a key is a dictionary old and new are
@@ -297,10 +337,21 @@ class mkParser(object):
             Note: throws an exception if keyword does not exist """
 
         elems = self.lookup(keyword, stringify=False)
+
         ## if values only requested this is a dict, get the values and flatten to a single list
+        # evalStmts as values in a dictionary, need a little special treatment:
+        #   it's possible the evalStmt itself had no variables: 
+        #        1) the constructor will evaluate the statement at initialization. 
+        #        2) Variable resolution needs to do nothing, since this statement is already complete.
+        #        hence, the rhs (value) in a dict was never replaced by the final string
+        #      --> get the string rep
+        f = lambda x: str(x) if isinstance(x,evalStmt) else x 
         if type(elems) is dict and valuesonly:
-            flist = [ v for k, v in elems.items() ]
+            flist = [ f(v) for k, v in elems.items() ]
             elems = self.flatten(flist)
+        elif type(elems) is dict:    # special case where elem is an evalStmt with no vars 
+            newelems = { k: f(v) for k,v in elems.items()}
+            elems = newelems
         if type(elems) is list:
             if joinString is not None:
                 elems = joinString.join(elems)
