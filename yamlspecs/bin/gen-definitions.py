@@ -99,11 +99,6 @@ class evalStmt(object):
         self._evaluated = evaluated
         self._value = str(rhs)
 
-        # if this eval stmt has no vars, evaluate it immediately
-        tmpMkp=mkParser()
-        if not tmpMkp.hasVars(self._stmt):
-            self.eval()
-
     @property
     def stmt(self):
         return self._value if self._evaluated else self._stmt
@@ -341,11 +336,9 @@ class mkParser(object):
         ## if values only requested this is a dict, get the values and flatten to a single list
         # evalStmts as values in a dictionary, need a little special treatment:
         #   it's possible the evalStmt itself had no variables: 
-        #        1) the constructor will evaluate the statement at initialization. 
-        #        2) Variable resolution needs to do nothing, since this statement is already complete.
-        #        hence, the rhs (value) in a dict was never replaced by the final string
-        #      --> get the string rep
-        f = lambda x: str(x) if isinstance(x,evalStmt) else x 
+        #        1) Variable resolution will never force evaluation.
+        #        2) evaluate here 
+        f = lambda x: x.eval() if isinstance(x,evalStmt) else x 
         if type(elems) is dict and valuesonly:
             flist = [ f(v) for k, v in elems.items() ]
             elems = self.flatten(flist)
