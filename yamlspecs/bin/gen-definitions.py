@@ -354,7 +354,7 @@ class mkParser(object):
             elems = newelems
         if type(elems) is list:
             if joinString is not None:
-                elems = joinString.join(elems)
+                elems = joinString.join([ f(x) for x in elems ])
         elif type(elems) is bool: # convert boolean to string
             elems = str(elems)
         return elems
