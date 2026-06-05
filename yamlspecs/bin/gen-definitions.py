@@ -22,6 +22,8 @@ import traceback
 
 RELEASE_FILE = '/etc/os-release'
 VERKEY = 'REDHAT_SUPPORT_PRODUCT_VERSION'
+VARPAT = '{{[A-Za-z0-9_\\. ]+}}'
+
 
 def findOsVersion():
     # find the current OS release by reading RELEASE_FILE
@@ -98,6 +100,11 @@ class evalStmt(object):
         self._stmt = str(rhs)
         self._evaluated = evaluated
         self._value = str(rhs)
+        self._varpat = re.compile(r'%s' % VARPAT)
+
+        # Early evaluate if there are NO variables in the statement 
+        if len(re.findall(self._varpat, self._stmt)) == 0:
+            self.eval()
 
     @property
     def stmt(self):
@@ -251,7 +258,7 @@ class IncParser(io.FileIO):
 class mkParser(object):
     def __init__(self, include_state=None):
         self.varsdict = {}
-        self.varpat = re.compile(r'{{[A-Za-z0-9_\\. ]+}}')
+        self.varpat = re.compile(r'%s' % VARPAT)
         self.combo = {}
         self.include_state = include_state or IncludeState()
 
